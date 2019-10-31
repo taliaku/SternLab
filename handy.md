@@ -5,6 +5,7 @@
 * To load R: module load R/R302
 * To load python 3.4: module load python/anaconda3-4.0.0
 * To load python 3.6: module load python/anaconda_python-3.6.1
+* To load python 3.7: module load python/python-anaconda3.2019.7
 * To allow multi-threading using CPU: module load rocks-openmpi
 * To allow multi-threading using GPU: module load openmpi-x86_64
 * Colors control: PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '
