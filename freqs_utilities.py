@@ -7,6 +7,7 @@ from scipy.stats import ttest_ind
 import numpy as np
 import os
 from functools import reduce
+from optparse import OptionParser
 
 
 
@@ -30,7 +31,6 @@ def save_freqs_with_different_delimiter(freqs_file):
     freqs_file = check_filename(freqs_file)
     f = pd.read_csv(freqs_file, sep="\t")
     f.to_csv(freqs_file, index=False)
-
 
 
 def merge_freqs_files(freqs_files, output):
@@ -58,8 +58,22 @@ def merge_freqs_files(freqs_files, output):
     all.to_csv(output, index=False)
     return output, all
 
+def change_ref_to_consensus(freqs_file):
+    freqs = pd.read_csv(freqs_file, sep="\t")
+    freqs_tmp = pd.read_csv(freqs_file, sep="\t")
+    freqs_tmp = freqs_tmp.drop_duplicates("Pos") # rank 0 only
+    freqs_tmp = freqs_tmp[['Pos', 'Base']]
+    transformed_freq = freqs.set_index(freqs.Pos).join(
+        freqs_tmp.set_index(freqs_tmp.Pos), rsuffix='_r')
+    transformed_freq.Ref = transformed_freq.Base_r
+    transformed_freq = transformed_freq.loc[(transformed_freq.Pos >= 1456) & (transformed_freq.Pos <= 4488)][
+        ['Pos', 'Base', 'Freq', 'Ref', 'Read_count', 'Rank', 'Prob']]
 
-def add_mutation_to_freq_file(output, freqs_file = None, freqs = None):
+    return transformed_freq
+
+
+
+def add_mutation_to_freq_file(output, freqs_file = None, freqs = None, forced_rf_shift = 0):
     # assumes that position 1 is the beginning of the CDS
     # removes positions that at the beginning or at the end that are not part of a full codon
     if freqs_file == None and type(freqs) == "NoneType":
@@ -67,14 +81,16 @@ def add_mutation_to_freq_file(output, freqs_file = None, freqs = None):
     elif freqs_file != None and freqs != None:
         print(freqs_file, freqs)
         print(type(freqs))
-        raise Exception("Need to specify or freqs file path OR a freqs pandas object - only one!")
+        raise Exception("Need to specify EITHER freqs file path OR a freqs pandas object - only one!")
     elif freqs_file != None:
         freqs = pd.read_csv(freqs_file, sep="\t")
-    freqs = freqs[freqs.Pos % 1 == 0] #removes insertions
+    # freqs = freqs[freqs.Pos % 1 == 0] #removes insertions #TODO- verify alternative & remove this line
+    freqs = freqs[freqs.Ref  != "-"] # alternative remove insertions
     freqs = freqs[freqs.Base != "-"] #removes deletions
     freqs.reset_index(drop=True, inplace=True)
 
     first_pos = int(freqs.loc[1].Pos) #gets the first position in the right frameshift
+    first_pos += forced_rf_shift
     if first_pos == 1:
         start_from = first_pos
     elif first_pos % 3 == 1:
@@ -93,9 +109,9 @@ def add_mutation_to_freq_file(output, freqs_file = None, freqs = None):
 
     for pos in range(start_from, int(max(freqs.Pos)), 3): # add mutation information
         temp = freqs.loc[freqs['Pos'].isin([pos, pos+1, pos+2])]
-        if len(temp) != 12: #12 - is 4 * 3 [A, C, G, T]
-
+        if len(temp) != 12: # 12 - is 3 positions * 4 base mutations [A, C, G, T] (ordered by Rank)
             continue
+
         first = temp.iloc[0].Ref
         second = temp.iloc[4].Ref
         third = temp.iloc[8].Ref
@@ -136,7 +152,7 @@ def add_mutation_to_freq_file(output, freqs_file = None, freqs = None):
             freqs.loc[(freqs["Pos"] == current_pos) & (freqs["Base"] == mut_base), "Mutation"] = ref_base + mut_base
 
     freqs = freqs[freqs.Mutation_type.notnull()] #removes Nones - rows at the beginning and the end
-    freqs.to_csv(output, index=False)
+    freqs.to_csv(output, index=False, sep='\t')
     return freqs
 
 
@@ -484,6 +500,41 @@ def compare_positions_between_freqs(dict_of_freqs, out_path=False, positions_to_
         df_final.to_csv(out_path, index=False)
     return df_final
 
+    
+def estimate_insertion_freq(df, extra_columns=[]):
+    '''
+    This function gets a freqs file(s) dataframe, calculates the frequency of insertions by using the read count of the
+    previous base and returns a dataframe including this.
+    :param df: a dataframe of freqs file(s).
+    :param extra_columns: if df contains more than the basic freqs columns, for example a column of Sample_id etc., 
+    provide a list of the extra columns to be included.
+    :return: df with extra columns describing insertion frequency.
+    '''
+    read_counts = df[(df.Ref != '-')][ extra_columns + ['Pos', 'Read_count']].drop_duplicates()
+    read_counts.rename(columns={'Read_count':'estimated_read_count', 'Pos':'rounded_pos'}, inplace=True)
+    insertions = df[(df.Ref == '-')]
+    not_insertions = df[(df.Ref != '-')]
+    insertions['rounded_pos'] = insertions.Pos.astype(int).astype(float)
+    insertions = pd.merge(insertions, read_counts, how='left', on= extra_columns + ['rounded_pos'])
+    insertions['estimated_freq'] = insertions.Freq * insertions.Read_count / insertions.estimated_read_count
+    df = pd.concat([insertions, not_insertions])
+    return df.sort_values(extra_columns + ['Pos'])
+
+def main():
+    parser = OptionParser("usage: %prog [options]\nTry running %prog --help for more information")
+    parser.add_option("-f", "--freqs", dest="freqs", help="frequency file")
+    parser.add_option("-o", "--output_freqs", dest="output_file", help="output freqs file with mutations")
+    (options, args) = parser.parse_args()
+    freq_file = options.freqs
+    output_freq_file = options.output_file
+
+    print('Handling file:' + freq_file)
+    add_mutation_to_freq_file_with_cons_as_ref(freq_file, output_freq_file)
+
+
+def add_mutation_to_freq_file_with_cons_as_ref(freq_file, output_freq_file):
+    transformed_freq = change_ref_to_consensus(freq_file)
+    add_mutation_to_freq_file(output_freq_file, freqs= transformed_freq)
 
 
 if __name__ == "__main__":
