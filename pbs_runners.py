@@ -6,7 +6,7 @@ from os import path
 from seqFileTools import convert_fasta_to_phylip, get_longest_sequence_name_in_fasta
 from file_utilities import set_filenames_for_pbs_runs, check_filename, check_dirname
 
-def baseml_runner(ctl, alias = "bml"):
+def baseml_runner(ctl, alias = "bml", cmdname="baseml"):
     """
     run baseml program from PAML on cluster
     :param ctl: ctl file path
@@ -14,7 +14,7 @@ def baseml_runner(ctl, alias = "bml"):
     :return: job id
     """
     ctl = check_filename(ctl)
-    cmdfile = pbs_jobs.get_cmdfile_dir("baseml_cmd.txt", alias); tnum = 1; gmem = 2
+    cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias); tnum = 1; gmem = 2
     cmds = "echo %s \n/sternadi/home/volume1/taliakustin/software/paml4.8/bin/baseml %s" %(ctl, ctl)
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
@@ -36,16 +36,15 @@ def codeml_runner(ctl, alias = "cml"):
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis"):
+def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis", run_after_job=None, cmdname = "script"):
     """
     run script on cluster
     :param cmds: script running line
     :param alias: job name (default: script)
     :return: job id
     """
-    cmdfile = pbs_jobs.get_cmdfile_dir("script", alias); tnum=1; gmem=gmem
-    print(cmdfile, alias, tnum, gmem, cmds)
-    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=load_python)
+    cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias); tnum=1; gmem=gmem
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=load_python, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -101,13 +100,14 @@ def phyml_aa_runner(alignment, alias = "phyml", phylip=True):
     return job_id
 
 
-def fastml_runner(alignment, tree, outdir = None, alias = "fastml", additional_params=None):
+def fastml_runner(alignment, tree, outdir = None, alias = "fastml", optBranchLen = True, additional_params=None, fastml_path="/sternadi/home/volume1/shared/tools/phylogenyCode/programs/fastml/fastml"):
     """
     run fastml from phylogenyCode on cluster
     :param alignment: alignment file path
     :param tree: tree file path
     :param alias: job name (default: fastml)
     :param outdir: output directory for results (default: None - saves in the alignment's dir)
+    :param optBranchLen: to optimize branch length? default - true
     :return: job id
     """
     alignment = check_filename(alignment)
@@ -124,9 +124,11 @@ def fastml_runner(alignment, tree, outdir = None, alias = "fastml", additional_p
     joint_prob = outdir + "/" + basename + ".prob.joint.txt"
     marginal_prob = outdir + "/" + basename + ".prob.marginal.txt"
     cmdfile = pbs_jobs.get_cmdfile_dir("fastml.txt", alias); tnum = 1; gmem = 1
-    cmds = "/sternadi/home/volume1/shared/tools/phylogenyCode/programs/fastml/fastml -s %s -t %s -mn -x %s " \
-           "-y %s -j %s -k %s -d %s -e %s -qf" % (alignment, tree, newick_tree, ancestor_tree, joint_seqs,
+    cmds = "%s -s %s -t %s -mn -x %s " \
+           "-y %s -j %s -k %s -d %s -e %s -qf" % (fastml_path, alignment, tree, newick_tree, ancestor_tree, joint_seqs,
                                                  marginal_seqs, joint_prob, marginal_prob)
+    if not optBranchLen:
+        cmds += " -b"
     if additional_params != None:
         cmds += " %s" % additional_params
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, gmem=gmem, cmds=cmds)
@@ -174,7 +176,7 @@ def prank_runner(sequence, alignment=None, alias = "prank"):
 
 
 
-def prank_codon_runner(sequence, alignment=None, alias = "prank", tree=None):
+def prank_codon_runner(sequence, alignment=None, alias = "prank_codon", tree=None):
     """
     run prank codon on cluster
     :param sequence: sequence file path (fasta format)
