@@ -100,7 +100,7 @@ def phyml_aa_runner(alignment, alias = "phyml", phylip=True):
     return job_id
 
 
-def fastml_runner(alignment, tree, outdir = None, alias = "fastml", optBranchLen = True, additional_params=None, fastml_path="/sternadi/home/volume1/shared/tools/phylogenyCode/programs/fastml/fastml"):
+def fastml_runner(alignment, tree, outdir = None, log_file = None, alias = "fastml", optBranchLen = True, additional_params=None, fastml_path="/sternadi/home/volume1/shared/tools/phylogenyCode/programs/fastml/fastml"):
     """
     run fastml from phylogenyCode on cluster
     :param alignment: alignment file path
@@ -123,10 +123,12 @@ def fastml_runner(alignment, tree, outdir = None, alias = "fastml", optBranchLen
     marginal_seqs = outdir + "/" + basename + ".seq.marginal.txt"
     joint_prob = outdir + "/" + basename + ".prob.joint.txt"
     marginal_prob = outdir + "/" + basename + ".prob.marginal.txt"
+    if log_file == None:
+        log_file = outdir + "/" + basename + ".fastml.log"
     cmdfile = pbs_jobs.get_cmdfile_dir("fastml.txt", alias); tnum = 1; gmem = 1
     cmds = "%s -s %s -t %s -mn -x %s " \
-           "-y %s -j %s -k %s -d %s -e %s -qf" % (fastml_path, alignment, tree, newick_tree, ancestor_tree, joint_seqs,
-                                                 marginal_seqs, joint_prob, marginal_prob)
+           "-y %s -j %s -k %s -d %s -e %s -qf -R %s" % (fastml_path, alignment, tree, newick_tree, ancestor_tree, joint_seqs,
+                                                 marginal_seqs, joint_prob, marginal_prob, log_file)
     if not optBranchLen:
         cmds += " -b"
     if additional_params != None:
