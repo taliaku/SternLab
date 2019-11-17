@@ -29,8 +29,8 @@ def run_script_runner():
     baseline_output = '/sternadi/datasets/volume2/HIV_ravi_gupta_CONTROL_merged/Baseline'
 
 
-    for sample in fl_samples:
-        print('sample is {sample}, input: {input}, output: {output}'.format(sample= sample, input= fl_input, output= fl_output))
+    for sample in baseline_samples:
+        print('sample is {sample}, input: {input}, output: {output}'.format(sample= sample, input= baseline_input, output= baseline_output))
         script_runner('mkdir -p {output}/{sample}; '
                       'python /sternadi/home/volume3/omer/SternLab/scripts/merge_fastq_files.py '
                       # '-f {input}/{sample}/{sample}_R1.fastq.gz '
@@ -38,7 +38,7 @@ def run_script_runner():
                       '-f {input}/{sample}/{sample}_L001_R1_001.fastq.gz '
                       '-e {input}/{sample}/{sample}_L001_R2_001.fastq.gz '
                       '-o {output}/{sample}/{sample}.merged.fastq.gz '
-                      '-r 60'.format(sample= sample, input= fl_input, output= fl_output),
+                      '-r 60'.format(sample= sample, input= baseline_input, output= baseline_output),
                       alias='merge_paired_end_{}'.format(sample),
                       load_python=True)
 
