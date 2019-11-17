@@ -30,13 +30,13 @@ def run_script_runner():
 
 
     for sample in original_samples_leftovers2:
-        print('sample is {sample}, input: {output}, output: {output}'.format(sample= sample, input= original_input, output= original_output))
+        print('sample is {sample}, input: {input}, output: {output}'.format(sample= sample, input= original_input, output= original_output))
         script_runner('mkdir -p {output}/{sample}; '
                       'python /sternadi/home/volume3/omer/SternLab/scripts/merge_fastq_files.py '
-                      '-f {input}/{sample}/{sample}_R1.fastq.gz '
-                      '-e {input}/{sample}/{sample}_R2.fastq.gz '
-                      # '-f {input}/{sample}/{sample}_L001_R1_001.fastq.gz '
-                      # '-e {input}/{sample}/{sample}_L001_R2_001.fastq.gz '
+                      # '-f {input}/{sample}/{sample}_R1.fastq.gz '
+                      # '-e {input}/{sample}/{sample}_R2.fastq.gz '
+                      '-f {input}/{sample}/{sample}_L001_R1_001.fastq.gz '
+                      '-e {input}/{sample}/{sample}_L001_R2_001.fastq.gz '
                       '-o {output}/{sample}/{sample}.merged.fastq.gz '
                       '-r 60'.format(sample= sample, input= original_input, output= original_output),
                       alias='merge_paired_end_{}'.format(sample),
