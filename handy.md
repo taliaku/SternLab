@@ -5,13 +5,14 @@
 * To load R: module load R/R302
 * To load python 3.4: module load python/anaconda3-4.0.0
 * To load python 3.6: module load python/anaconda_python-3.6.1
+* To load python 3.7: module load python/python-anaconda3.2019.7
 * To allow multi-threading using CPU: module load rocks-openmpi
 * To allow multi-threading using GPU: module load openmpi-x86_64
 * Colors control: PS1='\[\033[1;36m\]\u\[\033[1;31m\]@\[\033[1;32m\]\h:\[\033[1;35m\]\w\[\033[1;31m\]\$\[\033[0m\] '
 
 **Cool qstat aliases:**
 * To get job description: qstat -f <JobID>
-* To get a jog array progress by each array entry: qstat -f <JobID[]>
+* To get a job array progress by each array entry: qstat -f <JobID[]>
 * To get all computational nodes for all jobs running: `for job in `qstat | grep username | cut -f1 -d.`; do echo  $job; qstat -f $job | grep host;  done`
 * **-a** Display all jobs in any status (running, queued, held)
 * **-r** Display all running or suspended jobs
@@ -102,7 +103,7 @@ Where clustInteractive.cmd consists of:
 ```##############################################################
 # Interactive Job Script 0.2
 #
-# This gives you a command prompt running in the kerenh queue.
+# This gives you a command prompt running in the adis queue.
 # Resources:
 # - Bash shell
 # - 4 GB RAM
