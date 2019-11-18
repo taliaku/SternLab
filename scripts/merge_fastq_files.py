@@ -40,15 +40,15 @@ def main():
 
 def concat_fastq(file1, file2, output_file, rep_length):
     with open(file1, "r") as forward_handle:
-        with open(file2, "r") as reverse_handle :
-            with open (output_file,"w") as merged_handle:
-                SeqIO.write(merger_generator(forward_handle,reverse_handle, rep_length), merged_handle, "fastq")
+        with open(file2, "r") as reverse_handle:
+            with open(output_file, "w") as merged_handle:
+                SeqIO.write(merger_generator(forward_handle, reverse_handle, rep_length), merged_handle, "fastq")
 
 def concat_fastq_gz(file1, file2, output_file, rep_length):
     with gzip.open(file1, "rt") as forward_handle:
         with gzip.open(file2, "rt") as reverse_handle :
-            with gzip.open (output_file,"wt") as merged_handle:
-                SeqIO.write(merger_generator(forward_handle,reverse_handle, rep_length), merged_handle, "fastq")
+            with gzip.open(output_file, "wt") as merged_handle:
+                SeqIO.write(merger_generator(forward_handle, reverse_handle, rep_length), merged_handle, "fastq")
                 
 if __name__ == "__main__":
     main()
