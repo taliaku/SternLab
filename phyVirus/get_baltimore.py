@@ -20,7 +20,8 @@ BALTIMORE = {"Arena":"ssRNA(-)",
              "Pox":"dsDNA",
              "Reo":"dsRNA",
              "Rhabdo":"ssRNA(-)",
-             "Toga":"ssRNA(+)"}
+             "Toga":"ssRNA(+)",
+             "check":"check"}
 
 def get_baltimore_classifiaction(family):
     return BALTIMORE[family]
