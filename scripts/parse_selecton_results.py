@@ -25,7 +25,7 @@ def main():
 
     if virus == "influenza": #add more virus name if you add anything
         output_text = "POS\tAMINO\tKaKs\tconfidence_interval\tvirus\tprotein\n"
-    elif virus == "influenza20" or virus == "tilv" or virus == "thogoto":
+    elif virus == "influenza20" or virus == "tilv" or virus == "thogoto" or virus == "isav":
         output_text = "POS\tAMINO\tKaKs\tconfidence_interval\tvirus\tprotein\tsegment\n"
     else:
         output_text = "POS\tAMINO\tKaKs\tconfidence_interval\n"
@@ -48,6 +48,10 @@ def main():
             virus_name = "Thogoto"
             protein = f.split("gene_")[1].split("_")[0]
             segment = "Segment " + f.split("segment_")[1].split("_")[0]
+        elif virus == "isav":
+            virus_name = "Isav"
+            protein = f.split("gene_")[1].split("_")[0]
+            segment = None
         #if adding more virus type this is what you have to do:
         #elif virus == "XXXX":
             #virus_name = XXX
