@@ -1,4 +1,4 @@
-#! /usr/local/python_anaconda/bin/python3.4
+#! /powerapps/share/python-anaconda-3.6/bin/python
 
 import os
 import glob
@@ -679,20 +679,41 @@ def retrive_kappa_from_paml_output(mlb):
             return None
 
 
-def run_baseml_on_aln_files(f, alias="cml"):
+def run_baseml_on_aln_files(f, t=None, t_rooted=None, alias="bml", output_dirs = False):
     f = check_filename(f)
-    t = f + "_phyml_tree.txt"
-    t_rooted = f + "_phyml_rooted_tree.txt"
+    if t == None:
+        t = f + "_phyml_tree.txt"
+    if t_rooted == None:
+        t_rooted = f + "_phyml_rooted_tree.txt"
     t = check_filename(t)
     t_rooted = check_filename(t_rooted)
-    ctl7 = f.split(".aln.best.phy")[0] + ".ctl7"
-    ctl8 = f.split(".aln.best.phy")[0] + ".ctl8"
-    mlb7 = f.split(".aln.best.phy")[0] + ".mlb7"
-    mlb8 = f.split(".aln.best.phy")[0] + ".mlb8"
+    if not output_dirs:
+        ctl7 = f.split(".aln.best.phy")[0] + ".ctl7"
+        ctl8 = f.split(".aln.best.phy")[0] + ".ctl8"
+        mlb7 = f.split(".aln.best.phy")[0] + ".mlb7"
+        mlb8 = f.split(".aln.best.phy")[0] + ".mlb8"
+    else: #work with phyVirus_analysis_output_dirs
+        phyVirus_analysis_dir = "/sternadi/home/volume3/taliakustin/phyVirus_analysis/"
+        basename = f.split("/")[-1].split("aln.best.phy")[0]
+        ctl7 = phyVirus_analysis_dir + "/gtr/%sctl7" % basename
+        ctl8 = phyVirus_analysis_dir + "/unrest/%sctl8" % basename
+        mlb7 = phyVirus_analysis_dir + "/gtr/%smlb7" % basename
+        mlb8 = phyVirus_analysis_dir + "/unrest/%smlb8" % basename
+    print(ctl7, ctl8)
     write_ctl_file(ctl7, f, t, mlb7, 7)
     write_ctl_file(ctl8, f, t_rooted, mlb8, 8)
-    baseml_runner(ctl7, alias=alias +"7")
-    baseml_runner(ctl8, alias=alias +"8")
+    if not output_dirs:
+        job7 = baseml_runner(ctl7, alias=alias +"7")
+        job8 = baseml_runner(ctl8, alias=alias +"8")
+    else:
+        job7 = baseml_runner(ctl7, alias=alias, cmdname="bml7")
+        job8 = baseml_runner(ctl8, alias=alias, cmdname="bml8")
+    return (job7, job8)
 
-
-
+def is_complete_mlb_file(mlb_file):
+    mlb_file = check_filename(mlb_file)
+    with open(mlb_file) as handle:
+        data=handle.read()
+        if "Rate matrix Q" in data or "rate matrix Q" in data:
+            return True
+    return False
