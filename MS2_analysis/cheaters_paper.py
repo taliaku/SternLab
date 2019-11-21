@@ -1,6 +1,6 @@
 ################################################################
 # This script creates all the graphs appearing in the cheaters paper
-# (will rewrite them though, so don't run all of it as is)
+# (will rewrite the graphs though, so don't run all of it as is)
 ################################################################
 
 
@@ -566,7 +566,156 @@ def get_best_parameters(astroabc_output, n):
 #    return
     
 
-def prior_posterior_graph2(data, outpath):
+#def prior_posterior_graph2(data, outpath):
+#    data['del_with_wt_syn_with_wt_ratio'] = data.del_with_wt_p / data.syn_with_wt_p
+#    #data['wt_with_del_wt_with_syn_ratio'] = data.wt_with_del_p / data.wt_with_syn_p
+#    #data['del_with_syn_syn_with_del_dratio'] = (data.del_with_syn_p + 0.05) / (data.syn_with_del_p + 0.05)
+#    data['del_with_syn_syn_with_del_dratio'] = (data.del_with_syn_p) / (data.syn_with_del_p)
+#    data.loc[data['del_with_syn_syn_with_del_dratio'] > 3, 'del_with_syn_syn_with_del_dratio'] = 4.5
+#    #data['triple_del_triple_syn_dratio'] = (data.triple_del + 0.05) / (data.triple_syn + 0.05)
+#    data['triple_del_triple_syn_dratio'] = (data.triple_del) / (data.triple_syn)
+#    data.loc[data['triple_del_triple_syn_dratio'] > 3, 'triple_del_triple_syn_dratio'] = 4.5
+#
+#    fig, axes = plt.subplots(nrows=6, ncols=3)
+#    fig.set_size_inches(6,8.5)
+#    fig.tight_layout()
+#    axes = axes.flatten()
+#    fig.subplots_adjust(hspace=0.6)
+#    fig.text(0.5, -0.02, 'Relationship', ha='center', fontsize = 14)
+#    fig.text(0.5, 0.32, 'Payoff', ha='center', fontsize = 14)
+#    fig.text(-0.09, 0.65, 'Frequency', va='center', rotation='vertical', fontsize = 14)
+#    fig.text(-0.09, 0.12, 'Frequency', va='center', rotation='vertical', fontsize = 14)
+#    for i, column in enumerate(['wt_with_wt_p', 'wt_with_del_p', 'wt_with_syn_p', 'del_with_wt_p', 'del_with_del_p', 'del_with_syn_p', 'syn_with_wt_p', 'syn_with_del_p', 'syn_with_syn_p', 'triple_wt', 'triple_del', 'triple_syn', None, None, None, 'del_with_wt_syn_with_wt_ratio', 'triple_del_triple_syn_dratio', 'del_with_syn_syn_with_del_dratio']):
+#        if column:
+#            if column in ['wt_with_del_p', 'syn_with_syn_p']:
+#                axes[i].hist(np.linspace(0,1,len(data)), alpha=0.2, color='#267BB8', bins=np.linspace(0, 4, 21))
+#            elif column in ['del_with_wt_p', 'del_with_syn_p', 'syn_with_wt_p', 'syn_with_del_p', 'wt_with_syn_p', 'triple_wt', 'triple_syn', 'triple_del']:
+#                axes[i].hist(np.linspace(0,4,len(data)), alpha=0.2, color='#267BB8', bins=np.linspace(0, 4, 21))
+#            
+#            if column not in ['del_with_del_p', 'wt_with_wt_p']:
+#                if i < 12:
+#                    data[column].plot.hist(ax=axes[i], color='#267BB8', bins=np.linspace(0, 4, 21))
+#                    axes[i].set_xticks([0,1,2,3,4])
+#                    axes[i].set_xlim(-0.1,4.1)
+#                    axes[i].axvline(data[column].median(), color='black', linestyle='dashed', linewidth=1)
+#                else:
+#                    data[column].plot.hist(ax=axes[i], color='green')
+#                axes[i].set_xlabel(None)
+#                axes[i].set_ylabel(None)
+#                
+#            else:   
+#                axes[i].set_visible(False)
+#                            
+#            if 'with' in column and i < 9:
+#                title = 'W$_\mathrm{' + '|'.join(column.replace('_p', '').split('_with_')).replace('wt', 'WT').replace('del', '\Delta1764').replace('syn', 'A1664G') + '}$'
+#                axes[i].set_title(fix_symbols(title), fontsize=12)
+#            else:
+#                #titles = {'del_with_wt_syn_with_wt_ratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT}}}{\mathrm{W_\mathrm{A1664G|WT}}}$', 'wt_with_del_wt_with_syn_ratio':r'$\frac{\mathrm{W_\mathrm{WT|\Delta1764}}}{\mathrm{W_\mathrm{WT|A1664G}}}$', 'del_with_syn_syn_with_del_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|A1664G}} + 0.05}{\mathrm{W_\mathrm{A1664G|\Delta1764}} + 0.05}$'}
+#                titles = {'del_with_wt_syn_with_wt_ratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT}}}{\mathrm{W_\mathrm{A1664G|WT}}}$', 'wt_with_del_wt_with_syn_ratio':r'$\frac{\mathrm{W_\mathrm{WT|\Delta1764}}}{\mathrm{W_\mathrm{WT|A1664G}}}$', 'del_with_syn_syn_with_del_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|A1664G}}}{\mathrm{W_\mathrm{A1664G|\Delta1764}}}$', 'triple_wt':'$\mathrm{W_\mathrm{WT|\Delta1764,A1664G}}$', 'triple_del':'$\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}$', 'triple_syn':'$\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}$', 'triple_del_triple_syn_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}}{\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}}$'}
+#                axes[i].set_title(fix_symbols(titles[column]), fontsize=14)
+#            axes[i].grid(which='major', alpha=0.2, linestyle='-')
+#        else:
+#            axes[i].set_visible(False)
+#    axes[-3].set_xticks([1.0, 1.25, 1.5, 1.75])
+#    axes[-1].set_xticks([0, 1, 2, 3])
+#    axes[-2].set_xticks([0, 1, 2, 3])
+#    fig.text(0.91, 0.023, '>3', fontsize=9.5)
+#    fig.text(0.9, 0.039, '/')
+#    fig.text(0.59, 0.023, '>3', fontsize=9.5)
+#    fig.text(0.58, 0.039, '/')
+#    fig.text(0.06, 0.21, 'Which cheater has\na greater advantage?', fontsize=10, ma='center', style='italic')
+#    fig.text(0.53, 0.21, 'Which cheater can grow\nwith which cheater?', fontsize=10, ma='center', style='italic')
+#    fig.text(0.18, 0.94, fix_symbols('W$_\mathrm{WT|WT}$\nfixed at 1'), ha='center', va='center', fontsize=12)
+#    fig.text(0.5, 0.76, fix_symbols('W$_\mathrm{\Delta1764|\Delta1764}$\nfixed at 0'), ha='center', va='center', fontsize=12)
+#    prior_patch = mpatches.Patch(color='#267BB8', label='Prior', alpha=0.2)
+#    posterior_patch = mpatches.Patch(color='#267BB8', label='Posterior')
+#    fig.legend(handles=[posterior_patch, prior_patch], bbox_to_anchor=(0.62,0.34), loc='upper center', borderaxespad=0., ncol=2)
+#    line = plt.Line2D([0.1,0.95],[0.26, 0.26], transform=fig.transFigure, color="black", linestyle=':')
+#    fig.add_artist(line)
+#    posterior_patch2 = mpatches.Patch(color='green', label='Posterior')
+#    axes[13].legend(handles=[posterior_patch2], bbox_to_anchor=(0.42,-0.7), loc='upper center', borderaxespad=0.)
+#    fig.savefig(outpath, dpi=800, bbox_inches='tight')
+#    return
+#
+#def prior_posterior_graph3(data, outpath):
+#    data['del_with_wt_syn_with_wt_ratio'] = data.del_with_wt_p / data.syn_with_wt_p
+#    #data['wt_with_del_wt_with_syn_ratio'] = data.wt_with_del_p / data.wt_with_syn_p
+#    #data['del_with_syn_syn_with_del_dratio'] = (data.del_with_syn_p + 0.05) / (data.syn_with_del_p + 0.05)
+#    data['del_with_syn_syn_with_del_dratio'] = (data.del_with_syn_p) / (data.syn_with_del_p)
+#    data.loc[data['del_with_syn_syn_with_del_dratio'] > 3, 'del_with_syn_syn_with_del_dratio'] = 4.5
+#    #data['triple_del_triple_syn_dratio'] = (data.triple_del + 0.05) / (data.triple_syn + 0.05)
+#    data['triple_del_triple_syn_dratio'] = (data.triple_del) / (data.triple_syn)
+#    data.loc[data['triple_del_triple_syn_dratio'] > 3, 'triple_del_triple_syn_dratio'] = 4.5
+#
+#    fig, axes = plt.subplots(nrows=6, ncols=3)
+#    fig.set_size_inches(6,8.5)
+#    fig.tight_layout()
+#    axes = axes.flatten()
+#    fig.subplots_adjust(hspace=0.6)
+#    fig.text(0.5, -0.02, 'Relationship', ha='center', fontsize = 14)
+#    fig.text(0.5, 0.32, 'Payoff', ha='center', fontsize = 14)
+#    fig.text(-0.09, 0.65, 'Frequency', va='center', rotation='vertical', fontsize = 14)
+#    fig.text(-0.09, 0.12, 'Frequency', va='center', rotation='vertical', fontsize = 14)
+#    
+#    temp_fig, temp_ax = plt.subplots(nrows=1, ncols=1)
+#    
+#    for i, column in enumerate(['wt_with_wt_p', 'wt_with_del_p', 'wt_with_syn_p', 'del_with_wt_p', 'del_with_del_p', 'del_with_syn_p', 'syn_with_wt_p', 'syn_with_del_p', 'syn_with_syn_p', 'triple_wt', 'triple_del', 'triple_syn', None, None, None, 'del_with_wt_syn_with_wt_ratio', 'triple_del_triple_syn_dratio', 'del_with_syn_syn_with_del_dratio']):
+#        if column:
+#            
+#            if column not in ['del_with_del_p', 'wt_with_wt_p']:
+#                if i < 12:
+#                    data[column].plot.hist(ax=axes[i], color='#267BB8', bins=np.linspace(0, 4, 21))
+#                    axes[i].set_xticks([0,1,2,3,4])
+#                    axes[i].set_xlim(-0.1,4.1)
+#                    axes[i].axvline(data[column].median(), color='black', linestyle='dashed', linewidth=1)
+#                else:
+#                    data[column].plot.hist(ax=axes[i], color='green')
+#                axes[i].set_xlabel(None)
+#                axes[i].set_ylabel(None)
+#                axes[i].set_yticks([])
+#                
+#            else:   
+#                axes[i].set_visible(False)
+#            
+#            if column in ['wt_with_del_p', 'syn_with_syn_p']:
+#                a,b,c = temp_ax.hist(data[column], bins=np.linspace(0, 4, 21))
+#                axes[i].hist(np.linspace(0,1,max(a)/2), alpha=0.4, color='#C5C6C6', bins=1)
+#            elif column in ['del_with_wt_p', 'del_with_syn_p', 'syn_with_wt_p', 'syn_with_del_p', 'wt_with_syn_p', 'triple_wt', 'triple_syn', 'triple_del']:
+#                a,b,c = temp_ax.hist(data[column], bins=np.linspace(0, 4, 21))
+#                axes[i].hist(np.linspace(0,4,max(a)/2), alpha=0.4, color='#C5C6C6', bins=1)
+#                
+#            if 'with' in column and i < 9:
+#                title = 'W$_\mathrm{' + '|'.join(column.replace('_p', '').split('_with_')).replace('wt', 'WT').replace('del', '\Delta1764').replace('syn', 'A1664G') + '}$'
+#                axes[i].set_title(fix_symbols(title), fontsize=12)
+#            else:
+#                #titles = {'del_with_wt_syn_with_wt_ratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT}}}{\mathrm{W_\mathrm{A1664G|WT}}}$', 'wt_with_del_wt_with_syn_ratio':r'$\frac{\mathrm{W_\mathrm{WT|\Delta1764}}}{\mathrm{W_\mathrm{WT|A1664G}}}$', 'del_with_syn_syn_with_del_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|A1664G}} + 0.05}{\mathrm{W_\mathrm{A1664G|\Delta1764}} + 0.05}$'}
+#                titles = {'del_with_wt_syn_with_wt_ratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT}}}{\mathrm{W_\mathrm{A1664G|WT}}}$', 'wt_with_del_wt_with_syn_ratio':r'$\frac{\mathrm{W_\mathrm{WT|\Delta1764}}}{\mathrm{W_\mathrm{WT|A1664G}}}$', 'del_with_syn_syn_with_del_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|A1664G}}}{\mathrm{W_\mathrm{A1664G|\Delta1764}}}$', 'triple_wt':'$\mathrm{W_\mathrm{WT|\Delta1764,A1664G}}$', 'triple_del':'$\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}$', 'triple_syn':'$\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}$', 'triple_del_triple_syn_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}}{\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}}$'}
+#                axes[i].set_title(fix_symbols(titles[column]), fontsize=14)
+#            axes[i].grid(which='major', alpha=0.2, linestyle='-')
+#        else:
+#            axes[i].set_visible(False)
+#    axes[-3].set_xticks([1.0, 1.25, 1.5, 1.75])
+#    axes[-1].set_xticks([0, 1, 2, 3])
+#    axes[-2].set_xticks([0, 1, 2, 3])
+#    fig.text(0.91, 0.023, '>3', fontsize=9.5)
+#    fig.text(0.9, 0.039, '/')
+#    fig.text(0.59, 0.023, '>3', fontsize=9.5)
+#    fig.text(0.58, 0.039, '/')
+#    fig.text(0.06, 0.21, 'Which cheater has\na greater advantage?', fontsize=10, ma='center', style='italic')
+#    fig.text(0.53, 0.21, 'Which cheater can grow\nwith which cheater?', fontsize=10, ma='center', style='italic')
+#    fig.text(0.18, 0.94, fix_symbols('W$_\mathrm{WT|WT}$\nfixed at 1'), ha='center', va='center', fontsize=12)
+#    fig.text(0.5, 0.76, fix_symbols('W$_\mathrm{\Delta1764|\Delta1764}$\nfixed at 0'), ha='center', va='center', fontsize=12)
+#    prior_patch = mpatches.Patch(color='#C5C6C6', label='Prior', alpha=0.4)
+#    posterior_patch = mpatches.Patch(color='#267BB8', label='Posterior')
+#    fig.legend(handles=[posterior_patch, prior_patch], bbox_to_anchor=(0.62,0.34), loc='upper center', borderaxespad=0., ncol=2)
+#    line = plt.Line2D([0.1,0.95],[0.26, 0.26], transform=fig.transFigure, color="black", linestyle=':')
+#    fig.add_artist(line)
+#    posterior_patch2 = mpatches.Patch(color='green', label='Posterior')
+#    axes[13].legend(handles=[posterior_patch2], bbox_to_anchor=(0.42,-0.7), loc='upper center', borderaxespad=0.)
+#    #fig.savefig(outpath, dpi=800, bbox_inches='tight')
+#    return
+
+def prior_posterior_graph4(data, outpath):
     data['del_with_wt_syn_with_wt_ratio'] = data.del_with_wt_p / data.syn_with_wt_p
     #data['wt_with_del_wt_with_syn_ratio'] = data.wt_with_del_p / data.wt_with_syn_p
     #data['del_with_syn_syn_with_del_dratio'] = (data.del_with_syn_p + 0.05) / (data.syn_with_del_p + 0.05)
@@ -576,99 +725,119 @@ def prior_posterior_graph2(data, outpath):
     data['triple_del_triple_syn_dratio'] = (data.triple_del) / (data.triple_syn)
     data.loc[data['triple_del_triple_syn_dratio'] > 3, 'triple_del_triple_syn_dratio'] = 4.5
 
-    fig, axes = plt.subplots(nrows=6, ncols=3)
-    fig.set_size_inches(6,8.5)
+    fig, axes = plt.subplots(nrows=4, ncols=3)
+    fig.set_size_inches(6,6)
     fig.tight_layout()
     axes = axes.flatten()
+    fig.subplots_adjust(wspace=0.2)
     fig.subplots_adjust(hspace=0.6)
-    fig.text(0.5, -0.02, 'Relationship', ha='center', fontsize = 14)
-    fig.text(0.5, 0.32, 'Payoff', ha='center', fontsize = 14)
-    fig.text(-0.09, 0.65, 'Frequency', va='center', rotation='vertical', fontsize = 14)
-    fig.text(-0.09, 0.12, 'Frequency', va='center', rotation='vertical', fontsize = 14)
-    for i, column in enumerate(['wt_with_wt_p', 'wt_with_del_p', 'wt_with_syn_p', 'del_with_wt_p', 'del_with_del_p', 'del_with_syn_p', 'syn_with_wt_p', 'syn_with_del_p', 'syn_with_syn_p', 'triple_wt', 'triple_del', 'triple_syn', None, None, None, 'del_with_wt_syn_with_wt_ratio', 'triple_del_triple_syn_dratio', 'del_with_syn_syn_with_del_dratio']):
-        if column:
-            if column in ['wt_with_del_p', 'syn_with_syn_p']:
-                axes[i].hist(np.linspace(0,1,len(data)), alpha=0.2, color='#267BB8', bins=np.linspace(0, 4, 21))
-            elif column in ['del_with_wt_p', 'del_with_syn_p', 'syn_with_wt_p', 'syn_with_del_p', 'wt_with_syn_p', 'triple_wt', 'triple_syn', 'triple_del']:
-                axes[i].hist(np.linspace(0,4,len(data)), alpha=0.2, color='#267BB8', bins=np.linspace(0, 4, 21))
-            
+    fig.text(0.51, -0.02, 'Fitness', ha='center', fontsize = 14)
+    fig.text(0, 0.5, 'Frequency', va='center', rotation='vertical', fontsize = 14)
+    
+    temp_fig, temp_ax = plt.subplots(nrows=1, ncols=1)
+
+    
+    for i, column in enumerate(['wt_with_wt_p', 'wt_with_del_p', 'wt_with_syn_p', 'del_with_wt_p', 'del_with_del_p', 'del_with_syn_p', 'syn_with_wt_p', 'syn_with_del_p', 'syn_with_syn_p', 'triple_wt', 'triple_del', 'triple_syn']):
+        if column:            
             if column not in ['del_with_del_p', 'wt_with_wt_p']:
-                if i < 12:
-                    data[column].plot.hist(ax=axes[i], color='#267BB8', bins=np.linspace(0, 4, 21))
-                    axes[i].set_xticks([0,1,2,3,4])
-                    axes[i].set_xlim(-0.1,4.1)
-                    axes[i].axvline(data[column].median(), color='black', linestyle='dashed', linewidth=1)
-                else:
-                    data[column].plot.hist(ax=axes[i], color='green')
+                data[column].plot.hist(ax=axes[i], color='#267BB8', bins=np.linspace(0, 4, 21))
+                axes[i].set_xticks([0,1,2,3,4])
+                axes[i].set_xlim(-0.1,4.1)
+                axes[i].axvline(data[column].median(), color='black', linestyle='dashed', linewidth=1)
                 axes[i].set_xlabel(None)
                 axes[i].set_ylabel(None)
-                
-            else:   
+                axes[i].set_yticks([])
+            else:
                 axes[i].set_visible(False)
                             
-            if 'with' in column and i < 9:
+            if column in ['wt_with_del_p', 'syn_with_syn_p']:
+                a,b,c = temp_ax.hist(data[column], bins=np.linspace(0, 4, 21))
+                axes[i].hist(np.linspace(0,1,max(a)/2), alpha=0.4, color='#C5C6C6', bins=1)
+            elif column in ['del_with_wt_p', 'del_with_syn_p', 'syn_with_wt_p', 'syn_with_del_p', 'wt_with_syn_p', 'triple_wt', 'triple_syn', 'triple_del']:
+                a,b,c = temp_ax.hist(data[column], bins=np.linspace(0, 4, 21))
+                axes[i].hist(np.linspace(0,4,max(a)/2), alpha=0.4, color='#C5C6C6', bins=1)
+                
+            if 'with' in column:
                 title = 'W$_\mathrm{' + '|'.join(column.replace('_p', '').split('_with_')).replace('wt', 'WT').replace('del', '\Delta1764').replace('syn', 'A1664G') + '}$'
-                axes[i].set_title(fix_symbols(title), fontsize=12)
+                axes[i].set_title(fix_symbols(title), fontsize=14)
             else:
-                #titles = {'del_with_wt_syn_with_wt_ratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT}}}{\mathrm{W_\mathrm{A1664G|WT}}}$', 'wt_with_del_wt_with_syn_ratio':r'$\frac{\mathrm{W_\mathrm{WT|\Delta1764}}}{\mathrm{W_\mathrm{WT|A1664G}}}$', 'del_with_syn_syn_with_del_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|A1664G}} + 0.05}{\mathrm{W_\mathrm{A1664G|\Delta1764}} + 0.05}$'}
                 titles = {'del_with_wt_syn_with_wt_ratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT}}}{\mathrm{W_\mathrm{A1664G|WT}}}$', 'wt_with_del_wt_with_syn_ratio':r'$\frac{\mathrm{W_\mathrm{WT|\Delta1764}}}{\mathrm{W_\mathrm{WT|A1664G}}}$', 'del_with_syn_syn_with_del_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|A1664G}}}{\mathrm{W_\mathrm{A1664G|\Delta1764}}}$', 'triple_wt':'$\mathrm{W_\mathrm{WT|\Delta1764,A1664G}}$', 'triple_del':'$\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}$', 'triple_syn':'$\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}$', 'triple_del_triple_syn_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}}{\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}}$'}
                 axes[i].set_title(fix_symbols(titles[column]), fontsize=14)
-            axes[i].grid(which='major', alpha=0.2, linestyle='-')
-        else:
-            axes[i].set_visible(False)
-    axes[-3].set_xticks([1.0, 1.25, 1.5, 1.75])
-    axes[-1].set_xticks([0, 1, 2, 3])
-    axes[-2].set_xticks([0, 1, 2, 3])
-    fig.text(0.91, 0.023, '>3', fontsize=9.5)
-    fig.text(0.9, 0.039, '/')
-    fig.text(0.59, 0.023, '>3', fontsize=9.5)
-    fig.text(0.58, 0.039, '/')
-    fig.text(0.06, 0.21, 'Which cheater has\na greater advantage?', fontsize=10, ma='center', style='italic')
-    fig.text(0.53, 0.21, 'Which cheater can grow\nwith which cheater?', fontsize=10, ma='center', style='italic')
-    fig.text(0.18, 0.94, fix_symbols('W$_\mathrm{WT|WT}$\nfixed at 1'), ha='center', va='center', fontsize=12)
-    fig.text(0.5, 0.76, fix_symbols('W$_\mathrm{\Delta1764|\Delta1764}$\nfixed at 0'), ha='center', va='center', fontsize=12)
-    prior_patch = mpatches.Patch(color='#267BB8', label='Prior', alpha=0.2)
+            axes[i].grid(which='major', alpha=0.3, linestyle='-')
+
+
+    fig.text(0.2, 0.89, fix_symbols('W$_\mathrm{WT|WT}$\nfixed at 1'), ha='center', va='center', fontsize=12)
+    fig.text(0.51, 0.65, fix_symbols('W$_\mathrm{\Delta1764|\Delta1764}$\nfixed at 0'), ha='center', va='center', fontsize=12)
+    prior_patch = mpatches.Patch(color='#C5C6C6', label='Prior', alpha=0.4)
     posterior_patch = mpatches.Patch(color='#267BB8', label='Posterior')
-    fig.legend(handles=[posterior_patch, prior_patch], bbox_to_anchor=(0.62,0.34), loc='upper center', borderaxespad=0., ncol=2)
-    line = plt.Line2D([0.1,0.95],[0.26, 0.26], transform=fig.transFigure, color="black", linestyle=':')
-    fig.add_artist(line)
-    posterior_patch2 = mpatches.Patch(color='green', label='Posterior')
-    axes[13].legend(handles=[posterior_patch2], bbox_to_anchor=(0.42,-0.7), loc='upper center', borderaxespad=0.)
+    axes[10].legend(handles=[posterior_patch, prior_patch], bbox_to_anchor=(0.5,-0.7), loc='upper center', borderaxespad=0., ncol=2)
+    #########
+    fig2, axes2 = plt.subplots(nrows=1, ncols=3)
+    fig2.set_size_inches(7,1.4)
+    fig2.tight_layout()
+    fig2.subplots_adjust(wspace=0.35)
+    axes2 = axes2.flatten()
+    fig2.text(0.52, -0.07, 'Posterior Relationship', ha='center', fontsize = 14)
+    fig2.text(-.05, 0.5, 'Frequency', va='center', rotation='vertical', fontsize = 14)
+    
+    for i,column in enumerate(['del_with_wt_syn_with_wt_ratio', 'triple_del_triple_syn_dratio', 'del_with_syn_syn_with_del_dratio']):
+        data[column].plot.hist(ax=axes2[i], color='green')
+        axes2[i].axvline(data[column].median(), color='black', linestyle='dashed', linewidth=1)
+        axes2[i].set_xlabel(None)
+        axes2[i].set_ylabel(None)
+        axes2[i].set_yticks([])
+        axes2[i].grid(which='major', alpha=0.3, linestyle='-')
+        titles = {'del_with_wt_syn_with_wt_ratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT}}}{\mathrm{W_\mathrm{A1664G|WT}}}$', 'wt_with_del_wt_with_syn_ratio':r'$\frac{\mathrm{W_\mathrm{WT|\Delta1764}}}{\mathrm{W_\mathrm{WT|A1664G}}}$', 'del_with_syn_syn_with_del_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|A1664G}}}{\mathrm{W_\mathrm{A1664G|\Delta1764}}}$', 'triple_wt':'$\mathrm{W_\mathrm{WT|\Delta1764,A1664G}}$', 'triple_del':'$\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}$', 'triple_syn':'$\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}$', 'triple_del_triple_syn_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}}{\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}}$'}
+        axes2[i].set_title(fix_symbols(titles[column]), fontsize=14)
+    
+    #posterior_patch2 = mpatches.Patch(color='green', label='Posterior')
+    #axes2[1].legend(handles=[posterior_patch2], bbox_to_anchor=(0.5,-0.7), loc='upper center', borderaxespad=0.)
+    axes2[0].set_xticks([1.0, 1.25, 1.5, 1.75])
+    axes2[1].set_xticks([0, 1, 2, 3])
+    axes2[2].set_xticks([0, 1, 2, 3])
+    fig2.text(0.93, 0.14, '>3', fontsize=9.5)
+    fig2.text(0.91, 0.24, '/')
+    fig2.text(0.6, 0.14, '>3', fontsize=9.5)
+    fig2.text(0.58, 0.24, '/')
+    fig2.text(0.1, 1.2, 'Which cheater has\na greater advantage?', fontsize=10, ma='center', style='italic')
+    fig2.text(0.53, 1.2, 'Which cheater can grow\nwith which cheater?', fontsize=10, ma='center', style='italic')
+    
     fig.savefig(outpath, dpi=800, bbox_inches='tight')
+    fig2.savefig(outpath.replace('.png', '.relationships.png'), dpi=800, bbox_inches='tight')
     return
 
 def fix_symbols(string):
     return string.replace('\Delta1764', r'\bigtriangleup').replace('A1664G', r'\bigcirc')
 
-def prior_posterior_triple_only(data, outpath):
-    fig, axes = plt.subplots(nrows=1, ncols=3)
-    fig.set_size_inches(6,1.75)
-    fig.tight_layout()
-    axes = axes.flatten()
-    fig.text(0.5, -0.02, 'Payoff', ha='center', fontsize = 14)
-    fig.text(-0.05, 0.5, 'Frequency', va='center', rotation='vertical', fontsize = 14)
-    for i, column in enumerate(['triple_wt', 'triple_del', 'triple_syn']):
-        if column in []:
-            axes[i].hist(np.linspace(0,1,len(data)), alpha=0.2, color='#267BB8', bins=np.linspace(0, 4, 21))
-        elif column in ['triple_wt', 'triple_del', 'triple_syn']:
-            axes[i].hist(np.linspace(0,4,len(data)), alpha=0.2, color='#267BB8', bins=np.linspace(0, 4, 21))
-        data[column].plot.hist(ax=axes[i], color='#267BB8', bins=np.linspace(0, 4, 21))
-        axes[i].set_xlabel(None)
-        axes[i].set_ylabel(None)
-        axes[i].grid(which='major', alpha=0.2, linestyle='-')
-        axes[i].set_xticks([0,1,2,3,4])
-        axes[i].set_xlim(-0.1,4.1)
-        titles= {'triple_wt':'$\mathrm{W_\mathrm{WT|\Delta1764,A1664G}}$', 'triple_del':'$\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}$', 'triple_syn':'$\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}$'}
-        axes[i].set_title(fix_symbols(titles[column]), fontsize=14)
-    prior_patch = mpatches.Patch(color='#267BB8', label='Prior', alpha=0.2)
-    posterior_patch = mpatches.Patch(color='#267BB8', label='Posterior')
-    fig.legend(handles=[posterior_patch, prior_patch], bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-    fig.savefig(outpath, dpi=800, bbox_inches='tight')
-    return
+#def prior_posterior_triple_only(data, outpath):
+#    fig, axes = plt.subplots(nrows=1, ncols=3)
+#    fig.set_size_inches(6,1.5)
+#    fig.tight_layout()
+#    axes = axes.flatten()
+#    fig.text(0.5, -0.02, 'Payoff', ha='center', fontsize = 14)
+#    fig.text(-0.05, 0.5, 'Frequency', va='center', rotation='vertical', fontsize = 14)
+#    for i, column in enumerate(['triple_wt', 'triple_del', 'triple_syn']):
+#        if column in []:
+#            axes[i].hist(np.linspace(0,1,len(data)), alpha=0.2, color='#267BB8', bins=np.linspace(0, 4, 21))
+#        elif column in ['triple_wt', 'triple_del', 'triple_syn']:
+#            axes[i].hist(np.linspace(0,4,len(data)), alpha=0.2, color='#267BB8', bins=np.linspace(0, 4, 21))
+#        data[column].plot.hist(ax=axes[i], color='#267BB8', bins=np.linspace(0, 4, 21))
+#        axes[i].set_xlabel(None)
+#        axes[i].set_ylabel(None)
+#        axes[i].grid(which='major', alpha=0.2, linestyle='-')
+#        axes[i].set_xticks([0,1,2,3,4])
+#        axes[i].set_xlim(-0.1,4.1)
+#        titles= {'triple_wt':'$\mathrm{W_\mathrm{WT|\Delta1764,A1664G}}$', 'triple_del':'$\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}$', 'triple_syn':'$\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}$'}
+#        axes[i].set_title(fix_symbols(titles[column]), fontsize=14)
+#    prior_patch = mpatches.Patch(color='#267BB8', label='Prior', alpha=0.2)
+#    posterior_patch = mpatches.Patch(color='#267BB8', label='Posterior')
+#    fig.legend(handles=[posterior_patch, prior_patch], bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+#    fig.savefig(outpath, dpi=800, bbox_inches='tight')
+#    return
 
-prior_posterior_graph2(get_best_parameters('X:/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37B_abc.txt', 10000), 'X:/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37B_abc.txt.prior_posterior.png')
-prior_posterior_graph2(get_best_parameters('X:/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37A_abc.txt', 10000), 'X:/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37A_abc.txt.prior_posterior.png')
-
+prior_posterior_graph4(get_best_parameters('X:/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37B_abc.txt', 10000), 'X:/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37B_abc.txt.prior_posterior.png')
+prior_posterior_graph4(get_best_parameters('X:/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37A_abc.txt', 10000), 'X:/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37A_abc.txt.prior_posterior.png')
+    
 
 data = get_best_parameters('X:/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37B_abc.txt', 10000)
 data['del_with_wt_syn_with_wt_ratio'] = data.del_with_wt_p / data.syn_with_wt_p
@@ -689,37 +858,43 @@ def prior_posterior_graph_single_cheater(astroabc_output, n, outpath):
      'param#0 ':'wt_with_del_p',
      ' param#1 ':'del_with_wt_p',})
     fig, axes = plt.subplots(nrows=2, ncols=2)
-    fig.set_size_inches(3,2.5)
+    fig.set_size_inches(4,2.75)
     fig.tight_layout()
     axes = axes.flatten()
+    
+    temp_fig, temp_ax = plt.subplots(nrows=1, ncols=1)
+    
     #fig.subplots_adjust(hspace=0.5)
     for i, column in enumerate(['wt_with_wt_p', 'wt_with_del_p','del_with_wt_p', 'del_with_del_p']):
         if column:
             if column in ['wt_with_del_p']:
-                axes[i].hist(np.linspace(0,1,len(data)), alpha=0.2, color='#267BB8', bins=np.linspace(0, 4, 21))
+                a,b,c = temp_ax.hist(data[column], bins=np.linspace(0, 4, 21))
+                axes[i].hist(np.linspace(0,1,max(a)/2), alpha=0.4, color='#C5C6C6', bins=1)
             elif column in ['del_with_wt_p']:
-                axes[i].hist(np.linspace(0,4,len(data)), alpha=0.2, color='#267BB8', bins=np.linspace(0, 4, 21))
+                a,b,c = temp_ax.hist(data[column], bins=np.linspace(0, 4, 21))
+                axes[i].hist(np.linspace(0,4,max(a)/2), alpha=0.4, color='#C5C6C6', bins=1)
             if column not in ['del_with_del_p', 'wt_with_wt_p']:
                 axes[i].set_xticks([0,1,2,3,4])
                 axes[i].set_xlim(-0.1,4.1)
                 data[column].plot.hist(ax=axes[i], color='#267BB8', bins=np.linspace(0, 4, 21))
                 axes[i].set_xlabel(None)
                 axes[i].set_ylabel(None)
+                axes[i].set_yticks([])
                 #axes[i].axvline(data[column].median(), color='black', linestyle='dashed', linewidth=1)
             else:    
                 axes[i].set_visible(False)
             if 'with' in column:
                 title = 'W$_\mathrm{' + '|'.join(column.replace('_p', '').split('_with_')).replace('wt', 'WT').replace('del', '\Delta1764').replace('syn', 'A1664G') + '}$'
                 axes[i].set_title(fix_symbols(title), fontsize=12)
-            axes[i].grid(which='major', alpha=0.2, linestyle='-') 
-    prior_patch = mpatches.Patch(color='#267BB8', label='Prior', alpha=0.2)
+            axes[i].grid(which='major', alpha=0.3, linestyle='-') 
+    prior_patch = mpatches.Patch(color='#C5C6C6', label='Prior', alpha=0.4)
     posterior_patch = mpatches.Patch(color='#267BB8', label='Posterior')
-    lgd = fig.legend(handles=[posterior_patch, prior_patch], bbox_to_anchor=(0.6,0.1), loc='upper center', borderaxespad=0., ncol=2)
+    axes[2].legend(handles=[posterior_patch, prior_patch], bbox_to_anchor=(1.1,-0.7), loc='upper center', borderaxespad=0., ncol=2)
     fig.text(0.26, 0.8, fix_symbols('W$_\mathrm{WT|WT}$\nfixed at 1'), ha='center', va='center', fontsize=12)
     fig.text(0.76, 0.3, fix_symbols('W$_\mathrm{\Delta1764|\Delta1764}$\nfixed at 0'), ha='center', va='center', fontsize=12)
-    text1 = fig.text(0.5, -0.12, 'Payoff\n', ha='center', fontsize = 14)
-    text2 = fig.text(-0.1, 0.5, 'Frequency', va='center', rotation='vertical', fontsize = 14)
-    fig.savefig(outpath, dpi=800, bbox_extra_artists=(lgd, text1, text2), bbox_inches='tight')
+    text1 = fig.text(0.5, -0.12, 'Fitness\n', ha='center', fontsize = 14)
+    text2 = fig.text(0, 0.5, 'Frequency', va='center', rotation='vertical', fontsize = 14)
+    fig.savefig(outpath, dpi=800, bbox_inches='tight')
     return
 
 prior_posterior_graph_single_cheater('X:/volume2/noam/cheater_model/abc_smc/37B_single_cheater.txt', 10000, 'X:/volume2/noam/cheater_model/abc_smc/37B_single_cheater.txt.prior_posterior.png')
