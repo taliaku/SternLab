@@ -779,20 +779,16 @@ def merge_runner(fastq_r1, fastq_r2, output, alias = "merge"):
     run merge on cluster with repeats = 60.
     :param fastq_r1: R1 fastq path
     :param fastq_r2: R2 fastq path
-    :param output: output file, gz or fastq according to fastq_r1 type
+    :param output: output file path, will be gz or fastq according to fastq_r1 type
     :param alias: job name (default: dirSel)
     :return: job_id
     """
     fastq_r1 = check_filename(fastq_r1)
     fastq_r2 = check_filename(fastq_r2)
-    if fastq_r1.endswith('.gz'):
-        suffix = '.fastq.gz'
-    else:
-        suffix = '.fastq'
     cmdfile = pbs_jobs.get_cmdfile_dir("merge", alias); tnum = 1; gmem = 2
     cmds = "python /sternadi/home/volume1/shared/SternLab/scripts/merge_fastq_files.py" \
-           " -f %s -e %s -o %s%s -r 60"\
-           % (fastq_r1, fastq_r2, output, suffix)
+           " -f %s -e %s -o %s -r 60"\
+           % (fastq_r1, fastq_r2, output)
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
