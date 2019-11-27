@@ -56,7 +56,7 @@ def unite_nextseq_lanes(input_dir, output_dir):
             os.system('cat %s%s_L00[1234]_%s_001.fastq > %s%s_%s.fastq' % (input_dir, sample, r, output_dir, sample, r))
     return 
 
-def merge_every_sample(input_dir, output_dir, individual_directories=True):
+def merge_every_sample(input_dir, output_dir, individual_directories=True, pattern=None):
     '''
     Gets a directory with fastq files, and submits to que merge on R1 and R2 for every sample.
     Merged files are submitted to output_dir.
@@ -64,13 +64,17 @@ def merge_every_sample(input_dir, output_dir, individual_directories=True):
     :param output_dir: directory to create and write merged fastq files to.
     :param individual_directories: True or False, should every merge file be in an
             individual directory inside input_dir, or files directly in input_dir.
+    :param pattern: use this to filter only some samples containing this string in 
+            input_dir.
     '''
     input_dir = check_dirname(input_dir)
     make_dir(check_dirname(output_dir, Truedir=False))
     files = [input_dir +  '/' + f for f in os.listdir(input_dir)]
+    if pattern:
+        files = [f for f in files if pattern in f]
     job_ids = []
     for f in files:
-        if 'R1.fastq' in f.split('/')[-1]:
+        if 'R1.fastq' in f.split('/')[-1]: # if organized in one directory
             if individual_directories == False:
                 job_id = merge_runner(f, 
                                       f.replace('R1.fastq', 'R2.fastq'), 
@@ -82,10 +86,24 @@ def merge_every_sample(input_dir, output_dir, individual_directories=True):
                                       f.replace('R1.fastq', 'R2.fastq'), 
                                       individual_dir + f.split('/')[-1].replace('_R1', ''))
             job_ids.append(job_id)
+        if os.path.isdir(f): # if organized in separate directories
+            r12 = sorted([f + '/' + x for x in os.listdir(f)])
+            if individual_directories == False:
+                job_id = merge_runner(r12[0], 
+                                      r12[1], 
+                                      output_dir + f.split('/')[-1].split('_L00')[0])
+            else:
+                individual_dir = output_dir + '/' + f.split('/')[-1].split('_L00')[0] + '/'
+                make_dir(check_dirname(individual_dir, Truedir=False))
+                job_id = merge_runner(r12[0], 
+                                      r12[1], 
+                                      individual_dir + r12[0].split('/')[-1].replace('_R1', ''))
+            job_ids.append(job_id)
     return job_ids
 
+
 def pipeline_every_sample(input_dir, output_dir, ref_file, NGS_or_Cirseq, TYPE_OF_INPUT_FILE=None, start=None, end=None, gaps=None,
-                    qscore=None, blast=None, rep=None, t=None, alias="pipeline"):
+                    qscore=None, blast=None, rep=None, t=None, alias="pipeline", pattern=None):
     '''
     Run the pipeline with the same parameters for many samples.
     Gets a directory with directories contatining fastq (or gz) files, 
@@ -93,10 +111,14 @@ def pipeline_every_sample(input_dir, output_dir, ref_file, NGS_or_Cirseq, TYPE_O
     Creates inner directory for very sample with the results inside output_dir.
     Other then input and output directories, gets all the varaibles that 
     pipeline_runner from pbs_runners gets.
+    :param pattern: use this to filter only some samples containing this string in 
+            input_dir.
     '''
     input_dir = check_dirname(input_dir)
     make_dir(check_dirname(output_dir, Truedir=False))
     dirs = [input_dir +  '/' + f for f in os.listdir(input_dir)]
+    if pattern:
+        dirs = [d for d in dirs if pattern in d]
     job_ids = []
     for d in dirs:
         out_d = output_dir + '/' + d.split('/')[-1]
