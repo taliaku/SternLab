@@ -74,10 +74,10 @@ def merge_every_sample(input_dir, output_dir, individual_directories=True, patte
         files = [f for f in files if pattern in f]
     job_ids = []
     for f in files:
-        if 'R1.fastq' in f.split('/')[-1]: # if organized in one directory
+        if 'R1.fastq' in f.split('/')[-1] or '_R1_001.fastq' in f.split('/')[-1]: # if organized in one directory
             if individual_directories == False:
                 job_id = merge_runner(f, 
-                                      f.replace('R1.fastq', 'R2.fastq'), 
+                                      f.replace('R1.fastq', 'R2.fastq').replace('_R1_', '_R2_'), 
                                       output_dir + f.split('/')[-1].replace('_R1', ''))
             else:
                 individual_dir = output_dir + '/' + f.split('/')[-1].split('_R1')[0] + '/'
