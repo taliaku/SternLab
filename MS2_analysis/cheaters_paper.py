@@ -845,7 +845,8 @@ data['del_with_syn_syn_with_del_dratio'] = (data.del_with_syn_p) / (data.syn_wit
 #data.loc[data['del_with_syn_syn_with_del_dratio'] > 3, 'del_with_syn_syn_with_del_dratio'] = 4.5
 data['triple_del_triple_syn_dratio'] = (data.triple_del) / (data.triple_syn)
 #data.loc[data['triple_del_triple_syn_dratio'] > 3, 'triple_del_triple_syn_dratio'] = 4.5
-
+data['syn_with_syn_syn_with_del_dratio'] = (data.syn_with_syn_p / data.syn_with_del_p)
+#data.loc[data['syn_with_syn_syn_with_del_dratio'] > 3, 'syn_with_syn_syn_with_del_dratio'] = 4.5
 
 
 ## single cheater prior posterior graph
