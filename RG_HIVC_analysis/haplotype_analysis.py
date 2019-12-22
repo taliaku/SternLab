@@ -20,6 +20,7 @@ sns.set_context("poster")
 
 def mutations_association(args):
     # position to handle (will process interval of 250 positions ahead)
+    # TODO- for AA muts version- change code to run over all x in [1939,2629] interval, each time comparing 2\1\0 places ahead according to position in codon (no need to run only 3rd position)
     input_x=args.position
 
     freqs=pd.read_csv(args.freqs_file, sep="\t")
@@ -30,14 +31,14 @@ def mutations_association(args):
     # blast files (all .fasta.blast files joined together)
     all_mappings=pd.read_csv(args.blast_output, names=["read_id","start","end"], sep="\t")
     # summary of all observed mutations from ref, including mappings to origin reads
-    all_mutations=pd.read_csv(args.mutations_all, names=["pos","read_id","mutant","read_positions"], sep="\t")  #TODO- what mutations are included in mutations_all? is there a threshold?
+    all_mutations=pd.read_csv(args.mutations_all, names=["pos","read_id","mutant","read_positions"], sep="\t")  #all delta's between single reads to the reference. displays the mutated base (origin is known by ref), with its position
 
     cons = freqs[(freqs["Rank"] == 0)
                  & (freqs["Base"] != "-")]
     cons.insert(0, "pos", pd.to_numeric(cons.loc[:,"Pos"]))
 
     all_mutations = pd.merge(all_mutations, cons[["pos","Ref"]], on="pos") # adding Ref\Cons to all_mutations
-    #remove C>A and G>T
+    #remove C>A and G>T #TODO- common seq errors- can consider filtering
     #all_mutations = all_mutations[~(((all_mutations["Ref"]=="C")&(all_mutations["mutant"]=="A")) | ((all_mutations["Ref"]=="G")&(all_mutations["mutant"]=="T")))]
 
     #variants=all_mutations["pos"].unique()
@@ -45,9 +46,7 @@ def mutations_association(args):
     variants_combinations=range(input_x+1,input_x+2) # x-> (x+1,x+2) instead of (x+1,x+250)
 
     for y in variants_combinations:
-        #x=pair[0]
         x=input_x
-        #y=pair[1]
         maps_for_two_pos = all_mappings[(all_mappings["start"] <= x) & (all_mappings["end"] >= y)] # reads surrounding the [x,y] interval
         merge_read_id = pd.DataFrame({"read_id": maps_for_two_pos["read_id"].unique()})
         merge_x = all_mutations[all_mutations["pos"] == x][["pos", "read_id"]]
@@ -61,16 +60,19 @@ def mutations_association(args):
         merged[y_label] = np.where(merged["pos_y"] == y, 1, 0)
         ct = pd.crosstab(merged[x_label], merged[y_label])
         if ct.shape == (2,2):
-            fisher_test = fisher_exact(ct, alternative='greater') ## TODO- review fisher's test
+            fisher_test = fisher_exact(ct, alternative='greater') # greater- aims to the bottom-right cell? # TODO- review fisher's test
             print('\t'.join([str(x) for x in [x, y, fisher_test[0], fisher_test[1], ct[1][1]*1.0/(ct[0][0]+ct[0][1]+ct[1][0]+ct[1][1])]]))
         else:
-            print('\t'.join([str(x) for x in [x, y, 0.0, 1.0, 0.0]])) # statistic ('odds ratio'), p-value, *shared_freq*
+            print('\t'.join([str(x) for x in [x, y, 0.0, 1.0, 0.0]])) # statistic: odds ratio- ratio of diagonals, p-value, *shared_freq*
             # list of all connections of pair mutations-
             # 1. should be grouped into cliques with one joint freq?- and mapped to freq plot with color per clique?
             # 2. adjacent positions should be registered with joint freq, and given as input to aa_mut script?
 
 
-def freq_plot(unified_freq_df):
+def freq_plot(freq_df):
+    samples = ['87415_S75', '504194_S38', '504202_S46', 'TASPX119494_S74']
+    freq_df = freq_df[freq_df['sample_id'].isin(samples)]
+
     # advanced, chronological presentation
     g = sns.relplot(x= "Pos",
                     y= "Freq",
@@ -79,7 +81,7 @@ def freq_plot(unified_freq_df):
                     # # hue='sample_id',
                     # col_wrap=5,
                     # join=True,
-                    data=unified_freq_df)
+                    data=freq_df)
 
 
     # plot adjustments
@@ -103,7 +105,8 @@ def dist_plot(freq_df):
     # sns.rugplot(freq_df.Freq, vertical=True, ax=ax)
 
     # plot 2
-    samples = ['X83354_S92','504201_S45','X100748_S73','504223_S67']
+    # samples = ['X83354_S92','504201_S45','X100748_S73','504223_S67']
+    samples = ['87415_S75','504194_S38','504202_S46','TASPX119494_S74']
     # f, axes = plt.subplots(2, math.ceil(len(samples)/2), figsize=(6, 6))
     # for i in range(len(samples)):
     #     sns.jointplot(x='Pos', y='Freq',
@@ -139,8 +142,8 @@ def main_plots():
     # freq_df = freq_df[freq_df['sample_id'].isin(['87415_S75'])]
 
     # plot
-    # freq_plot(freq_df)
-    dist_plot(freq_df)
+    freq_plot(freq_df)
+    # dist_plot(freq_df)
 
 
 def main_mutations_association():
@@ -157,5 +160,5 @@ def main_mutations_association():
 
 
 if __name__ == "__main__":
-    # main_plots()
-    main_mutations_association()
+    main_plots()
+    # main_mutations_association()

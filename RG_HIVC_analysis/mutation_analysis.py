@@ -2,6 +2,8 @@ import glob
 import os
 import pandas as pd
 from optparse import OptionParser
+
+from RG_HIVC_analysis.constants import pol_ET86_interval, RT_ET86_interval
 from freqs_utilities import add_mutation_to_freq_file
 
 # This file requires clean-up & verification
@@ -21,7 +23,8 @@ def inject_alternative_reference(original_freq, alternative_ref_freq):
     alternative_ref_freq = alternative_ref_freq[['Pos', 'Ref']]
     transformed_freq = original_freq.set_index(original_freq.Pos).join(alternative_ref_freq.set_index(alternative_ref_freq.Pos), rsuffix='_r')
     transformed_freq.Ref = transformed_freq.Ref_r
-    transformed_freq = transformed_freq.loc[(transformed_freq.Pos >= 1357) & (transformed_freq.Pos <= 4587)][
+    arbitrary_safety_margin = 99
+    transformed_freq = transformed_freq.loc[(transformed_freq.Pos >= pol_ET86_interval[0] - arbitrary_safety_margin) & (transformed_freq.Pos <= pol_ET86_interval[1] + arbitrary_safety_margin)][
         ['Pos', 'Base', 'Freq', 'Ref', 'Read_count', 'Rank', 'Prob']]
 
     return transformed_freq
@@ -117,17 +120,13 @@ def aa_mutations_summary(freq_with_muts, output):
     # TODO - improve in next use
     # get Pol interval
     current = freq_with_muts
-    pol_ET86_start_adjusted = 1453
-    protease_ET86_start_adjusted = 1642 # start_aa_idx-63, length- 99 aa
-    RT_ET86_start_adjusted = 1939 # start_aa_idx-162, length- 560 aa
-    integrase_ET86_start_adjusted = 3622 # start_aa_idx-723, length- 288 aa
-    current['AA_Pos'] = ((current.Pos - RT_ET86_start_adjusted - ((current.Pos - 1) % 3)) / 3)
+    current['AA_Pos'] = ((current.Pos - RT_ET86_interval[0] - ((current.Pos - 1) % 3)) / 3)
 
     # filters
     current = current.loc[current.Mutation_type != 'consensus']
     current = current.loc[current.Mutation_type != 'synonymous']
     # current = current.loc[(current.Mutation_type == 'stop') | (current.Mutation_type == 'missense') | (current.CMM_type == 'stop') | (current.CMM_type == 'missense')] # TODO- cmm
-    current = current.loc[(current.Pos >= 1456) & (current.Pos <= 4488)]
+    current = current.loc[(current.Pos >= pol_ET86_interval[0]) & (current.Pos <= pol_ET86_interval[1])]
     current = current.loc[current.Freq > 0.1]
     current = current.loc[current.Read_count > 100]
     # current = current.loc[current.AA_Pos == 184]
@@ -159,10 +158,34 @@ def main3():
     # TODO- compare mutation summaries
 
 
+def combine_interesting_mutation_counts():
+    aa_count_summaries = glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/figures/allele_trajects/allele_freq_example_*_RT_testing.csv')
+
+    alphaal = list('ACDEFGHIKLMNPQRSTVWY*-X')
+    summary_df = pd.DataFrame(columns= ['pos','founder','consensus'] + alphaal)
+    cols = summary_df.columns.tolist()[3:25]
+    summary_df[cols] = summary_df[cols].apply(pd.to_numeric)
+
+    for file in aa_count_summaries:
+        print('Handling sample: ' + file)
+        aa_count = pd.read_csv(file, )
+        if aa_count.empty == False:
+            cols = aa_count.columns.tolist()[3:25]
+            aa_count[cols] = aa_count[cols].apply(pd.to_numeric)
+            summary_df = summary_df.add(aa_count, fill_value=0.0)
+
+    for column in summary_df:
+        if summary_df[column].sum() == 0:
+            print(summary_df[column])
+            # summary_df = summary_df.drop(column)
+
+    summary_df.to_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/output_tables/interesting_aa_muts_count2.csv')
+
 #############################################
 
 
 if __name__ == "__main__":
     main2()
+    # combine_interesting_mutation_counts()
 
 
