@@ -1,6 +1,6 @@
 """
 creates mutation type file. Not very computationally smart, but does deal with 
-gene overlap and coding sequences on both strands.
+gene overlap, coding seqeunces on both strands and splicing
 
 Gets:
 NCBI features table file (send to > file > feature table)
@@ -13,8 +13,9 @@ mutation type dataframe
 import pandas as pd
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
-import sys
+import argparse
 from tqdm import tqdm
+import re
 
 
 def get_rna_sequence(protein, start, end, complement, reference_str):
@@ -56,17 +57,22 @@ def create_gene_dataframe(ncbi_feature_table, reference_file):
     genes = []
     with open(ncbi_feature_table) as f:
         fi = f.read()
+    # get cds features
+    features = [s for s in re.compile('^(?![\t]).+?^\t\t\t.+?^(?![\t])', re.MULTILINE | re.DOTALL).findall(fi) if 'CDS' in s]
+    fi = ''.join(features)
     for row in fi.splitlines():
         if not row.startswith('\t') and not row.startswith('>') and row != '':
-            #print('row' + row)
-            protein = fi.split(row)[1].split('product\t')[1].split('\n')[0]
-            start = int(row.split('\t')[0].replace('<', ''))
-            end = int(row.split('\t')[1].replace('<', ''))
-            complement = start > end
-            genes.append((protein, start, end, complement))
+            try:
+                protein = fi.split(row)[1].split('product\t')[1].split('\n')[0]
+                #protein = fi.split(row)[1].split('gene\t')[1].split('\n')[0]
+                start = int(row.split('\t')[0].replace('<', ''))
+                end = int(row.split('\t')[1].replace('<', ''))
+                complement = start > end
+                genes.append((protein, start, end, complement))
+            except:
+                print('problem with row: ', row)
         fi = fi.replace(row, '', 1)
     gene_df = pd.DataFrame(genes, columns=['protein', 'start', 'end', 'complement'])
-    return gene_df
     
     with open(reference_file) as f:
         reference_str = f.read()
@@ -117,5 +123,14 @@ def create_mutation_type_df(reference_file, ncbi_feature_table, mutation_type_ou
     positions_df.to_csv(mutation_type_output_csv)
     return positions_df
 
-if __name__ == '__main__':
-    create_mutation_type_df(sys.argv[1], sys.argv[2], sys.argv[3])
+    
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-r", "--reference_file", type=str, help="", required=True)
+    parser.add_argument("-f", "--ncbi_feature_table", type=str, help="", required=True)
+    parser.add_argument("-o", "--mutation_type_output_csv", type=str, help="", required=True)
+    args = parser.parse_args()
+    if not vars(args):
+        parser.print_help()
+        parser.exit(1)
+    create_mutation_type_df(args.reference_file, args.ncbi_feature_table, args.mutation_type_output_csv)
