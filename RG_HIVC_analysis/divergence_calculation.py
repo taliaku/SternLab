@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns;
 import pandas as pd
+import pickle
 
 from pbs_runners import script_runner
 
@@ -26,7 +27,7 @@ def divergence_plots():
         y='divergence',
         col='ind_id',
         data=div_rates,
-        col_wrap=5,
+        col_wrap=4,
         kind='line',
         color='firebrick',
         facet_kws={'sharex': True, 'legend_out':True},
@@ -42,5 +43,37 @@ def divergence_plots():
     # g.savefig('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/figures/divergence_per_patient_2.png')
 
 
+def plot_raw_divergence_rate():
+    # div_rates = pickle.load(open("/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/output_tables/div_rates_smoothed_29447.pickle", "rb"))
+    # df = pd.DataFrame(div_rates, columns=['1','2','3','4'])
+    #
+
+
+    div_rates = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/output_tables/div_rates_smoothed_29447.csv')
+    div_rates.index.name = 'pos'
+
+    div_rates = div_rates.melt(id_vars=('Unnamed: 0'),
+                 value_vars=('1', '2', '3', '4'),
+                 var_name='samples', value_name='divergence'
+                 )
+
+    # div_rates['pos'] = pd.to_numeric(div_rates['pos'])
+    # div_rates['pos'] = div_rates['pos'] + 2000
+
+    g = sns.catplot(
+        data=div_rates,
+        x='Unnamed: 0',
+        y='divergence',
+        hue='samples'
+        )
+
+    g.set(yscale="log")
+    plt.ylim(10**-5, 2)
+    plt.show()
+
+
+
 if __name__ == "__main__":
-    divergence_plots()
+    # divergence_plots()
+    plot_raw_divergence_rate()
+

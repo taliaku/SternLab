@@ -7,7 +7,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns;
 
-from RG_HIVC_analysis.constants import gag_ET86_interval, pol_ET86_interval, env_ET86_interval, excluded_samples
+from RG_HIVC_analysis import constants
+from RG_HIVC_analysis.constants import gag_ET86_interval, pol_ET86_interval, env_ET86_interval, excluded_samples_orig, \
+    excluded_patients_control
 
 sns.set_context("poster")
 import sys
@@ -34,7 +36,7 @@ def get_simple_diversity_stats():
 
 def count_major_subs(freq_file):
     df = pd.read_csv(freq_file, sep='\t')
-    subs_count = df['Pos'].loc[(df['Read_count'] > 1000) & (df['Base'] != df['Ref']) & (df['Rank'] == 0) & (df['Base'] != '-') & (df['Ref'] != '-') ].count()
+    subs_count = df['Pos'].loc[(df['Read_count'] > 100) & (df['Base'] != df['Ref']) & (df['Rank'] == 0) & (df['Base'] != '-') & (df['Ref'] != '-') ].count()
     return subs_count
 
 
@@ -55,6 +57,7 @@ def pis_calc(data, pivot_cols=[], interval = (0, sys.maxsize)): # start_pos=0, e
         return numerator * 1.0 / denominator
 
     # Filters
+    # TODO- extract this filter too\ insert all others here
     # choose interval
     filtered_data = data[(data["Pos"] >= interval[0]) & (data["Pos"] <= interval[1])]
 
@@ -100,11 +103,16 @@ def apply_pi_related_filters(data, freq_threshold, min_read_count):
     filtered_data = data[data["mutation_type"].isin(['GA', 'AG', 'GG', 'AA', 'CT', 'TC', 'CC', 'TT'])]
     # remove indels
     filtered_data = filtered_data[(filtered_data["Base"] != "-") & (filtered_data["Ref"] != "-")]
-    # TODO- remove insertions
     # remove low coverage
     filtered_data = filtered_data[filtered_data["Read_count"] > min_read_count]
     # set low frequencies to 0
     filtered_data["Freq"] = np.where(filtered_data["Freq"] >= freq_threshold, filtered_data["Freq"], 0)
+
+    # Remove low quality patients:
+    # filtered_data = filtered_data[~filtered_data['ind_id'].isin(excluded_patients_control)]
+
+    # Only high quality patients:
+    filtered_data = filtered_data[filtered_data['ind_id'].isin(constants.sampled_patients_control)]
     return filtered_data
 
 
@@ -126,7 +134,7 @@ def generate_pi_rates_summary():
         print('Handling sample: ' + sample_id)
 
         freq_df = pd.read_csv(file, sep='\t')
-        filtered_freq_df = apply_pi_related_filters(freq_df, freq_threshold= 0.01, min_read_count= 1000)
+        filtered_freq_df = apply_pi_related_filters(freq_df, freq_threshold= 0.001, min_read_count= 100)
         global_pi_rate = pis_calc(data=filtered_freq_df)
 
         # hxb2_file = glob.glob('/Users/omer/PycharmProjects/SternLab/RG_data_analysis/freq_files_HXB2_2/{}/*.freqs'.format(sample_id))[0]
@@ -236,25 +244,34 @@ def aggregation_attempts():
 
 def pi_rates_generate_and_plot_v2():
     # get freqs raw data
-    unified_freq_df = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ET86_4s/unified_freqs_filtered_verbose.csv')
+    run_folder = 'control_low'
+    unified_freq_df = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/unified_freqs_filtered_verbose.csv'.format(run_folder))
 
     # generate pi rate values (global & regionals)
-    unified_freq_df = apply_pi_related_filters(unified_freq_df, freq_threshold=0.01, min_read_count=1000)
+    unified_freq_df = apply_pi_related_filters(unified_freq_df, freq_threshold=0.001, min_read_count=100)
     pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['ind_id', 'sample_id', 'years_since_infection'])
 
-    gag_pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=gag_ET86_interval)
-    pi_rates_by_sample = pi_rates_by_sample.merge(gag_pi_rates_by_sample, on='sample_id', how='left', sort=False, suffixes=('', '_gag'))
+    # gag_pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=gag_ET86_interval)
+    # pi_rates_by_sample = pi_rates_by_sample.merge(gag_pi_rates_by_sample, on='sample_id', how='left', sort=False, suffixes=('', '_gag'))
     pol_pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=pol_ET86_interval)
     pi_rates_by_sample = pi_rates_by_sample.merge(pol_pi_rates_by_sample, on='sample_id', how='left', sort=False, suffixes=('', '_pol'))
-    env_pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=env_ET86_interval)
-    pi_rates_by_sample = pi_rates_by_sample.merge(env_pi_rates_by_sample, on='sample_id', how='left', sort=False, suffixes=('', '_env'))
+    # env_pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=env_ET86_interval)
+    # pi_rates_by_sample = pi_rates_by_sample.merge(env_pi_rates_by_sample, on='sample_id', how='left', sort=False, suffixes=('', '_env'))
+
+    # TODO- understand double plotting
+    # input VL values
+    # samples_vl = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/output_tables/sample_vl.csv')
+    #merge
+    # pi_rates_by_sample = pi_rates_by_sample.merge(samples_vl, on='sample_id', how='left', sort=False, suffixes=('', ''))
 
     # plot
+    print('plotting')
     # Explanation: by definition of the pi measure- plotting mean value (weighted mean & median are irrelevant), with no interest in confidence interval.
-    # TODO- check this^ understanding with maoz
+    # TODO- check this understanding ^ with maoz
 
     pi_rates_by_sample = pi_rates_by_sample.melt(id_vars= ('ind_id', 'years_since_infection'),
-                        value_vars= ('Pi', 'Pi_gag', 'Pi_pol', 'Pi_env'),
+                        # value_vars= ('Pi', 'Pi_gag', 'Pi_pol', 'Pi_env'),
+                        value_vars= ('Pi', 'Pi_pol'),
                         var_name='regions',  value_name='pi_diversity'
                         )
     g = sns.relplot(
@@ -263,17 +280,43 @@ def pi_rates_generate_and_plot_v2():
         col='ind_id',
         hue='regions',
         data=pi_rates_by_sample,
+        col_wrap=4,
+        kind='line',
+        facet_kws={'sharex': True, 'legend_out': True},
+    )
+    g.set(yscale="log")
+    plt.ylim(8*10**-4, 5*10**-2)
+    g.set_ylabels("Pi diversity")
+    g.set_xlabels("ET first sample (Years)")
+    # g.set_xticklabels(rotation=45, fontsize=14)
+
+    # extract plot
+    # plt.show()
+    g.savefig('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/figures/pi_rates_ET86_{}_minimized2.png'.format(run_folder))
+
+def plot_vl_rates():
+    # input VL values
+    samples_vl_dsi = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/output_tables/samples_to_patient_and_dsi.csv', sep='\t')
+
+    # plot
+    g = sns.relplot(
+        x='days_since_infection',
+        y='viral_load',
+        col='patient',
+        data=samples_vl_dsi,
         col_wrap=5,
         kind='line',
         facet_kws={'sharex': True, 'legend_out': True},
     )
     g.set(yscale="log")
-    g.set_ylabels("Pi diversity")
-    g.set_xlabels("ET first sample (Years)")
+    # plt.ylim(8*10**-4, 3*10**-2)
+    g.set_ylabels("Viral load")
+    g.set_xlabels("ET first sample (Days)")
+    # g.set_xticklabels(rotation=45, fontsize=14)
 
     # extract plot
-    # plt.show()
-    g.savefig('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/figures/pi_rates_ET86_4s.png')
+    plt.show()
+    # g.savefig('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/figures/vl_rates_ET86_4s.png')
 
 
 def pi_rates_generate_and_plot_v1():
@@ -282,5 +325,9 @@ def pi_rates_generate_and_plot_v1():
 
 
 if __name__ == "__main__":
+    # pi
     # pi_rates_generate_and_plot_v1()
     pi_rates_generate_and_plot_v2()
+
+    # vl
+    # plot_vl_rates()
