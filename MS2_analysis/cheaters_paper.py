@@ -724,6 +724,8 @@ def prior_posterior_graph4(data, outpath):
     #data['triple_del_triple_syn_dratio'] = (data.triple_del + 0.05) / (data.triple_syn + 0.05)
     data['triple_del_triple_syn_dratio'] = (data.triple_del) / (data.triple_syn)
     data.loc[data['triple_del_triple_syn_dratio'] > 3, 'triple_del_triple_syn_dratio'] = 4.5
+    data['syn_with_syn_syn_with_del_dratio'] = (data.syn_with_syn_p / data.syn_with_del_p)
+    data.loc[data['syn_with_syn_syn_with_del_dratio'] > 3, 'syn_with_syn_syn_with_del_dratio'] = 4.5
 
     fig, axes = plt.subplots(nrows=4, ncols=3)
     fig.set_size_inches(6,6)
@@ -772,22 +774,22 @@ def prior_posterior_graph4(data, outpath):
     posterior_patch = mpatches.Patch(color='#267BB8', label='Posterior')
     axes[10].legend(handles=[posterior_patch, prior_patch], bbox_to_anchor=(0.5,-0.7), loc='upper center', borderaxespad=0., ncol=2)
     #########
-    fig2, axes2 = plt.subplots(nrows=1, ncols=3)
+    fig2, axes2 = plt.subplots(nrows=1, ncols=4)
     fig2.set_size_inches(7,1.4)
     fig2.tight_layout()
     fig2.subplots_adjust(wspace=0.35)
     axes2 = axes2.flatten()
     fig2.text(0.52, -0.07, 'Posterior Relationship', ha='center', fontsize = 14)
-    fig2.text(-.05, 0.5, 'Frequency', va='center', rotation='vertical', fontsize = 14)
+    fig2.text(-.0, 0.6, 'Frequency', va='center', rotation='vertical', fontsize = 14)
     
-    for i,column in enumerate(['del_with_wt_syn_with_wt_ratio', 'triple_del_triple_syn_dratio', 'del_with_syn_syn_with_del_dratio']):
+    for i,column in enumerate(['del_with_wt_syn_with_wt_ratio', 'del_with_syn_syn_with_del_dratio', 'triple_del_triple_syn_dratio', 'syn_with_syn_syn_with_del_dratio']):
         data[column].plot.hist(ax=axes2[i], color='green')
         axes2[i].axvline(data[column].median(), color='black', linestyle='dashed', linewidth=1)
         axes2[i].set_xlabel(None)
         axes2[i].set_ylabel(None)
         axes2[i].set_yticks([])
         axes2[i].grid(which='major', alpha=0.3, linestyle='-')
-        titles = {'del_with_wt_syn_with_wt_ratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT}}}{\mathrm{W_\mathrm{A1664G|WT}}}$', 'wt_with_del_wt_with_syn_ratio':r'$\frac{\mathrm{W_\mathrm{WT|\Delta1764}}}{\mathrm{W_\mathrm{WT|A1664G}}}$', 'del_with_syn_syn_with_del_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|A1664G}}}{\mathrm{W_\mathrm{A1664G|\Delta1764}}}$', 'triple_wt':'$\mathrm{W_\mathrm{WT|\Delta1764,A1664G}}$', 'triple_del':'$\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}$', 'triple_syn':'$\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}$', 'triple_del_triple_syn_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}}{\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}}$'}
+        titles = {'del_with_wt_syn_with_wt_ratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT}}}{\mathrm{W_\mathrm{A1664G|WT}}}$', 'wt_with_del_wt_with_syn_ratio':r'$\frac{\mathrm{W_\mathrm{WT|\Delta1764}}}{\mathrm{W_\mathrm{WT|A1664G}}}$', 'del_with_syn_syn_with_del_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|A1664G}}}{\mathrm{W_\mathrm{A1664G|\Delta1764}}}$', 'triple_wt':'$\mathrm{W_\mathrm{WT|\Delta1764,A1664G}}$', 'triple_del':'$\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}$', 'triple_syn':'$\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}$', 'triple_del_triple_syn_dratio':r'$\frac{\mathrm{W_\mathrm{\Delta1764|WT,A1664G}}}{\mathrm{W_\mathrm{A1664G|WT,\Delta1764}}}$', 'syn_with_syn_syn_with_del_dratio':r'$\frac{\mathrm{W_\mathrm{A1664G|A1664G}}}{\mathrm{W_\mathrm{A1664G|\Delta1764}}}$'}
         axes2[i].set_title(fix_symbols(titles[column]), fontsize=14)
     
     #posterior_patch2 = mpatches.Patch(color='green', label='Posterior')
@@ -795,14 +797,17 @@ def prior_posterior_graph4(data, outpath):
     axes2[0].set_xticks([1.0, 1.25, 1.5, 1.75])
     axes2[1].set_xticks([0, 1, 2, 3])
     axes2[2].set_xticks([0, 1, 2, 3])
+    axes2[3].set_xticks([0, 1, 2, 3])
     fig2.text(0.93, 0.14, '>3', fontsize=9.5)
-    fig2.text(0.91, 0.24, '/')
-    fig2.text(0.6, 0.14, '>3', fontsize=9.5)
-    fig2.text(0.58, 0.24, '/')
-    fig2.text(0.1, 1.2, 'Which cheater has\na greater advantage?', fontsize=10, ma='center', style='italic')
-    fig2.text(0.53, 1.2, 'Which cheater can grow\nwith which cheater?', fontsize=10, ma='center', style='italic')
-    
-    fig.savefig(outpath, dpi=800, bbox_inches='tight')
+    fig2.text(0.92, 0.24, '/')
+    fig2.text(0.69, 0.14, '>3', fontsize=9.5)
+    fig2.text(0.68, 0.24, '/')
+    fig2.text(0.45, 0.14, '>3', fontsize=9.5)
+    fig2.text(0.44, 0.24, '/')
+    fig2.text(0.06, 1.2, 'Which cheater has\na greater advantage?', fontsize=10, ma='center', style='italic')
+    fig2.text(0.39, 1.2, 'Which cheater can grow\nwith which cheater?', fontsize=10, ma='center', style='italic')
+    fig2.text(0.73, 1.2, 'Does the synonymous cheater\nexploit the deletion cheater?', fontsize=10, ma='center', style='italic')
+    #fig.savefig(outpath, dpi=800, bbox_inches='tight')
     fig2.savefig(outpath.replace('.png', '.relationships.png'), dpi=800, bbox_inches='tight')
     return
 
@@ -846,7 +851,9 @@ data['del_with_syn_syn_with_del_dratio'] = (data.del_with_syn_p) / (data.syn_wit
 data['triple_del_triple_syn_dratio'] = (data.triple_del) / (data.triple_syn)
 #data.loc[data['triple_del_triple_syn_dratio'] > 3, 'triple_del_triple_syn_dratio'] = 4.5
 data['syn_with_syn_syn_with_del_dratio'] = (data.syn_with_syn_p / data.syn_with_del_p)
-#data.loc[data['syn_with_syn_syn_with_del_dratio'] > 3, 'syn_with_syn_syn_with_del_dratio'] = 4.5
+data.loc[data['syn_with_syn_syn_with_del_dratio'] > 3, 'syn_with_syn_syn_with_del_dratio'] = 4.5
+
+
 
 
 ## single cheater prior posterior graph
