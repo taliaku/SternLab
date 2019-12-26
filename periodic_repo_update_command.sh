@@ -5,6 +5,8 @@
 # MAILTO=""
 # * * * * * /sternadi/home/volume1/shared/SternLab/periodic_repo_update_command.sh
 
-git -C /sternadi/home/volume1/shared/SternLab/ pull
+cd /sternadi/home/volume1/shared/SternLab/
+pwd
+git pull
 
 # this is an update!!
