@@ -1,4 +1,4 @@
-#! /powerapps/share/Modules/Centos7/modulefiles/python/python-anaconda3.2019.7
+#! python/python-anaconda3.2019.7
 
 import argparse
 import time
@@ -10,14 +10,14 @@ import glob
 
 ''' 
 Pipeline generating frequency files from raw sequencing data files, either fastq.gz or fastq.
-0.	Merge files. Recieving a full path to a sample with sample name written as pattarn (dir1/dir2/sample1_\*) and an input_dir, where merged file will be created.
-1.  Split files. Recieving an input direcory containing the (merged or single read) files, either fastq.gz or fastq, and a dir_path where split files will be created. 
-	If needed, convert fastq.gz to fastq files, and split into N equally sized smaller fasta files containing 25K reads as default, or Num_of_reads_per_file as input. 
+0.	Merge files. Receiving a full path to a sample with sample name written as pattern (dir1/dir2/sample1_) and an input_directory, where merged file will be created.
+1.  Split files. Receiving an input directory containing the (merged or single read) files, either fastq.gz or fastq, and a directory_path where split files will be created. 
+	If needed, convert fastq.gz to fastq files, and split into N equally sized smaller fasta files containing 25K reads as default, or Num_of_reads_per_file as user input. 
 2.  Blast. Running blast on each of the N fasta files, either sequences vs. reference (default) mode or reference against sequences (as indexed db) mode.
-    Task of choice, either blastn (default), megablast or dc-megablast (dc-megablast available in sequence to reference mode only).
+    Blast task of choice, either blastn (default), megablast or dc-megablast (dc-megablast available in sequence to reference mode only).
 3.  BaseCalling. Running base calling on each of the N blast files and creating a frequency output file based on the requested parameters (repeats and q-score).
-4.  Join. Combine N frequency files to a single frequencies file. Create linked mutations file. Create concensus.
-5.  Summerize. Create basic plots and summerize data from N stats files.
+4.  Join. Combine N frequency files to a single frequencies file. Create linked mutations file. Create consensus.
+5.  Summarize. Create basic plots and summarize data from N stats files.
 6.	Warp up. zip files.
 '''
 
@@ -104,9 +104,7 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 	alias = "MergeFiles"
 	script_path = "/sternadi/home/volume1/shared/SternLab/scripts/merge_fastq_files.py"
 	
-	#sample_dir_path = os.path.dirname(sample_name_pattarn)
-	#sample_basename_pattern = os.path.basename(sample_name_pattarn) + "*"
-	files_to_merge = FindFilesInDir(sample_dir_path, sample_basename_pattern)	
+	files_to_merge = FindFilesInDir(sample_dir_path, sample_basename_pattern)
 	num_of_files_to_merge = len(files_to_merge)
 	if num_of_files_to_merge == 0 or num_of_files_to_merge % 2 != 0:
 		raise Exception("Unexpected error, number of files to merge with pattern " + sample_basename_pattern + " in directory " + sample_dir_path + " is zero, or does not divide by 2\n")
@@ -114,10 +112,7 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 	num_of_expected_merged_files = int(num_of_files_to_merge/2)
 	files_to_merge_list = []
 	for i in range(num_of_expected_merged_files):
-		#if 'R1_001' in os.path.basename(files_to_merge[2*i]):
-		output_file_basename = os.path.basename(files_to_merge[2*i]).replace('R1_001','merged')
-		#else:
-			#output_file_basename = os.path.basename(files_to_merge[2*i]).replace('R1','merged')		
+		output_file_basename = os.path.basename(files_to_merge[2*i]).replace('R1_001', 'merged')
 		files_to_merge_list.extend((files_to_merge[2*i], files_to_merge[2*i+1], dir_path + "/" + output_file_basename))
 	
 	if num_of_expected_merged_files == 1:
@@ -152,7 +147,8 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 	
 def toFastaAndSplit(dir_path, input_files, Num_reads_per_file):
 	alias = "toFastaAndSplit"
-	script_path = "/sternadi/home/volume2/yaara/temp/temp/ToFastaAndSplit_ver7.py"
+	#script_path = "/sternadi/home/volume1/shared/SternLab/Yaara/pipeline/ToFastaAndSplit_ver7.py"
+	script_path = "/sternadi/home/volume2/yaara/SternLab/Yaara/pipeline/ToFastaAndSplit_ver7.py"
 	
 	num_of_input_files = len(input_files)
 	if num_of_input_files == 0:
@@ -214,7 +210,7 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast):
 		outfile = '${FILENAMES[' + index + ']}.RS.' + task + '.blast'
 		cmd3 = blast_dir + '/makeblastdb -in ${FILENAMES[' + index + ']} -dbtype nucl\n'
 		cmd4 = blast_dir + "/blastn -query " + ref_genome + " -task " + task + " -out " + outfile + " -db ${FILENAMES[" + index + "]} -outfmt '6 qseqid sseqid qstart qend qstrand sstart send sstrand length btop' " \
-				"-num_alignmnts 1000000 -dust no -soft_masking F -perc_identity " + str(ID_blast) + " -evalue " + str(e_value) + "\n"
+				"-num_alignments 1000000 -dust no -soft_masking F -perc_identity " + str(ID_blast) + " -evalue " + str(e_value) + "\n"
 		cmds = cmd1 + cmd2 + cmd3 + cmd4
 	
 	else:
@@ -234,7 +230,8 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast):
 		
 def BaseCall(dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol):
 	alias = "BaseCalling"
-	script_path = "/sternadi/home/volume2/yaara/temp/temp/BaseCall_33.py"
+	script_path = "/sternadi/home/volume2/yaara/SternLab/Yaara/pipeline/BaseCall_33.py"
+	#script_path = "/sternadi/home/volume1/shared/SternLab/Yaara/pipeline/BaseCall_33.py"
 		
 	file_type = ".blast"
 	input_blast_files = FindFilesInDir(dir_path, file_type)
@@ -268,7 +265,8 @@ def BaseCall(dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol):
 	
 def Join (dir_path, path, ref_genome, Coverage):
 	alias = "Join"
-	script_path = "/sternadi/home/volume2/yaara/temp/temp/Join6.py"
+	script_path = "/sternadi/home/volume2/yaara/SternLab/Yaara/pipeline/Join6.py"
+	#script_path = "/sternadi/home/volume1/shared/SternLab/Yaara/pipeline/Join6.py"
 	
 	file_type = ".freqs"
 	input_freqs_files = FindFilesInDir(dir_path, file_type)
@@ -290,7 +288,8 @@ def Join (dir_path, path, ref_genome, Coverage):
 		
 def Summary (dir_path, Coverage):
 	alias = "Summary"
-	script_path = "/sternadi/home/volume2/yaara/temp/temp/summary7.py"
+	script_path = "/sternadi/home/volume2/yaara/SternLab/Yaara/pipeline/summary7.py"
+	#script_path = "/sternadi/home/volume1/shared/SternLab/Yaara/pipeline/summary7.py"
 	
 	file_type = "merge.freqs.csv"
 	input_csv_files = FindFilesInDir(dir_path, file_type)
@@ -317,27 +316,28 @@ def Summary (dir_path, Coverage):
 		
 def main(args):
 	
-	pipeline_path = '/sternadi/home/volume2/yaara/temp/temp/runner_ver14.py'
+	pipeline_path = '/sternadi/home/volume2/yaara/SternLab/Yaara/pipeline/runner_ver14.py'
+	#pipeline_path = "/sternadi/home/volume1/shared/SternLab/Yaara/pipeline/runner_ver14.py"
 	
 	start_stage = args.start
 	if start_stage != None:
 		try:
 			start_stage = int(start_stage) 
 		except:
-			raise Exception("Unexpected error, start_stage " + start_stage + " is not a valid value\n")
-		if not start_stage in [0,1,2,3,4,5,6]:
-			raise Exception("Unexpected error, start_stage " + start_stage + " is not a valid value\n") 	
-    
+			raise Exception("Unexpected error, start_stage " + str(start_stage) + " is not a valid value\n")
+		if start_stage not in [0,1,2,3,4,5,6]:
+			raise Exception("Unexpected error, start_stage " + str(start_stage) + " is not a valid value\n")
+
 	end_stage = args.end
 	if end_stage != None:
 		try:
 			end_stage = int(end_stage) 
 		except:
-			raise Exception("Unexpected error, end_stage " + end_stage + " is not a valid integer value between 0-6")   
-		if not end_stage in [0,1,2,3,4,5,6]:
+			raise Exception("Unexpected error, end_stage " + str(end_stage) + " is not a valid integer value between 0-6")
+		if end_stage not in [0,1,2,3,4,5,6]:
 			raise Exception("Unexpected error, end_stage is not a valid integer value between 0-6\n")
-    
-	if (start_stage > end_stage):
+
+	if start_stage > end_stage:
 		raise Exception ("Unexpected error, start stage " + str(start_stage) + " is larger than end stage " + str(end_stage) + "\n")
 			
 	path = args.path
@@ -360,16 +360,14 @@ def main(args):
 				os.system("mkdir -p " + dir_path)
 			except:
 				raise Exception("failed to create directory " + dir_path + "\n")
-			#if not os.path.isdir(dir_path):
-				#raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")	
-	
+
 	if not os.path.isdir(dir_path):	#check, consider single read which would start here!!! 
 		raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
 
 	ref_genome = args.ref
 	if not (os.path.isfile(ref_genome) and os.path.splitext(ref_genome)[1] == '.fasta'):
 		raise Exception("Unexpected error, " + ref_genome + " reference genome file does not exist, is not a file or is not a fasta file\n")
-    	
+
 	q_score = args.q_score
 	if q_score != None:
 		try:
@@ -377,9 +375,9 @@ def main(args):
 		except:
 			raise Exception("Unexpected error, q_score should be an integer value between 0-40\n")
 		if q_score < 0 or q_score > 40: 
-			raise Exception("Unexpected error, q-score value " + q_score + " is not valid, should be an integer value between 0-40\n")
+			raise Exception("Unexpected error, q-score value " + str(q_score) + " is not valid, should be an integer value between 0-40\n")
 		if q_score < 16:
-			print("Warning, running pipeline with q-score value of " + q_score + "\n")
+			print("Warning, running pipeline with q-score value of " + str(q_score) + "\n")
 	
 	blast_id = args.blast_id
 	if blast_id != None:
@@ -388,16 +386,16 @@ def main(args):
 		except:
 			raise Exception("Unexpected error, identity % for blast should be an integer value\n")
 		if blast_id < 0 or blast_id > 100:
-			raise Exception("Unexpected error, identity % for blast is not a valid value: " + blast_id + " \n")
+			raise Exception("Unexpected error, identity % for blast is not a valid value: " + str(blast_id) + " \n")
 	
 	e_value = args.evalue
 	if e_value != None:
 		try:
 			e_value = float(e_value) 
 		except:
-			raise Exception("Unexpected error, e-value " + e_value + " is not a valid value\n")
+			raise Exception("Unexpected error, e-value " + str(e_value) + " is not a valid value\n")
 		if e_value < 1e-7:
-			print("Warning, running pipeline with e_value < " + e_value + "\n")
+			print("Warning, running pipeline with e_value < " + str(e_value) + "\n")
 	
 	task = args.blast_task
 	if task != None:
@@ -441,7 +439,7 @@ def main(args):
 		Protocol = "linear"
 	else:
 		if Protocol not in ["L", "l", "linear", "C", "c", "circular"]:
-			raise Exception("Unexpected error, for linear library prep protocol type 'linear' or 'L', for circular library prep protocol type 'circular' or 'C'\n") 
+			raise Exception("Unexpected error, for linear library prep protocol type 'linear', 'L' or 'l', for circular library prep protocol type 'circular', 'C' or 'c'\n")
 	
 	cmd = "python {} -p {} -o {} -r {} -m {} -t {} -s {} -e {} -q {} -id {} -ev {} -rep {} -n {} -c {} -pr {}".format(pipeline_path, path, dir_path, ref_genome, mode, task, 
                                                             start_stage, end_stage, q_score, blast_id, e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol)
@@ -456,16 +454,26 @@ def main(args):
 			o.write("Blast parameters: mode = {}, task = {}, %id for blast = {}, e-value = {}\n".format(mode, task, blast_id, e_value))
 			o.write("Base Calling Parameters: number of repeats used = {}, q-score = {}, protocol = {}\n\n".format(min_num_repeats, q_score, Protocol))
 	except:
-		raise Exception("Unexpected error, cannot write into file " + pipeline_summary + "\n")	#print warning instead???
+		raise Exception("Unexpected error, cannot write into file " + pipeline_summary + "\n")
 	
 	for stage in range(start_stage, end_stage+1):	
 		if stage == 0:
 			merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path)
 		if stage == 1:
-			file_type = ".fastq"
-			input_fastq_files = FindFilesInDir(dir_path, file_type)
-			file_type = ".gz"
-			input_gz_files = FindFilesInDir(dir_path, file_type)
+			input_gz_files = []; input_fastq_files = []
+			file_type = sample_basename_pattern
+			sample_files = FindFilesInDir(sample_dir_path, file_type)
+			for file in sample_files:
+				if os.path.splitext(file)[1] == ".gz":
+					input_gz_files.append(file)
+				elif os.path.splitext(file)[1] == ".fastq":
+					input_fastq_files.append(file)
+				else:
+					raise Exception("Sample pattern " + os.path.basename(path) + "is not a .gz or .fastq file")
+			#file_type = ".fastq"
+			#input_fastq_files = FindFilesInDir(dir_path, file_type)
+			#file_type = ".gz"
+			#input_gz_files = FindFilesInDir(dir_path, file_type)
 			if (len(input_fastq_files) > 0 and len(input_gz_files) > 0):
 				raise Exception("Unexpected error, there is a mix of fastq and gz files in directory " + dir_path + "\n")
 			elif (len(input_fastq_files) == 0 and len(input_gz_files) == 0):
@@ -491,7 +499,7 @@ def main(args):
     
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-p", "--path", type=str, help="a path with a pattarn of sample name for merge. Example: dir1/dir2/sample1_", required=False)
+	parser.add_argument("-p", "--path", type=str, help="a path with a pattern of sample name for merge. Example: dir1/dir2/sample1_", required=False)
 	parser.add_argument("-N", "--num_of_N", type=int, help="number of N's to add for merge of R1 and R2 pair-end reads", required=False, default=60) 
 	parser.add_argument("-n", "--num_reads", type=int, help="number of reads per split file", required=False, default=25000) 
 	parser.add_argument("-o", "--output_dir", type=str, help="a path to an output directory", required=True)
@@ -500,8 +508,8 @@ if __name__ == "__main__":
 	parser.add_argument("-id", "--blast_id", type=int, help="% blast id, default=85", required=False, default=85)
 	parser.add_argument("-t", "--blast_task", type=str, help="task for blast, blastn/megablast/dc-megablast?, default='blastn'", required=False, default="blastn")
 	parser.add_argument("-ev", "--evalue", type=float, help="E-value for blast, default=1e-7", required=False, default=1e-7)
-	parser.add_argument("-s", "--start", type=int, help="start step number. default=1", required=False, default=0)
-	parser.add_argument("-e", "--end", type=int, help="end step number. default=6", required=False, default=6)
+	parser.add_argument("-s", "--start", type=int, help="start step number, default=0", required=False, default=0)
+	parser.add_argument("-e", "--end", type=int, help="end step number, default=6", required=False, default=6)
 	parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
 	parser.add_argument("-rep", "--repeats", type=int, help="number of repeats, default = 2", required=False, default=2)
 	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default = 10000", required=False, default=10000)

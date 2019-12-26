@@ -1,4 +1,4 @@
-#! /usr/local/python_anaconda/bin/python3.4
+#! python/python-anaconda3.2019.7
 
 import glob
 import numpy as np
@@ -100,7 +100,7 @@ def create_mutation_rate_plot (dir_path, freqs_file_path, Coverage, lower_ylim =
 		data = pd.DataFrame.groupby(data[(data["rank"] != 0) & (data["coverage"] > Coverage)], by = ["mutation"]).sum()	#& (data["base"] != "-") to also remove deletions
 		#data = pd.DataFrame.groupby(data[(data["rank"] != 0) & (data["ref_base"] != data["base"]) & (data["coverage"] > Coverage)], by = ["mutation"]).sum()	#& (data["base"] != "-") to also remove deletions
 		data["mutation_frequency"] = round(data["base_counter"]/data["coverage"],6)
-		pd.DataFrame.drop(data, axis=1, columns=["ref_position","base_counter","coverage","frequency","probability","rank"], inplace=True)
+		pd.DataFrame.drop(data, columns=["ref_position","base_counter","coverage","frequency","probability","rank"], inplace=True)
 		mutation_rates = dir_path + "/mutation_rates.csv"
 		with open(mutation_rates, "w") as o:
 			o.write(data.to_csv())
