@@ -113,14 +113,15 @@ def create_mutation_type_df(reference_file, ncbi_feature_table, mutation_type_ou
         temp_df['temp'] = 1
         relevant_genes_df['temp'] = 1
         temp_df = pd.merge(temp_df, relevant_genes_df, how='right', on='temp')
+        temp_df = temp_df.drop(columns=['temp'])
         positions_dfs.append(temp_df)
     positions_df = pd.concat(positions_dfs)
     positions_df.Pos = positions_df.Pos.astype(float)
     
     # create mutations dict per mutation
-    positions_df['mutation_type'] = positions_df.apply(mutation_type_per_row, axis=1)
-    #positions_df.to_csv('X:/volume2/noam/ms2_reference/mutation_type_ncbi/mutation_types.csv')
-    positions_df.to_csv(mutation_type_output_csv)
+    tqdm.pandas()
+    positions_df['mutation_type'] = positions_df.progress_apply(mutation_type_per_row, axis=1)
+    positions_df.to_csv(mutation_type_output_csv, index=False)
     return positions_df
 
     
