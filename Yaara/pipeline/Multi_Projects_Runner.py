@@ -1,8 +1,7 @@
-#! /usr/local/python_anaconda/bin/python3.4
+#! python/python-anaconda3.2019.7
 
 import argparse
 import time
-import datetime
 import glob
 import os
 
