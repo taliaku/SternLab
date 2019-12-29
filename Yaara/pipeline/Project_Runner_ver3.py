@@ -118,6 +118,8 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 			start_stage = 0
 		else: 	#single-end reads
 			start_stage = 1
+	if start_stage > end_stage:
+		raise Exception ("Unexpected error, start stage " + str(start_stage) + " is larger than end stage " + str(end_stage) + "\n")
 
 	num_of_samples = len(samples_files)
 	if num_of_samples == 1:
@@ -143,8 +145,13 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 	Sleep(alias, job_id)
 	
 def main(args):
-	
-	pipeline_path = args.pipeline_runner
+
+	pipeline_dir = os.path.dirname(os.path.abspath(__file__))
+	pipeline_path = pipeline_dir + "/runner.py"
+
+	#pipeline_path = args.pipeline_runner
+	if not os.path.isfile(pipeline_path): # and os.path.basename(pipeline_path) == 'runner.py'):
+		raise Exception("Unexpected error, " + pipeline_path + " does not exist, is not a file or or is not a blast file\n")
 	
 	start_stage = args.start
 	if start_stage != None:
@@ -169,7 +176,7 @@ def main(args):
 			
 	input_dir = args.input_dir
 	if not os.path.isdir(input_dir):
-		raise Exception("Directory for merge files " + input_dir + " does not exist or is not a valid directory path\n")
+		raise Exception("Directory for input files " + input_dir + " does not exist or is not a valid directory path\n")
 	
 	number_of_N = args.num_of_N
 	if number_of_N != None:
@@ -185,7 +192,7 @@ def main(args):
 		except:
 			raise Exception("failed to create input directory " + dir_path + "\n")
 		if not os.path.isdir(dir_path):
-			raise Exception("Input directory " + dir_path + " does not exist or is not a valid directory path\n")	
+			raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
 	
 	ref_genome = args.ref
 	if not (os.path.isfile(ref_genome) and os.path.splitext(ref_genome)[1] == '.fasta'):
@@ -274,9 +281,9 @@ def main(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-run", "--pipeline_runner", type=str, help="a path to current version of pipeline runner", required=True)
+	#parser.add_argument("-run", "--pipeline_runner", type=str, help="a path to the current version of the pipeline runner", required=True)
 	parser.add_argument("-N", "--num_of_N", type=int, help="number of N's to add for merge of R1 and R2 pair-end reads", required=False, default=60) 
-	parser.add_argument("-i", "--input_dir", type=str, help="a path to an input directory containing fastq or gz files ready for split, either single-end read OR merged pair-end reads", required=True)	
+	parser.add_argument("-i", "--input_dir", type=str, help="a path to an input directory containing sequencing samples for pipeline analysis", required=True)
 	parser.add_argument("-n", "--num_reads", type=int, help="number of reads per split file", required=False, default=25000) 
 	parser.add_argument("-o", "--output_dir", type=str, help="a path to an output directory", required=True)
 	parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference fasta file", required=True)

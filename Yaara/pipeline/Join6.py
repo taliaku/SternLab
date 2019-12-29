@@ -92,7 +92,6 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage, Minimal_i
 		except:
 			raise Exception("Unexpected error, cannot write into file " + csv_file_path + "\n")
 
-	
 	df_ref = pd.DataFrame.from_dict(REF_GENOME, orient='index')
 	pd.DataFrame.rename_axis(df_ref, "ref_position", inplace = True)
 	pd.DataFrame.rename(df_ref, columns={0: "ref_base"}, inplace = True)
@@ -180,10 +179,19 @@ def main(args):
 	dir_path = args.out_dir
 	if not os.path.isdir(dir_path):
 		raise Exception("Directory " + dir_path + " does not exist or is not a valid directory\n")
-	
-	path = args.path
-	if path != None:
-		sample_basename_pattern = os.path.basename(path)
+
+	find_files = FindFilesInDir(dir_path, ".part1.fasta")
+	if len(find_files) > 0:
+		if "L00" in find_files[0]:
+			sample_basename_pattern = os.path.basename(find_files[0].split("L00")[0])
+		else:
+			raise Exception("Unexpected error, was not able to find a common path for sample name. Unable to perform Join step\n")
+	else:
+		raise Exception("Unexpected error, was not able to find *part1.fasta files in directory " + dir_path + ". Unable to perform Join step\n")
+
+	#path = args.path
+	#if path != None:
+	#	sample_basename_pattern = os.path.basename(path)
 		
 	ref_FilePath = args.ref
 	if not (os.path.isfile(ref_FilePath) and os.path.splitext(ref_FilePath)[1] == '.fasta'):
@@ -204,7 +212,7 @@ def main(args):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-o", "--out_dir", type=str, help = "a path to an output directory in which the results will be saved", required=True)
-	parser.add_argument("-p", "--path", type=str, help="a path with a pattarn of sample name for merge. Example: dir1/dir2/sample1_", required=True)
+	#parser.add_argument("-p", "--path", type=str, help="a path with a pattarn of sample name for merge. Example: dir1/dir2/sample1_", required=True)
 	parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference seq file (fasta)", required=True)
 	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default = 10000", required=False, default=10000)
 	args = parser.parse_args()

@@ -96,13 +96,15 @@ def read_id_qscore (blast_FilePath, read_id, Quality_line, ASCII_Q_SCORE):
 		            
 	return READ_ID_QSCORE
 
-def ASCII_for_quality():     
-	ASCII_FilePath = "/sternadi/home/volume1/shared/SternLab/pipeline/ascii_table_processed.txt"
+def ASCII_for_quality(pipeline_dir):
+	#ASCII_FilePath = "/sternadi/home/volume1/shared/SternLab/pipeline/ascii_table_processed.txt"
+	#ASCII_FilePath = "/sternadi/home/volume2/yaara/SternLab/Yaara/pipeline/ascii_table_processed.txt"
+	ASCII_FilePath = pipeline_dir + "/ascii_table_processed.txt"
 	try:
 		with open(ASCII_FilePath, 'rt') as ASCII_file:
 			ReadLines = ASCII_file.readlines()
 	except:
-		raise Exception("Cannot open ascii txt file\n")
+		raise Exception("Cannot open ascii txt file " + ASCII_FilePath + "\n")
 		
 	ASCII_Q_SCORE = {}
 	RowNum = 0
@@ -347,7 +349,7 @@ def calculate_read_id_contribution (READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_C
 	
 	return READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_COUNTER, Total_base_counter_per_read_id
     
-def summerize_total_contribution_statistics_1 (CONTRIBUTING_STATS, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter, Total_base_counter_per_read_id, match_counter, \
+def summarize_total_contribution_statistics_1 (CONTRIBUTING_STATS, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter, Total_base_counter_per_read_id, match_counter, \
 	good_reads_file, good_reads_quality_file, read_id, Quality_line, repeat_read_counter = 0, repeat_base_counter = 1):
 
 	if Total_base_counter_per_read_id > 0:
@@ -401,7 +403,7 @@ def calculate_frequencies(TOTAL_BASE_CALL_COUNTER, REF_GENOME, frequencies_file,
 	os.system("sort -V " + frequencies_file + " -o " + frequencies_file + "\n")
 	os.system("sed -i $'1i ref_position\tref_base\tbase\tbase_counter\tcoverage\tfrequency\n' " + frequencies_file)
   
-def summerize_total_contribution_statistics_2(CONTRIBUTING_STATS, stats_file, double_mapping_counter, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter, \
+def summarize_total_contribution_statistics_2(CONTRIBUTING_STATS, stats_file, double_mapping_counter, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter, \
 	repeat_read_counter = 0, repeat_base_counter = 1):	
 	
 	with open(stats_file, 'at') as stats:
@@ -441,7 +443,7 @@ def get_record(ReadLines, RowNum, mode):
 			
 	return read_record_split, read_id
 
-def BaseCall(blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protocol, counter = 0, plus_counter = 1, minus_counter = 2, quality_line = 3):	
+def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protocol, counter = 0, plus_counter = 1, minus_counter = 2, quality_line = 3):
 	try:
 		with open(blast_FilePath,'rt') as read_records:
 			ReadLines = read_records.readlines()
@@ -452,7 +454,7 @@ def BaseCall(blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protoc
 	REF_GENOME = {}
 	REF_GENOME = create_ref_seq(ref_FilePath)	   
 	ASCII_Q_SCORE = {}
-	ASCII_Q_SCORE = ASCII_for_quality()     
+	ASCII_Q_SCORE = ASCII_for_quality(pipeline_dir)
 	READS_ID_VALUES = {}
 	READS_ID_VALUES = count_num_times_read_matches(ReadLines, Lines, mode)
 	READS_ID_VALUES = reads_id_quality(READS_ID_VALUES, blast_FilePath)
@@ -506,7 +508,7 @@ def BaseCall(blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protoc
 					raise Exception("Unexpected error, blast mode has to be either ReftoSeq, RS, rs or SeqtoRef, SR, sr\n") 
 				
 				strand = read_record_split[6].strip()
-				length = read_record_split[7].strip()
+				#length = read_record_split[7].strip()
 				aln = read_record_split[8].strip()
 				
 				READ_ID_BASE_CALL_COUNTER, READ_ID_DOUBLE_POSITION_COUNTER = \
@@ -526,7 +528,7 @@ def BaseCall(blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protoc
 			del READ_ID_DOUBLE_POSITION_COUNTER
 			
 			#For each read_id in the blast file calculate contribution based on q-score in READ_ID_BASE_CALL_COUNTER. 
-			#Summerize results in TOTAL_BASE_CALL_COUNTER. 			
+			#Summarize results in TOTAL_BASE_CALL_COUNTER.
 			READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_COUNTER, Total_base_counter_per_read_id = \
 			calculate_read_id_contribution(READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_COUNTER, q_score, num_of_repeats, REF_GENOME, \
 			good_mutations_file, Non_contributing_file, read_id, Total_base_counter_per_read_id)
@@ -534,7 +536,7 @@ def BaseCall(blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protoc
 			
 			#Create contributing statistics files, part1	
 			CONTRIBUTING_STATS, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter = \
-			summerize_total_contribution_statistics_1(CONTRIBUTING_STATS, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter, Total_base_counter_per_read_id, match_counter-1, \
+			summarize_total_contribution_statistics_1(CONTRIBUTING_STATS, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter, Total_base_counter_per_read_id, match_counter-1, \
 			good_reads_file, good_reads_quality_file, read_id, Quality_line)
 		
 		else:
@@ -564,11 +566,14 @@ def BaseCall(blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protoc
 	del REF_GENOME
 	
 	#Create contributing statistics files, part2
-	summerize_total_contribution_statistics_2(CONTRIBUTING_STATS, stats_file, double_mapping_counter, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter)
+	summarize_total_contribution_statistics_2(CONTRIBUTING_STATS, stats_file, double_mapping_counter, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter)
 		
 def main(args):
+
+	pipeline_dir = os.path.dirname(os.path.abspath(__file__))
+
 	blast_FilePath = args.file_path
-	if not os.path.isfile(blast_FilePath) and os.path.splitext(blast_FilePath)[1] == '.blast':
+	if not (os.path.isfile(blast_FilePath) and os.path.splitext(blast_FilePath)[1] == '.blast'):
 		raise Exception("Unexpected error, " + blast_FilePath + " does not exist, is not a file or or is not a blast file\n") 
 		
 	ref_FilePath = args.ref
@@ -612,7 +617,7 @@ def main(args):
 		if Protocol not in ["L", "l", "linear", "C", "c", "circular"]:
 			raise Exception("Unexpected error, for linear library prep protocol type 'linear' or 'L', for circular library prep protocol type 'circular' or 'C'\n") 
 			
-	BaseCall(blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protocol)
+	BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protocol)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
