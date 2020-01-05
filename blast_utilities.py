@@ -89,5 +89,5 @@ def get_unaligned_reads(blast_dir, fastq_file, out_file):
     for b in [blast_dir + '/' + f for f in os.listdir(blast_dir) if f.endswith('.blast')]:
         blasts.append(blast_to_df(b))
     blast = pd.concat(blasts)
-    filter_out_fastq_by_read_id(fastq_file, out_file, blast.read_id.drop_duplicates().tolist())
+    filter_out_fastq_by_read_id(fastq_file, out_file, blast.read.drop_duplicates().tolist())
     return
