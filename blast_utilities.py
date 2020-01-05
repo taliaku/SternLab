@@ -83,7 +83,7 @@ def get_unaligned_reads(blast_dir, fastq_file, out_file):
     created by pipeline can be used here) and writes to out_file a fastq 
     file only with the unaligned reads.
     '''
-    blasts []
+    blasts = []
     for b in [blast_dir + '/' + f for f in os.listdir(blast_dir) if f.endswith('.blast')]
         blasts.append(blast_to_df(b))
     blast = pd.concat(blasts)
