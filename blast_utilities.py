@@ -4,6 +4,7 @@ import pandas as pd
 import re
 import math
 import os
+from fastq_utilities import filter_out_fastq_by_read_id
 
 MUTATION_PATTERN = re.compile('[ACGTN]{2}')
 INSERTION_PATTERN = re.compile('-[ACGTN]')
