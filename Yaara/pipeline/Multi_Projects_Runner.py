@@ -1,8 +1,7 @@
-#! /usr/local/python_anaconda/bin/python3.4
+#! python/python-anaconda3.2019.7
 
 import argparse
 import time
-import datetime
 import glob
 import os
 
@@ -98,7 +97,12 @@ def run_multi_projects(pipeline_path, cmds_file):
 	
 def main(args):
 	
-	pipeline_path = args.pipeline_runner
+	#pipeline_path = args.pipeline_runner
+	pipeline_dir = os.path.dirname(os.path.abspath(__file__))
+	pipeline_path = pipeline_dir + "/runner.py"
+
+	if not os.path.isfile(pipeline_path):
+		raise Exception("Unexpected error, " + pipeline_path + " does not exist, is not a file or or is not a blast file\n")
 	
 	cmds_file = args.cmds_file
 	if not os.path.isfile(cmds_file):
@@ -111,6 +115,6 @@ def main(args):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-f", "--cmds_file", type=str, help="a path to a file containing a list of cmds to run. Different variables for each cmd are excepted", required=True)
-	parser.add_argument("-run", "--pipeline_runner", type=str, help="a path to current version of pipeline runner", required=True)
+	#parser.add_argument("-run", "--pipeline_runner", type=str, help="a path to current version of pipeline runner", required=True)
 	args = parser.parse_args()
 	main(args)

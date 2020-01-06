@@ -1,4 +1,4 @@
-#! /usr/local/python_anaconda/bin/python3.4
+#! python/python-anaconda3.2019.7
 
 import argparse
 import glob
@@ -13,11 +13,8 @@ def FindFilesInDir(dir_path, file_type):
 		for file in list_of_files:
 			size = os.path.getsize(file)
 			if size == 0:
-				time.sleep(20)
-				size = os.path.getsize(file)
-			if size == 0:
 				raise Exception("Unexpected error, some of the " + file_type + " files in " + dir_path + " are empty\n")
-       
+
 	return list_of_files
 
 def SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file): 
@@ -33,7 +30,7 @@ def SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file):
 	try:
 		Lines = int(os.popen("awk 'END {print NR}' " + FilePath).read())        
 	except:
-		("Unexpected error, number of lines in file " + FilePath + " is not an integer value\n")
+		raise Exception ("Unexpected error, number of lines in file " + FilePath + " is not an integer value\n")
 			
 	if Lines == 0 or Lines % 4 != 0:
 		raise Exception ("Unexpected error, file " + FilePath + " is empty, or number of lines in file does not divide by 4\n")
@@ -41,7 +38,7 @@ def SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file):
 	Num_reads_in_file = Lines/4
 	#print ("Total number of reads for input file is: " + str(int(Num_reads_in_file)) + ". Total number of lines is: " + str(Lines) + "\n")
 	Num_files = int(Num_reads_in_file/Num_reads_per_file)+1
-	if ((Num_reads_in_file % Num_reads_per_file) == 0):
+	if (Num_reads_in_file % Num_reads_per_file) == 0:
 		Num_files -= 1	
 	#print ("Number of files to split into: " + str(Num_files) + ", with " + str(Num_reads_per_file) + " reads per file\n")
 
@@ -64,6 +61,8 @@ def SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file):
 								for i in range(4): 
 									if i == 0:
 										read_id = ReadRecords.readline().strip()
+										if "R1" in os.path.basename(FilePath):
+											read_id = read_id.split(" ")[0].strip()
 										if not read_id.startswith("@"):
 											raise Exception("Unexpected error, missing @. Cannot identify read id in first line of read id\n")
 									if i == 1:
@@ -113,9 +112,9 @@ def SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file):
 	if len(fasta_files) != Num_files or len(quality_files) != Num_files: 
 		raise Exception("Unexpected error, number of fasta and / or quality output files does not match expected number of output files " + str(Num_files) + "\n")
 		
-	pipeline_summary = dir_path + "/Summary.txt"
-	with open(pipeline_summary, "a") as o:	
-		o.write("Total number of reads per sample {}: {}\n\n".format(os.path.basename(FilePath).split(".fastq")[0],int(Num_reads_in_file)))
+	#pipeline_summary = dir_path + "/Summary.txt"
+	#with open(pipeline_summary, "a") as o:
+	#	o.write("Total number of reads per sample {}: {}\n\n".format(os.path.basename(FilePath).split(".fastq")[0],int(Num_reads_in_file)))
 		
 def main(args):
 	dir_path = args.out_dir
@@ -136,12 +135,8 @@ def main(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-o", "--out_dir", type=str, help = "a path to an output directory in which the results will be saved", required=True)
+	parser.add_argument("-o", "--out_dir", type=str, help = "a path to an output directory where split files are saved", required=True)
 	parser.add_argument("-f", "--file", type=str, help = "a path to a gz or fastq file to split to smaller fasta and qual files", required=True)
 	parser.add_argument("-n", "--num_reads", type=int, help = "number of reads per split file", required=True)
 	args = parser.parse_args()
 	main(args)
-
-
-
-    

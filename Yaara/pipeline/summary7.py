@@ -1,4 +1,4 @@
-#! /usr/local/python_anaconda/bin/python3.4
+#! python/python-anaconda3.2019.7
 
 import glob
 import numpy as np
@@ -31,14 +31,18 @@ def summarize_stats (dir_path):
 		if len(input_stats_files) > 0:		
 			try:
 				#only_once_reads = subprocess.getoutput("grep '1\t' *.stats -h | awk '{sum+=$2}; END {print sum}'")
+				num_reads = subprocess.getoutput("cat *fasta | grep '^>' | wc -l")
 				num_contributing_reads = subprocess.getoutput("grep 'Number of reads contributing to frequency counts' *stats -h | awk -F '\t' '{sum+=$2}; END{print sum}'" )
 				num_contributing_bases = subprocess.getoutput("grep 'Number of bases contributing to frequency counts' *stats -h | awk -F '\t' '{sum+=$2}; END{print sum}'" )
 				num_non_contributing_reads = subprocess.getoutput("grep 'Number of non contributing reads' *stats -h | awk -F '\t' '{sum+=$2}; END{print sum}'" ) 
 				num_mapped_reads = int(num_contributing_reads) + int(num_non_contributing_reads)
-				precentage_contribution = round((int(num_contributing_reads)/int(num_mapped_reads))*100,2)
+				percentage_mapped = round((int(num_mapped_reads)/int(num_reads))*100,2)
+				percentage_contribution = round((int(num_contributing_reads)/int(num_mapped_reads))*100,2)
+				o.write("Total number of reads: {}\n".format(int(num_reads)))
 				o.write("Number of reads mapped to reference: {}\n".format(int(num_mapped_reads)))
+				o.write("% of mapped reads: {}\n".format(percentage_mapped))
 				o.write("Total number of reads contributing to frequency count: {}\n".format(int(num_contributing_reads)))
-				o.write("% of reads contributing to frequency count: {}\n".format(precentage_contribution))
+				o.write("% of reads contributing to frequency count: {}\n".format(percentage_contribution))
 				o.write("Total number of bases contributing to frequency count: {}\n\n".format(int(num_contributing_bases)))
 				
 				get_repeats = []
@@ -53,7 +57,7 @@ def summarize_stats (dir_path):
 			except:
 				print("\nWarning. Unable to summarize pipeline statistics, or cannot open or write to file " + pipeline_summary + "\n")
 		else:
-			print("\nWarning. Missing stats files. Cannot summerize pipeline results\n")
+			print("\nWarning. Missing stats files. Cannot summarize pipeline results\n")
 	
 def count_coverage_positions (dir_path, freqs_file_path, Coverage):
 	pipeline_summary = dir_path + "/Summary.txt"
@@ -91,7 +95,7 @@ def create_mutation_rate_plot (dir_path, freqs_file_path, Coverage, lower_ylim =
 		data["mutation"] = data["ref_base"] + ">" + data["base"]
 		sns.set_style("whitegrid")
 		ax=sns.boxplot("mutation", "frequency", data=data[(data["rank"] != 0) & (data["coverage"] > Coverage)]) 
-		#ax=sns.boxplot("mutation", "frequency", data=data[(data["rank"] != 0) & (data["ref_base"] != data["base"]) & (data["coverage"] > Coverage)]) 
+		#ax=sns.boxplot("mutation", "frequency", data=data[(data["rank"] != 0) & (data["ref_base"] != data["base"]) & (data["coverage"] > Coverage)])
 		ax.set_yscale("log")
 		ax.set_ylim(lower_ylim, upper_ylim)
 		plt.title("Mutation Rates", fontsize=16)
@@ -100,7 +104,7 @@ def create_mutation_rate_plot (dir_path, freqs_file_path, Coverage, lower_ylim =
 		data = pd.DataFrame.groupby(data[(data["rank"] != 0) & (data["coverage"] > Coverage)], by = ["mutation"]).sum()	#& (data["base"] != "-") to also remove deletions
 		#data = pd.DataFrame.groupby(data[(data["rank"] != 0) & (data["ref_base"] != data["base"]) & (data["coverage"] > Coverage)], by = ["mutation"]).sum()	#& (data["base"] != "-") to also remove deletions
 		data["mutation_frequency"] = round(data["base_counter"]/data["coverage"],6)
-		pd.DataFrame.drop(data, axis=1, columns=["ref_position","base_counter","coverage","frequency","probability","rank"], inplace=True)
+		pd.DataFrame.drop(data, columns=["ref_position","base_counter","coverage","frequency","probability","rank"], inplace=True)
 		mutation_rates = dir_path + "/mutation_rates.csv"
 		with open(mutation_rates, "w") as o:
 			o.write(data.to_csv())
@@ -113,7 +117,7 @@ def create_mutation_rate_plot (dir_path, freqs_file_path, Coverage, lower_ylim =
 def main(args):
 	dir_path = args.output_dir
 	if not os.path.isdir(dir_path):
-		raise Exception("input directory " + dir_path + " does not exist or is not a valid directory\n")	
+		raise Exception("input directory " + dir_path + " does not exist or is not a valid directory\n")
 
 	Coverage = args.coverage
 	try:

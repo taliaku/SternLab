@@ -1,8 +1,7 @@
-#! /usr/local/python_anaconda/bin/python3.4
+#! python/python-anaconda3.2019.7
 
 import argparse
 import time
-import datetime
 import glob
 import os
 
@@ -84,8 +83,7 @@ def create_array(files_list):
 
 def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id, e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol):
 	alias = "RunProject"
-	script_path = pipeline_path
-	
+
 	file_type = "_R1*"
 	samples_files = FindFilesInDir(input_dir, file_type)   
 	if len(samples_files) == 0:
@@ -94,7 +92,7 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 	samples_list = []
 	for sample in samples_files:
 		if not '_L00' in sample:
-			raise Exception("Unexpected error. '_L00' is missing in sample name, cannot identify sample name pattarn\n") 
+			raise Exception("Unexpected error. '_L00' is missing in sample name, cannot identify sample name pattern\n")
 		else:
 			sample_name = os.path.basename(sample).split('_L00')[0]
 		sample_pattern = input_dir + "/" + sample_name + "_"
@@ -108,22 +106,22 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 				if not os.path.isdir(sample_dir_path):
 					raise Exception("Sample directory " + sample_dir_path + " does not exist or is not a valid directory path\n")	
 			samples_list.extend((sample_pattern, sample_dir_path))
-	
-	num_of_samples = len(samples_list)/2
-	if num_of_samples == 0 or len(samples_list) % 2 != 0:
-		raise Exception("Unexpected error, number of files to merge with pattern " + sample_pattern + " in directory " + input_dir + " is zero, or does not divide by 2\n")
-	num_of_samples = int(num_of_samples)	
-		
-	array = create_array(samples_list)
-	
+
+	if len(samples_list) % 2 != 0:
+		raise Exception("Unexpected error, number of samples for pipeline does not match number of output directory created\n")
+
+	file_type = "_R2*"
+	paired_samples = FindFilesInDir(input_dir, file_type)
+
 	if start_stage == None:
-		file_type = "_R2*"
-		paired_samples = FindFilesInDir(input_dir, file_type)   
 		if len(paired_samples) > 0:		#paired-end reads
 			start_stage = 0
 		else: 	#single-end reads
 			start_stage = 1
-		
+	if start_stage > end_stage:
+		raise Exception ("Unexpected error, start stage " + str(start_stage) + " is larger than end stage " + str(end_stage) + "\n")
+
+	num_of_samples = len(samples_files)
 	if num_of_samples == 1:
 		p = '0'
 		o = '1'
@@ -133,6 +131,7 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 		o = '$((PBS_ARRAY_INDEX*2))-1'
 		gmem = 7
 
+	array = create_array(samples_list)
 	cmd1 = 'declare -a SAMPLENAMES\n'
 	cmd2 = 'SAMPLENAMES=' + array + "\n\n"
 	cmd3 = "python " + pipeline_path + " -p ${SAMPLENAMES[" + p + "]} -o ${SAMPLENAMES[" + o + "]} -r " + ref_genome + " -m " + mode + " -t " + task + " -s " + str(start_stage) + " -e " + str(end_stage) + " -q " + str(q_score) + \
@@ -146,33 +145,38 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 	Sleep(alias, job_id)
 	
 def main(args):
-	
-	pipeline_path = args.pipeline_runner
+
+	pipeline_dir = os.path.dirname(os.path.abspath(__file__))
+	pipeline_path = pipeline_dir + "/runner.py"
+
+	#pipeline_path = args.pipeline_runner
+	if not os.path.isfile(pipeline_path): # and os.path.basename(pipeline_path) == 'runner.py'):
+		raise Exception("Unexpected error, " + pipeline_path + " does not exist, is not a file or or is not a blast file\n")
 	
 	start_stage = args.start
 	if start_stage != None:
 		try:
 			start_stage = int(start_stage) 
 		except:
-			raise Exception("Unexpected error, start_stage " + start_stage + " is not a valid value\n")
+			raise Exception("Unexpected error, start_stage " + str(start_stage) + " is not a valid value\n")
 		if not start_stage in [0,1,2,3,4,5,6]:
-			raise Exception("Unexpected error, start_stage " + start_stage + " is not a valid value\n") 	
+			raise Exception("Unexpected error, start_stage " + str(start_stage) + " is not a valid value\n")
     
 	end_stage = args.end
 	if end_stage != None:
 		try:
 			end_stage = int(end_stage) 
 		except:
-			raise Exception("Unexpected error, end_stage " + end_stage + " is not a valid integer value between 0-6")   
+			raise Exception("Unexpected error, end_stage " + str(end_stage) + " is not a valid integer value between 0-6")
 		if not end_stage in [0,1,2,3,4,5,6]:
 			raise Exception("Unexpected error, end_stage is not a valid integer value between 0-6\n")
     
-	if (start_stage > end_stage):
+	if start_stage != None and end_stage != None and start_stage > end_stage:
 		raise Exception ("Unexpected error, start stage " + str(start_stage) + " is larger than end stage " + str(end_stage) + "\n")
 			
 	input_dir = args.input_dir
 	if not os.path.isdir(input_dir):
-		raise Exception("Directory for merge files " + input_dir + " does not exist or is not a valid directory path\n")
+		raise Exception("Directory for input files " + input_dir + " does not exist or is not a valid directory path\n")
 	
 	number_of_N = args.num_of_N
 	if number_of_N != None:
@@ -188,7 +192,7 @@ def main(args):
 		except:
 			raise Exception("failed to create input directory " + dir_path + "\n")
 		if not os.path.isdir(dir_path):
-			raise Exception("Input directory " + dir_path + " does not exist or is not a valid directory path\n")	
+			raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
 	
 	ref_genome = args.ref
 	if not (os.path.isfile(ref_genome) and os.path.splitext(ref_genome)[1] == '.fasta'):
@@ -201,9 +205,9 @@ def main(args):
 		except:
 			raise Exception("Unexpected error, q_score should be an integer value between 0-40\n")
 		if q_score < 0 or q_score > 40: 
-			raise Exception("Unexpected error, q-score value " + q_score + " is not valid, should be an integer value between 0-40\n")
+			raise Exception("Unexpected error, q-score value " + str(q_score) + " is not valid, should be an integer value between 0-40\n")
 		if q_score < 16:
-			print("\nWarning, running pipeline with q-score value of " + q_score + "\n")
+			print("\nWarning, running pipeline with q-score value of " + str(q_score) + "\n")
 	
 	blast_id = args.blast_id
 	if blast_id != None:
@@ -212,7 +216,7 @@ def main(args):
 		except:
 			raise Exception("Unexpected error, identity % for blast should be an integer value\n")
 		if blast_id < 0 or blast_id > 100:
-			raise Exception("Unexpected error, identity % for blast is not a valid value: " + blast_id + " \n")
+			raise Exception("Unexpected error, identity % for blast is not a valid value: " + str(blast_id) + " \n")
 	
 	e_value = args.evalue
 	if e_value != None:
@@ -221,7 +225,7 @@ def main(args):
 		except:
 			raise Exception("Unexpected error, e-value " + e_value + " is not a valid value\n")
 		if e_value < 1e-7:
-			print("\nWarning, running pipeline with e_value < " + e_value + "\n")
+			print("\nWarning, running pipeline with e_value < " + str(e_value) + "\n")
 	
 	task = args.blast_task
 	if task != None:
@@ -238,7 +242,7 @@ def main(args):
 		try:
 			min_num_repeats = int(args.repeats)
 		except:
-			raise Exception("Unexpected error, min number of repeats " + min_num_repeats + " is not a valid integer value\n")
+			raise Exception("Unexpected error, min number of repeats " + str(min_num_repeats) + " is not a valid integer value\n")
 		if min_num_repeats < 1: 
 			raise Exception ("Unexpected error, min number of repeats is less than 1\n")
 		if min_num_repeats < 2:  
@@ -251,14 +255,14 @@ def main(args):
 		try:
 			Num_reads_per_file = int(Num_reads_per_file) 
 		except:
-			raise Exception("Unexpected error, number of reads per file " + Num_reads_per_file + " is not a valid integer value\n")   
+			raise Exception("Unexpected error, number of reads per file " + str(Num_reads_per_file) + " is not a valid integer value\n")
         
 	Coverage = args.coverage
 	if Coverage != None:
 		try:
 			Coverage = int(Coverage) 
 		except:
-			raise Exception("Unexpected error, number of reads per file " + Coverage + " is not a valid integer value\n")
+			raise Exception("Unexpected error, number of reads per file " + str(Coverage) + " is not a valid integer value\n")
 
 	Protocol = args.protocol
 	if Protocol == None:
@@ -277,9 +281,9 @@ def main(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-run", "--pipeline_runner", type=str, help="a path to current version of pipeline runner", required=True)
+	#parser.add_argument("-run", "--pipeline_runner", type=str, help="a path to the current version of the pipeline runner", required=True)
 	parser.add_argument("-N", "--num_of_N", type=int, help="number of N's to add for merge of R1 and R2 pair-end reads", required=False, default=60) 
-	parser.add_argument("-i", "--input_dir", type=str, help="a path to an input directory containing fastq or gz files ready for split, either single-end read OR merged pair-end reads", required=True)	
+	parser.add_argument("-i", "--input_dir", type=str, help="a path to an input directory containing sequencing samples for pipeline analysis", required=True)
 	parser.add_argument("-n", "--num_reads", type=int, help="number of reads per split file", required=False, default=25000) 
 	parser.add_argument("-o", "--output_dir", type=str, help="a path to an output directory", required=True)
 	parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference fasta file", required=True)
@@ -287,8 +291,8 @@ if __name__ == "__main__":
 	parser.add_argument("-id", "--blast_id", type=int, help="% blast id, default=85", required=False, default=85)
 	parser.add_argument("-t", "--blast_task", type=str, help="task for blast, blastn/megablast/dc-megablast?, default='blastn'", required=False, default="blastn")
 	parser.add_argument("-ev", "--evalue", type=float, help="E-value for blast, default=1e-7", required=False, default=1e-7)
-	parser.add_argument("-s", "--start", type=int, help="start step number. default=1", required=False, default=0)
-	parser.add_argument("-e", "--end", type=int, help="end step number. default=6", required=False, default=6)
+	parser.add_argument("-s", "--start", type=int, help="start step number", required=False)
+	parser.add_argument("-e", "--end", type=int, help="end step number, default=6", required=False, default=6)
 	parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
 	parser.add_argument("-rep", "--repeats", type=int, help="number of repeats, default = 2", required=False, default=2)
 	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default = 10000", required=False, default=10000)

@@ -1,4 +1,4 @@
-#! /usr/local/python_anaconda/bin/python3.4
+#! python/python-anaconda3.2019.7
 
 import argparse
 import pandas as pd
@@ -15,7 +15,7 @@ def FindFilesInDir(dir_path, file_type):
 			size = os.path.getsize(file)
 			if size == 0:
 				raise Exception("Unexpected error, some of the " + file_type + " files in " + dir_path + " are empty\n")
-       
+
 	return list_of_files
 	
 def create_ref_seq (ref_FilePath):	
@@ -28,7 +28,7 @@ def create_ref_seq (ref_FilePath):
 	Lines = len(ReadLines)
 	if Lines < 2: 
 		raise Exception("Unexpected error, empty or missing lines in ref file " + ref_FilePath + "\n")
-    
+
 	if ReadLines[0].startswith(">"):
 		ref_genome = " "
 		for i in range(1, Lines):  
@@ -75,8 +75,7 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage, Minimal_i
 			df = pd.read_csv(path, sep= '\t', index_col = [0, 1, 2], usecols=[0, 1, 2, 3, 4])
 		dfs.append(df)
 	data = pd.concat(dfs)
-	print(data.to_string())
-	
+
 	data = pd.DataFrame.groupby(data, level = [0, 1, 2]).sum()
 	data["frequency"] = round(data["base_counter"] / data["coverage"],6)     
 	data["probability"] = round(1 - np.power(10,np.log10(1-data["frequency"]+1e-07)*(data["coverage"]+1)),2)
@@ -91,10 +90,9 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage, Minimal_i
 		try:
 			csv_file.write(data.to_csv())
 		except:
-			raise Exception("Unexpected error, cannot write into file " + csv_file + "\n")
+			raise Exception("Unexpected error, cannot write into file " + csv_file_path + "\n")
 
-	
-	df_ref = pd.DataFrame.from_dict(REF_GENOME, orient='index')#, columns = ['ref_base'])
+	df_ref = pd.DataFrame.from_dict(REF_GENOME, orient='index')
 	pd.DataFrame.rename_axis(df_ref, "ref_position", inplace = True)
 	pd.DataFrame.rename(df_ref, columns={0: "ref_base"}, inplace = True)
 	
@@ -102,7 +100,7 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage, Minimal_i
 	pd.DataFrame.reset_index(data, inplace = True)  
 	data = data.drop_duplicates("ref_position")
 	pd.DataFrame.set_index(data, keys = "ref_position", inplace = True)
-	InsertionCoverage = data[(data['coverage'] == Minimal_insertion_coverage) & (data['ref_base'] == "-")].index	#Removes insertions with minimal coverage to get a "cleaner" concensus ref.
+	InsertionCoverage = data[(data['coverage'] == Minimal_insertion_coverage) & (data['ref_base'] == "-")].index	#Removes insertions with minimal coverage to get a "cleaner" consensus ref.
 	data.drop(InsertionCoverage, inplace=True)	
 	df_insertion = pd.merge(df_ref, data, how = 'outer', on = 'ref_position', sort = False)
 	pd.DataFrame.rename_axis(df_insertion, "ref_position", inplace = True)
@@ -144,27 +142,27 @@ def links_between_mutations(dir_path, min_value = 1):
 	if len(ReadLines) > 1: 
 		i = 0
 		while i < len(ReadLines)-1:
-			while (ReadLines[i].split("\t")[1].strip() != ReadLines[i+1].split("\t")[1].strip()):
+			while ReadLines[i].split("\t")[1].strip() != ReadLines[i+1].split("\t")[1].strip():
 				i += 1
 				if i == len(ReadLines)-1:
 					break
 			if i < len(ReadLines)-1:
 				positions = ReadLines[i].split("\t")[0].strip()
 				mutations = ReadLines[i].split("\t")[2].strip()
-				while (ReadLines[i].split("\t")[1].strip() == ReadLines[i+1].split("\t")[1].strip()):
+				while ReadLines[i].split("\t")[1].strip() == ReadLines[i+1].split("\t")[1].strip():
 					positions = positions + "+" + ReadLines[i+1].split("\t")[0].strip()
 					mutations = mutations + "+" + ReadLines[i+1].split("\t")[2].strip()
 					i += 1
 					if i == len(ReadLines)-1:
 						break
-                
-				if not positions in MUTATIONS_LINKS:
+
+				if positions not in MUTATIONS_LINKS:
 					MUTATIONS_LINKS[positions] = {}
-				if not mutations in MUTATIONS_LINKS[positions]:
+				if mutations not in MUTATIONS_LINKS[positions]:
 					MUTATIONS_LINKS[positions][mutations] = [0,[]]
 				MUTATIONS_LINKS[positions][mutations][0] += 1
 				MUTATIONS_LINKS[positions][mutations][1].append(ReadLines[i].split("\t")[1].strip())
-                
+
 	linked_mutations_file = dir_path + "/linked_mutations.txt"
 	with open(linked_mutations_file, 'wt') as linked_mutations:
 		for positions in MUTATIONS_LINKS:
@@ -181,10 +179,19 @@ def main(args):
 	dir_path = args.out_dir
 	if not os.path.isdir(dir_path):
 		raise Exception("Directory " + dir_path + " does not exist or is not a valid directory\n")
-	
-	path = args.path
-	if path != None:
-		sample_basename_pattern = os.path.basename(path)
+
+	find_files = FindFilesInDir(dir_path, ".part1.fasta")
+	if len(find_files) > 0:
+		if "L00" in find_files[0]:
+			sample_basename_pattern = os.path.basename(find_files[0].split("L00")[0])
+		else:
+			raise Exception("Unexpected error, was not able to find a common path for sample name. Unable to perform Join step\n")
+	else:
+		raise Exception("Unexpected error, was not able to find *part1.fasta files in directory " + dir_path + ". Unable to perform Join step\n")
+
+	#path = args.path
+	#if path != None:
+	#	sample_basename_pattern = os.path.basename(path)
 		
 	ref_FilePath = args.ref
 	if not (os.path.isfile(ref_FilePath) and os.path.splitext(ref_FilePath)[1] == '.fasta'):
@@ -196,8 +203,8 @@ def main(args):
 			Coverage = int(Coverage) 
 		except:
 			raise Exception("Unexpected error, number of reads per file " + Coverage + " is not a valid integer value\n") 
-	
-	REF_GENOME = {}
+
+	#REF_GENOME = {}
 	REF_GENOME = create_ref_seq(ref_FilePath)
 	JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage)
 	links_between_mutations(dir_path)
@@ -205,7 +212,7 @@ def main(args):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-o", "--out_dir", type=str, help = "a path to an output directory in which the results will be saved", required=True)
-	parser.add_argument("-p", "--path", type=str, help="a path with a pattarn of sample name for merge. Example: dir1/dir2/sample1_", required=True)
+	#parser.add_argument("-p", "--path", type=str, help="a path with a pattarn of sample name for merge. Example: dir1/dir2/sample1_", required=True)
 	parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference seq file (fasta)", required=True)
 	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default = 10000", required=False, default=10000)
 	args = parser.parse_args()
