@@ -1,4 +1,6 @@
-from pbs_runners import script_runner, array_script_runner
+from RG_HIVC_analysis.constants import orig_high_quality_patients
+from pbs_runners import script_runner, array_script_runner, fits_runner
+
 
 # Job submission without PBS files:
 
@@ -41,9 +43,23 @@ def run_script_runner():
                       alias='merge_paired_end_{}'.format(sample),
                       load_python=True)
 
+def run_fits():
+    input_files_path=  '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/input_files/high_qual/'
+    output_files_path= '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/output_files/high_qual/'
+    params_filepath=   '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/mr_params.txt'
+
+    # for patient in orig_high_quality_patients:
+    for patient in ['26892']:
+        for mut in ['AG', 'GA', 'CT', 'TC']:
+            input_filepath=     input_files_path + 'FITS_input_file_{}_{}'.format(patient, mut)
+            posterior_filepath= output_files_path + '{}_{}_posterior'.format(patient, mut)
+            summary_filepath=   output_files_path + '{}_{}_summary'.format(patient, mut)
+            fits_runner(1, input_filepath, params_filepath, alias='FITS_{}_{}'.format(patient, mut), posterior_file=posterior_filepath, summary_file=summary_filepath)
+
 
 if __name__ == "__main__":
-    run_script_runner()
+    # run_script_runner()
+    run_fits()
 
 
 
