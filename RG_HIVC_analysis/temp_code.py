@@ -1,4 +1,6 @@
 # from RG_HIVC_analysis.constants import orig_high_quality_patients
+import glob
+
 from pbs_runners import script_runner, array_script_runner, fits_runner
 
 
@@ -50,12 +52,18 @@ def run_fits():
 
     # for patient in orig_high_quality_patients:
     # for patient in ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']:
-    for patient in ['26892']:
-        for mut in ['AG', 'GA', 'CT', 'TC']:
-            input_filepath=     input_files_path + 'FITS_input_file_{}_{}'.format(patient, mut)
-            posterior_filepath= output_files_path + '{}_{}_posterior'.format(patient, mut)
-            summary_filepath=   output_files_path + '{}_{}_summary'.format(patient, mut)
-            fits_runner(1, input_filepath, params_filepath, alias='FITS_{}_{}'.format(patient, mut), posterior_file=posterior_filepath, summary_file=summary_filepath)
+    # for patient in ['26892']:
+    #     for mut in ['AG', 'GA', 'CT', 'TC']:
+    #         input_filepath=     input_files_path + 'FITS_input_file_{}_{}'.format(patient, mut)
+    #         posterior_filepath= output_files_path + '{}_{}_posterior'.format(patient, mut)
+    #         summary_filepath=   output_files_path + '{}_{}_summary'.format(patient, mut)
+    #         fits_runner(1, input_filepath, params_filepath, alias='FITS_{}_{}'.format(patient, mut), posterior_file=posterior_filepath, summary_file=summary_filepath)
+
+
+
+    for file in glob.glob(input_files_path):
+        fits_runner(1, file, params_filepath, alias='FITS',
+                    posterior_file=file+'.posterior', summary_file=file+'.summary')
 
 
 if __name__ == "__main__":
