@@ -1,4 +1,4 @@
-from RG_HIVC_analysis.constants import orig_high_quality_patients
+# from RG_HIVC_analysis.constants import orig_high_quality_patients
 from pbs_runners import script_runner, array_script_runner, fits_runner
 
 
@@ -49,6 +49,7 @@ def run_fits():
     params_filepath=   '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/mr_params.txt'
 
     # for patient in orig_high_quality_patients:
+    # for patient in ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']:
     for patient in ['26892']:
         for mut in ['AG', 'GA', 'CT', 'TC']:
             input_filepath=     input_files_path + 'FITS_input_file_{}_{}'.format(patient, mut)
