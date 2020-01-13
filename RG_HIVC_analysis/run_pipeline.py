@@ -50,21 +50,21 @@ def run_pipeline():
 
 
     for sample in samples:
-        sample_output_dir = output_dir + sample
+        output_dir_sample = output_dir + sample
         ref = ref_dir + "cons/$sample.fasta"
 
         print('running pipeline, sample: {sample}'.format(sample= sample))
-        script_runner('mkdir -p {sample_output_dir};'
+        script_runner('mkdir -p {output_dir_sample};'
                       'python /sternadi/home/volume1/shared/SternLab/pipeline_runner.py '
                       '-i {input_dir} '
-                      '-o {sample_output_dir} '
+                      '-o {output_dir_sample} '
                       '-r {ref} '
                       '-NGS_or_Cirseq 1 '
                       '-q 30 '
                       '-rep {qual} '
                       '-b 40 '
                       '-t z '
-                      '-ev 1e-2'.format(input_dir= input_dir, output_dir= sample_output_dir, ref= ref, qual=qual),
+                      '-ev 1e-2'.format(input_dir= input_dir, output_dir_sample= output_dir_sample, ref= ref, qual=qual),
                       alias='pipeline_{}'.format(sample),
                       load_python=True)
 
