@@ -85,13 +85,14 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage, Minimal_i
 	data["rank"] = (pd.Series.cumsum(pd.Series(data["coverage_to_set_rank"])) - 1) % 5
 	del data["coverage_to_set_rank"]
 	pd.DataFrame.set_index(data, keys = "ref_position" , inplace = True)
-	csv_file_path = dir_path + "/merge.freqs.csv" 
+	csv_file_path = dir_path + "/" + sample_basename_pattern + "merge.freqs.csv"
 	with open(csv_file_path, 'w') as csv_file:
 		try:
 			csv_file.write(data.to_csv())
 		except:
 			raise Exception("Unexpected error, cannot write into file " + csv_file_path + "\n")
 
+	#create dataframe of original ref
 	df_ref = pd.DataFrame.from_dict(REF_GENOME, orient='index')
 	pd.DataFrame.rename_axis(df_ref, "ref_position", inplace = True)
 	pd.DataFrame.rename(df_ref, columns={0: "ref_base"}, inplace = True)
@@ -100,12 +101,13 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage, Minimal_i
 	pd.DataFrame.reset_index(data, inplace = True)  
 	data = data.drop_duplicates("ref_position")
 	pd.DataFrame.set_index(data, keys = "ref_position", inplace = True)
-	InsertionCoverage = data[(data['coverage'] == Minimal_insertion_coverage) & (data['ref_base'] == "-")].index	#Removes insertions with minimal coverage to get a "cleaner" consensus ref.
+	InsertionCoverage = data[(data['coverage'] == Minimal_insertion_coverage) & (data['ref_base'] == "-")].index	#Get indexes of insertions with minimal coverage to get a "cleaner" consensus ref.
 	data.drop(InsertionCoverage, inplace=True)	
 	df_insertion = pd.merge(df_ref, data, how = 'outer', on = 'ref_position', sort = False)
 	pd.DataFrame.rename_axis(df_insertion, "ref_position", inplace = True)
 	pd.DataFrame.sort_index(df_insertion, inplace = True)
 	df_insertion["base_consensus"] = np.where(df_insertion["coverage"] > 0.1*Coverage, df_insertion["base"], df_insertion["ref_base_x"])
+	#df_insertion["base_consensus"] = np.where(df_insertion["base_counter"]/df_insertion["coverage"] > 0.5, df_insertion["base"], df_insertion["ref_base_x"])
 	df_insertion["base_consensus"] = np.where(df_insertion["ref_base_y"] == "-", df_insertion["base"], df_insertion["ref_base_x"])
 	GET_CONSENSUS = pd.Series.to_dict(pd.Series(df_insertion["base_consensus"]))
 	consensus_file_path = dir_path + "/" + sample_basename_pattern + "consensus_with_insertions.fasta" 
@@ -122,14 +124,14 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage, Minimal_i
 	consensus_file_path = dir_path + "/" + sample_basename_pattern + "consensus_without_insertions.fasta" 
 	create_consensus(GET_CONSENSUS, consensus_file_path)
 		
-def links_between_mutations(dir_path, min_value = 1):
+def links_between_mutations(dir_path, sample_basename_pattern, min_value = 1):
 	file_type = ".good_mutations"
 	input_good_mutations_files = FindFilesInDir(dir_path, file_type)
 	if len(input_good_mutations_files) == 0:
 		raise Exception("Unexpected error, no good mutations files were found in directory " + dir_path + "\n")
 	
 	os.chdir(dir_path)
-	good_mutations_all_file = dir_path + "/good_mutations_all.txt"
+	good_mutations_all_file = dir_path + "/" + sample_basename_pattern + "good_mutations_all.txt"
 	os.system("cat *.good_mutations > " + good_mutations_all_file)
 	os.system("sort -Vk2,2 -Vk1,1 " + good_mutations_all_file + " -o " + good_mutations_all_file + "\n")	#sort file for linked mutations analysis is a must. Do not change sort values!!!
 	try:
@@ -163,7 +165,7 @@ def links_between_mutations(dir_path, min_value = 1):
 				MUTATIONS_LINKS[positions][mutations][0] += 1
 				MUTATIONS_LINKS[positions][mutations][1].append(ReadLines[i].split("\t")[1].strip())
 
-	linked_mutations_file = dir_path + "/linked_mutations.txt"
+	linked_mutations_file = dir_path + "/" + sample_basename_pattern + "linked_mutations.txt"
 	with open(linked_mutations_file, 'wt') as linked_mutations:
 		for positions in MUTATIONS_LINKS:
 			for mutations in MUTATIONS_LINKS[positions]:  
@@ -189,10 +191,6 @@ def main(args):
 	else:
 		raise Exception("Unexpected error, was not able to find *part1.fasta files in directory " + dir_path + ". Unable to perform Join step\n")
 
-	#path = args.path
-	#if path != None:
-	#	sample_basename_pattern = os.path.basename(path)
-		
 	ref_FilePath = args.ref
 	if not (os.path.isfile(ref_FilePath) and os.path.splitext(ref_FilePath)[1] == '.fasta'):
 		raise Exception("Unexpected error, " + ref_FilePath + " does not exist, is not a file or is not a fasta file\n")
@@ -204,17 +202,15 @@ def main(args):
 		except:
 			raise Exception("Unexpected error, number of reads per file " + Coverage + " is not a valid integer value\n") 
 
-	#REF_GENOME = {}
 	REF_GENOME = create_ref_seq(ref_FilePath)
 	JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage)
-	links_between_mutations(dir_path)
+	links_between_mutations(dir_path, sample_basename_pattern)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-o", "--out_dir", type=str, help = "a path to an output directory in which the results will be saved", required=True)
-	#parser.add_argument("-p", "--path", type=str, help="a path with a pattarn of sample name for merge. Example: dir1/dir2/sample1_", required=True)
 	parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference seq file (fasta)", required=True)
-	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default = 10000", required=False, default=10000)
+	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics analysis, default=10000", required=True, default=10000)
 	args = parser.parse_args()
 	main(args)
 	

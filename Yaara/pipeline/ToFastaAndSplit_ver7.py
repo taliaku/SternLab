@@ -111,11 +111,7 @@ def SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file):
 	
 	if len(fasta_files) != Num_files or len(quality_files) != Num_files: 
 		raise Exception("Unexpected error, number of fasta and / or quality output files does not match expected number of output files " + str(Num_files) + "\n")
-		
-	#pipeline_summary = dir_path + "/Summary.txt"
-	#with open(pipeline_summary, "a") as o:
-	#	o.write("Total number of reads per sample {}: {}\n\n".format(os.path.basename(FilePath).split(".fastq")[0],int(Num_reads_in_file)))
-		
+
 def main(args):
 	dir_path = args.out_dir
 	if not os.path.isdir(dir_path):
@@ -137,6 +133,6 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-o", "--out_dir", type=str, help = "a path to an output directory where split files are saved", required=True)
 	parser.add_argument("-f", "--file", type=str, help = "a path to a gz or fastq file to split to smaller fasta and qual files", required=True)
-	parser.add_argument("-n", "--num_reads", type=int, help = "number of reads per split file", required=True)
+	parser.add_argument("-n", "--num_reads", type=int, help = "number of reads per split file, default=25000", required=False, default=25000)
 	args = parser.parse_args()
 	main(args)

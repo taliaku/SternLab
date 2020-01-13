@@ -149,8 +149,7 @@ def main(args):
 	pipeline_dir = os.path.dirname(os.path.abspath(__file__))
 	pipeline_path = pipeline_dir + "/runner.py"
 
-	#pipeline_path = args.pipeline_runner
-	if not os.path.isfile(pipeline_path): # and os.path.basename(pipeline_path) == 'runner.py'):
+	if not os.path.isfile(pipeline_path):
 		raise Exception("Unexpected error, " + pipeline_path + " does not exist, is not a file or or is not a blast file\n")
 	
 	start_stage = args.start
@@ -281,7 +280,6 @@ def main(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	#parser.add_argument("-run", "--pipeline_runner", type=str, help="a path to the current version of the pipeline runner", required=True)
 	parser.add_argument("-N", "--num_of_N", type=int, help="number of N's to add for merge of R1 and R2 pair-end reads", required=False, default=60) 
 	parser.add_argument("-i", "--input_dir", type=str, help="a path to an input directory containing sequencing samples for pipeline analysis", required=True)
 	parser.add_argument("-n", "--num_reads", type=int, help="number of reads per split file", required=False, default=25000) 
@@ -294,8 +292,8 @@ if __name__ == "__main__":
 	parser.add_argument("-s", "--start", type=int, help="start step number", required=False)
 	parser.add_argument("-e", "--end", type=int, help="end step number, default=6", required=False, default=6)
 	parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
-	parser.add_argument("-rep", "--repeats", type=int, help="number of repeats, default = 2", required=False, default=2)
-	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default = 10000", required=False, default=10000)
-	parser.add_argument("-pr", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default = 'linear'", required=False, default="linear")
+	parser.add_argument("-rep", "--repeats", type=int, help="number of repeats, default=2", required=False, default=2)
+	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default=10000", required=False, default=10000)
+	parser.add_argument("-pr", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'", required=False, default="linear")
 	args = parser.parse_args()
 	main(args)

@@ -251,11 +251,16 @@ merged[merged.full_mutation.isin(mutations_in_ad169)]
 
 
 
+
+
+
+
 ########### tb40 samples
 df = pd.read_csv('Z:/volume1/noam/cmv/all_freqs.with_without_medicine.csv')
 df['full_mutation'] = df.Ref + df.Pos.astype(str) + df.Base
 mutation_type = pd.read_csv('Z:/volume1/noam/cmv/mutation_type_position_df.csv')
 mutation_type = mutation_type.drop(columns=['Unnamed: 0'])
+mutation_type['full_mutation'] = mutation_type.Ref + mutation_type.Pos.astype(str) + mutation_type.Base
 
 
 ## look at UL54 mutations
@@ -302,11 +307,30 @@ ax.set_ylabel('Frequency 8')
 ax.set_title('Variant Frequency - 7 vs 8')
 
 # only mutations that show change in frequency
-changed = merged[(merged.Base != merged.Ref) & (merged.Ref != '-') & (merged.Freq_7 > 0.5) & (merged.Freq_8 < 0.2) & (merged.Read_count_7 > 5) & (merged.Read_count_8 > 5)]
+changed = merged[(merged.Base != merged.Ref) & (merged.Ref != '-') & (merged.Freq_7 >= 0.5) & (merged.Freq_8 <= 0.2) & (merged.Read_count_7 > 5) & (merged.Read_count_8 > 5)]
 changed = pd.merge(changed, mutation_type[['Pos', 'Ref', 'Base', 'mutation_type', 'protein']], on=['Pos', 'Ref', 'Base'], how='left')
 
 
 to_pivot = df[df.full_mutation.isin(changed.full_mutation_7)]
-to_pivot = pd.merge(to_pivot, mutation_type[['Base', 'Ref', 'Pos', 'protein', 'mutation_type']], how='left', on=['Ref', 'Pos', 'Base'])
+to_pivot = pd.merge(to_pivot, mutation_type[['Base', 'Ref', 'Pos', 'protein', 'mutation_type']], on=['Ref', 'Pos', 'Base'])
 to_pivot['mutation'] = to_pivot.Ref + to_pivot.Pos.astype(str) + to_pivot.Base
 to_pivot = to_pivot.pivot_table(values='Freq', index=['protein', 'mutation', 'mutation_type'], columns='file')
+to_pivot = to_pivot.reset_index()
+to_pivot[to_pivot.mutation_type.astype(str)!='[]']
+
+
+##### controls
+to_pivot = df[df.full_mutation.isin(df[(df.Ref != df.Base) & (df.Ref != '-') & (df.Freq > 0.2) & (df.Read_count > 5) & (df.file.isin(['P16LT', 'P16ND', 'P28ND']))].full_mutation.tolist())]
+to_pivot = pd.merge(to_pivot, mutation_type[['Pos', 'protein']], on=['Pos'], how='left')
+to_pivot = pd.merge(to_pivot, mutation_type[['full_mutation', 'mutation_type']], on=['full_mutation'], how='left')
+to_pivot['mutation_type'] = to_pivot['mutation_type'].fillna('')
+to_pivot['protein'] = to_pivot['protein'].fillna('')
+to_pivot.pivot_table(values='Freq', index=['full_mutation','protein', 'mutation_type'], columns='file').to_excel('Z:/volume1/noam/cmv/cmv_no_medicine/mutation_over_0.2.xlsx')
+
+
+
+
+#####
+df1 = df[(df.Ref != df.Base) & (df.Ref != '-') & (df.Freq > 0.2) & (df.Read_count > 5)]
+df1['m'] = df1.Ref + df1.Base
+sns.boxplot(data=df1[(df1.file.isin(['3', '7', 'P16ND', 'P28ND', 'P16LT'])) & (df1.Base != '-')], x='file', y='Freq', hue='m')
