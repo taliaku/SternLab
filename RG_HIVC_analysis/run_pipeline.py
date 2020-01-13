@@ -7,64 +7,61 @@ control_samples = ['78292_S1', 'X105350_S13', 'X108456_S11', 'X117807_S26', 'X12
 
 def make_ref_from_con():
     samples = orig_samples
-    run_dir = "/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/high_qual/"
+    freq_files_dir = "/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/high_qual/iter2/"
+    prev_refs_dir  = "/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/high_qual/iter1/cons/"
+    new_cons_dir =  freq_files_dir +  "cons/"
 
     min_coverage_for_consensus = 0
-    currect_iteration_dir = run_dir + "iter2/"
-    prev_iteration_dir = run_dir + "iter1/"
 
-
-    cons_output_dir =  currect_iteration_dir +  "cons/"
     for sample in samples:
         sample_short = sample.split('_')[0]
         freqs_filename = sample_short + '.freqs'
+        sample_dir_name = sample + '/'
         cons_filename = sample + ".fasta"
 
-        input_freq_fname = currect_iteration_dir + sample + '/' + freqs_filename
-        output_cons_fname = cons_output_dir + cons_filename
+        input_freq_per_sample = freq_files_dir + sample_dir_name + freqs_filename
+        prev_ref_per_sample = prev_refs_dir + cons_filename
+        output_con_per_sample = new_cons_dir + cons_filename
 
-        prev_iter_ref_fname = prev_iteration_dir + 'cons/' + cons_filename
 
         print('running make_ref_from_con.py, sample: {sample}'.format(sample= sample))
-        script_runner('mkdir -p {cons_output_dir}; '
+        script_runner('mkdir -p {new_cons_dir}; '
                       'python /sternadi/home/volume3/omer/SternLab/NGS_analysis/make_reference_from_consensus.py '
                       '-c {min_coverage_for_consensus} '
-                      '-f {prev_iter_ref_fname} '
-                      '-p {input_freq_fname} '
-                      '-o {output_cons_fname}'.format(cons_output_dir= cons_output_dir, min_coverage_for_consensus= min_coverage_for_consensus, prev_iter_ref_fname= prev_iter_ref_fname, input_freq_fname=input_freq_fname, output_cons_fname= output_cons_fname),
+                      '-f {prev_ref_per_sample} '
+                      '-p {input_freq_per_sample} '
+                      '-o {output_con_per_sample}'.format(new_cons_dir= new_cons_dir, min_coverage_for_consensus= min_coverage_for_consensus, prev_ref_per_sample= prev_ref_per_sample, input_freq_per_sample=input_freq_per_sample, output_con_per_sample= output_con_per_sample),
                       alias='mrfc_{}'.format(sample),
                       load_python=True)
 
 
 def run_pipeline():
-    input_dir = "/sternadi/datasets/volume2/HIV_ravi_gupta_merged/$sample"
-    run_dir =   "/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/high_qual/"
-
-    # input_dir = "/sternadi/datasets/volume2/HIV_ravi_gupta_control_merged/$sample" #control
-    # run_dir = run_dir = "/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta_control/runs/high_qual/"
+    inputs_dir = "/sternadi/datasets/volume2/HIV_ravi_gupta_merged/"
+    # inputs_dir = "/sternadi/datasets/volume2/HIV_ravi_gupta_control_merged/" #control
 
     samples = orig_samples
-    output_dir = run_dir + "iter3/"
-    ref_dir = run_dir + "iter2/"
+    refs_dir =   "/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/high_qual/iter2/cons/"
+    output_dir = "/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/high_qual/iter3/"
     qual = 2 # 2-high, 1- low
 
 
     for sample in samples:
-        output_dir_sample = output_dir + sample
-        ref = ref_dir + "cons/$sample.fasta"
+        input_dir_per_sample = inputs_dir + sample
+        output_dir_per_sample = output_dir + sample
+        ref = refs_dir + sample + ".fasta"
 
         print('running pipeline, sample: {sample}'.format(sample= sample))
-        script_runner('mkdir -p {output_dir_sample};'
+        script_runner('mkdir -p {output_dir_per_sample};'
                       'python /sternadi/home/volume1/shared/SternLab/pipeline_runner.py '
-                      '-i {input_dir} '
-                      '-o {output_dir_sample} '
+                      '-i {input_dir_per_sample} '
+                      '-o {output_dir_per_sample} '
                       '-r {ref} '
                       '-NGS_or_Cirseq 1 '
                       '-q 30 '
                       '-rep {qual} '
                       '-b 40 '
                       '-t z '
-                      '-ev 1e-2'.format(input_dir= input_dir, output_dir_sample= output_dir_sample, ref= ref, qual=qual),
+                      '-ev 1e-2'.format(input_dir_per_sample= input_dir_per_sample, output_dir_per_sample= output_dir_per_sample, ref= ref, qual=qual),
                       alias='pipeline_{}'.format(sample),
                       load_python=True)
 
