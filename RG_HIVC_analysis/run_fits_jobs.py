@@ -92,28 +92,28 @@ def run_fits():
     #         fits_runner(1, input_filepath, params_filepath, alias='FITS_{}_{}'.format(patient, mut), posterior_file=posterior_filepath, summary_file=summary_filepath)
 
     patients_file = glob.glob(input_files_orig_high+'FITS_input_file*')
-    for file in patients_file:
-        patient_id= int(file.split('_')[8])
-        params_filepath = input_files_orig_high + 'mr_params_{}.txt'.format(patient_id)
-
-        print(params_filepath)
-        print(file)
-        fits_runner(1, file, params_filepath, alias='FITS_{}'.format(patient_id),
-                    posterior_file=file+'.posterior', summary_file=file+'.summary')
-
-    # patients = ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']  # high_q
-    # patients = ['26892']
-    # for p in patients:
-    #     p_files = glob.glob(input_files_orig_high + '{}/FITS_input_file*'.format(p))
+    # for file in patients_file:
+    #     patient_id= int(file.split('_')[8])
     #     params_filepath = input_files_orig_high + 'mr_params_{}.txt'.format(patient_id)
     #
-    #     for file in p_files:
-    #         pos = int(file.split('_')[11])
-    #
-    #         print(params_filepath)
-    #         print(patients_file)
-    #         fits_runner(1, file, params_filepath, alias='FITS_{}_{}'.format(p,pos),
-    #                     posterior_file=file+'.posterior', summary_file=file+'.summary')
+    #     print(params_filepath)
+    #     print(file)
+    #     fits_runner(1, file, params_filepath, alias='FITS_{}'.format(patient_id),
+    #                 posterior_file=file+'.posterior', summary_file=file+'.summary')
+
+    # patients = ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']  # high_q
+    patients = ['26892']
+    for p in patients:
+        p_files = glob.glob(input_files_orig_high + '{}/FITS_input_file*'.format(p))
+        params_filepath = input_files_orig_high + 'mr_params_{}.txt'.format(patient_id)
+
+        for file in p_files:
+            pos = int(file.split('_')[11])
+
+            print(params_filepath)
+            print(patients_file)
+            fits_runner(1, file, params_filepath, alias='FITS_{}_{}'.format(p,pos),
+                        posterior_file=file+'.posterior', summary_file=file+'.summary')
 
 def post_analysis():
     dfs=[]

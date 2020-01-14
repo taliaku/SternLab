@@ -710,7 +710,7 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
         '{} {} {} {}'.format(param_file, dataset_file, posterior_file,summary_file)
 
         if batch == None:
-            script_runner(cmds, alias)
+            script_runner(cmds, alias, queue="hugemem")
         else:
             array_script_runner(cmds,batch,alias)
 
