@@ -2,7 +2,7 @@ import glob
 import pandas as pd
 from tqdm import tqdm
 
-from FITS.create_fits_input import split_by_mutation
+# from FITS.create_fits_input import split_by_mutation
 from pbs_runners import fits_runner
 
 
@@ -53,7 +53,7 @@ def generate_fits_input():
         for pos in df_patient.Pos.unique():
             print('pos: {}'.format(pos))
             df_pos = df_patient[(df_patient['Pos'] == pos)]
-            split_by_mutation(df_pos, output_path + str(patient) + '/', ID='no_entropy_{}_{}'.format(patient, pos))
+            # split_by_mutation(df_pos, output_path + str(patient) + '/', ID='no_entropy_{}_{}'.format(patient, pos))
 
         ### Alternative
         # fits_input = freq_2_fits(df, filter='transition', out=r'/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/fits_input_unified.csv')
@@ -93,12 +93,12 @@ def run_fits():
 
     patients_file = glob.glob(input_files_orig_high+'FITS_input_file*')
     for file in patients_file:
-        patient_id= int(file.split('_')[3])
+        patient_id= int(file.split('_')[8])
         params_filepath = input_files_orig_high + 'mr_params_{}.txt'.format(patient_id)
 
         print(params_filepath)
-        print(patients_file)
-        fits_runner(1, file, params_filepath, alias='FITS_'+patient_id,
+        print(file)
+        fits_runner(1, file, params_filepath, alias='FITS_{}'.format(patient_id),
                     posterior_file=file+'.posterior', summary_file=file+'.summary')
 
     # patients = ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']  # high_q
@@ -108,7 +108,7 @@ def run_fits():
     #     params_filepath = input_files_orig_high + 'mr_params_{}.txt'.format(patient_id)
     #
     #     for file in p_files:
-    #         pos = int(file.split('_')[6])
+    #         pos = int(file.split('_')[11])
     #
     #         print(params_filepath)
     #         print(patients_file)
