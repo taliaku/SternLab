@@ -1,6 +1,8 @@
 import glob
 import pandas as pd
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # from FITS.create_fits_input import split_by_mutation
 from pbs_runners import fits_runner
@@ -53,7 +55,7 @@ def generate_fits_input():
         for pos in df_patient.Pos.unique():
             print('pos: {}'.format(pos))
             df_pos = df_patient[(df_patient['Pos'] == pos)]
-            # split_by_mutation(df_pos, output_path + str(patient) + '/', ID='no_entropy_{}_{}'.format(patient, pos))
+            # split_by_mutation(df_pos, output_path + str(patient) + '/', ID='no_entropy_{}_{}'.format(patient, pos)) # TODO- uncomment
 
         ### Alternative
         # fits_input = freq_2_fits(df, filter='transition', out=r'/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/fits_input_unified.csv')
@@ -89,30 +91,30 @@ def run_fits():
     #         input_filepath=     input_files_orig_high + 'FITS_input_file_{}_{}'.format(patient, mut)
     #         posterior_filepath= output_files_path + '{}_{}_posterior'.format(patient, mut)
     #         summary_filepath=   output_files_path + '{}_{}_summary'.format(patient, mut)
-    #         fits_runner(1, input_filepath, params_filepath, alias='FITS_{}_{}'.format(patient, mut), posterior_file=posterior_filepath, summary_file=summary_filepath)
+    #         fits_runner(1, input_filepath, params_file, alias='FITS_{}_{}'.format(patient, mut), posterior_file=posterior_filepath, summary_file=summary_filepath)
 
-    patients_file = glob.glob(input_files_orig_high+'FITS_input_file*')
+    # patients_file = glob.glob(input_files_orig_high+'FITS_input_file*')
     # for file in patients_file:
     #     patient_id= int(file.split('_')[8])
-    #     params_filepath = input_files_orig_high + 'mr_params_{}.txt'.format(patient_id)
+    #     params_file = input_files_orig_high + 'mr_params_{}.txt'.format(patient_id)
     #
-    #     print(params_filepath)
+    #     print(params_file)
     #     print(file)
-    #     fits_runner(1, file, params_filepath, alias='FITS_{}'.format(patient_id),
+    #     fits_runner(1, file, params_file, alias='FITS_{}'.format(patient_id),
     #                 posterior_file=file+'.posterior', summary_file=file+'.summary')
 
     # patients = ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']  # high_q
-    patients = ['26892']
+    patients = ['22763']
     for p in patients:
-        p_files = glob.glob(input_files_orig_high + '{}/FITS_input_file*'.format(p))
-        params_filepath = input_files_orig_high + 'mr_params_{}.txt'.format(patient_id)
+        pos_input_files = glob.glob(input_files_orig_high + '{}/FITS_input_file*'.format(p))
+        params_file = input_files_orig_high + 'mr_params_{}.txt'.format(p)
 
-        for file in p_files:
+        for file in pos_input_files:
             pos = int(file.split('_')[11])
 
-            print(params_filepath)
-            print(patients_file)
-            fits_runner(1, file, params_filepath, alias='FITS_{}_{}'.format(p,pos),
+            print(params_file)
+            print(file)
+            fits_runner(1, file, params_file, alias='FITS_{}_{}'.format(p,pos),
                         posterior_file=file+'.posterior', summary_file=file+'.summary')
 
 def post_analysis():
@@ -131,12 +133,21 @@ def post_analysis():
     final.to_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/orig_high/fits/try/fits_mr_summary_orig_high.csv', index=False)
 
     # stats by patient & mut
+    final = final[final['significance'] == 'significant']
     stats = final.groupby(['Patient', 'Mutation'])['MR'].agg(['median', 'mean'])
-    final.to_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/orig_high/fits/try/fits_mr_summary_orig_high_stats.csv', index=False)
+    stats.to_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/orig_high/fits/try/fits_mr_summary_orig_high_stats.csv')
     print(stats)
 
 
     # plot distribution by patient & mut
+    for p in final.Patient.unique():
+        for mut in final.Mutation.unique():
+            ax = sns.distplot(final[(final.Mutation == mut) & (final.Patient == p)]['MR'])
+            plot_header = mut
+            ax.set_title(plot_header)
+            # plt.show()
+            plt.savefig('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/mutation_rate_analysis/' + str(p) + '_' + str(plot_header) + '.png')
+            plt.cla()
 
 def custom_summary_2_csv_biallelic(summary_dir, out=None, patient='', filter_entropy= True, inverse_direction = False):
     """
