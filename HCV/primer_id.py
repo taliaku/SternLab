@@ -103,18 +103,3 @@ def create_graph2(df, output_folder):
     fig2.savefig(output_folder + '1664primer_ids.png')
     f2.clear()
     return
-
-'''
-main('X:/volume2/noam/primer_id_250418/data/T0-37A_pipeline_output/tmp/', 'X:/volume2/noam/primer_id_250418/data/T0-37A_primer_id_output/')
-main('X:/volume2/noam/primer_id_250418/data/T15-37A_pipeline_output/tmp/', 'X:/volume2/noam/primer_id_250418/data/T15-37A_primer_id_output/')
-main('X:/volume2/noam/primer_id_250418/data/T30-37A_pipeline_output/tmp/', 'X:/volume2/noam/primer_id_250418/data/T30-37A_primer_id_output/')
-
-main('X:/volume2/noam/primer_id_250418/data/T0-37B_pipeline_output/tmp/', 'X:/volume2/noam/primer_id_250418/data/T0-37B_primer_id_output/')
-main('X:/volume2/noam/primer_id_250418/data/T15-37B_pipeline_output/tmp/', 'X:/volume2/noam/primer_id_250418/data/T15-37B_primer_id_output/')
-main('X:/volume2/noam/primer_id_250418/data/T30-37B_pipeline_output/tmp/', 'X:/volume2/noam/primer_id_250418/data/T30-37B_primer_id_output/')
-
-main('X:/volume2/noam/primer_id_250418/data/T0-WT_pipeline_output/tmp/', 'X:/volume2/noam/primer_id_250418/data/T0-WT_primer_id_output/')
-main('X:/volume2/noam/primer_id_250418/data/T15-WT_pipeline_output/tmp/', 'X:/volume2/noam/primer_id_250418/data/T15-WT_primer_id_output/')
-main('X:/volume2/noam/primer_id_250418/data/T30-WT_pipeline_output/tmp/', 'X:/volume2/noam/primer_id_250418/data/T30-WT_primer_id_output/')
-main('X:/volume2/noam/primer_id_250418/data/T30-WT2_pipeline_output/tmp/', 'X:/volume2/noam/primer_id_250418/data/T30-WT2_primer_id_output/')
-'''

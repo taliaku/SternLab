@@ -28,30 +28,29 @@ def prepare_for_bb(donor_freq, recipient_freq, out_path):
     merged = merged[(merged.Ref != '-') & (merged.Var_read_count_recipient > 0) & (merged.Rank_donor == 0)]
     merged['Freq_donor'] = 1 - merged['Freq_donor']
     merged['Freq_recipient'] = 1 - merged['Freq_recipient']
-    merged['mutation'] = merged.Ref + merged.Pos.astype(str) + merged.Base
-    merged = merged[~merged.mutation.isin(['A1559.0G',
- 'C1181.0T',
- 'C1190.0T',
- 'C1938.0T',
- 'C2381.0T',
- 'C2390.0T',
- 'C2408.0T',
- 'C2594.0T',
- 'C2720.0T',
- 'G1493.0A',
- 'G1527.0A',
- 'G1630.0A',
- 'G1659.0A',
- 'G1666.0A',
- 'G1830.0A',
- 'G2582.0A',
- 'T1244.0C',
- 'T1580.0C',
- 'T1748.0C',
- 'T1946.0C',
- 'T2050.0C',
- 'T2715.0C',
- 'T905.0C'])]
+    merged = merged[~merged.Pos.isin([1559.0,
+ 1181.0,
+ 1190.0,
+ 1938.0,
+ 2381.0,
+ 2390.0,
+ 2408.0,
+ 2594.0,
+ 2720.0,
+ 1493.0,
+ 1527.0,
+ 1630.0,
+ 1659.0,
+ 1666.0,
+ 1830.0,
+ 2582.0,
+ 1244.0,
+ 1580.0,
+ 1748.0,
+ 1946.0,
+ 2050.0,
+ 2715.0,
+ 905.0])]
     #
     merged[['Freq_donor', 'Freq_recipient', 'Read_count_donor', 'Var_read_count_recipient']].to_csv(out_path, header=False, index=False, sep='\t')
     return merged
@@ -77,8 +76,8 @@ all_results = []
 #for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('bb.txt')]:
 #for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('bb.rank0.txt')]:
 #for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('bb.0.001.rank0.txt')]:
-#for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('variants_no_hvr.csv.bb.0.001.rank0.no_hvr.txt')]:
-for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('.csv.bb.rank0.no_hvr_strain.txt')]:
+#for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('.bb.rank0.no_hvr_strain.txt')]:
+for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('.bb.rank0.no_hvr_strain.0.001.txt')]:
 
     try:
         results = parse_bb_output(f)
@@ -94,7 +93,7 @@ slope, intercept, r_value, p_value, std_err = stats.linregress(all_results.infec
 sns.regplot(all_results.infection_order, all_results.bottleneck, ax = ax)
 ax.set_title("y=%fx+%f, r2=%f" % (slope,intercept, r_value**2))
 
-all_results = all_results[all_results.bottleneck < 40]
+all_results = all_results[all_results.Sample != 'HCV-P4']
 fig, ax = plt.subplots(nrows=1, ncols=1)
 slope, intercept, r_value, p_value, std_err = stats.linregress(all_results.infection_order, all_results.bottleneck)
 sns.regplot(all_results.infection_order, all_results.bottleneck, ax = ax)
