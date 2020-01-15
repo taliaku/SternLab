@@ -4,7 +4,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# from FITS.create_fits_input import split_by_mutation
+from FITS.create_fits_input import split_by_mutation
+from freqs_utilities import change_ref_to_consensus
 from pbs_runners import fits_runner
 
 
@@ -12,16 +13,15 @@ def generate_fits_input():
     run_folder = 'orig_high'
 
     # orig patients
-    # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
+    patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
     # patients = ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']  # high_q
-    patients = ['15664', '16207', '22097', '22763', '22828', '29447', '31254', '47939']  # high_q
-    # patients = ['13003']
+    # patients = ['15664', '16207', '22097', '22763', '22828', '29447', '31254', '47939']  # high_q
+    # patients = ['22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
 
     # control patients
     # patients = ['24277', '6773', '26755', '4956', '7965', '8992', '22992', '1689', '13694', '4845', '15687', '8670', '14201', '324', '7878', '4179']
 
-
-
+    # get freq data
     df = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/unified_freqs_filtered_verbose.csv'.format(run_folder))
 
     # filter indels
@@ -38,24 +38,33 @@ def generate_fits_input():
         df_patient = df[(df['ind_id'] == patient)]
 
         # filtering to syn positions
-        pos_file_with_entropy= '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/mutation_rate_analysis/syn_pos_by_ZN_with_entropy_filter/mutation_rate_positions_orig_high_v4_%s_0.3.txt' % patient
-        pos_file_no_entropy= '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/mutation_rate_analysis/syn_pos_by_ZN_no_entropy_filter/mutation_rate_positions_orig_high_v4_no_entropy_filter_%s_0.txt' % patient
+        pos_file_with_entropy= '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/mr_summary_files/syn_pos_by_ZN_with_entropy_filter/mutation_rate_positions_orig_high_v4_%s_0.3.txt' % patient
+        pos_file_no_entropy= '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/mr_summary_files/syn_pos_by_ZN_no_entropy_filter/mutation_rate_positions_orig_high_v4_no_entropy_filter_%s_0.txt' % patient
         synonymous_selected_positions = get_syn_pos_from_file(pos_file_no_entropy)
         df_patient = df_patient[df_patient['Pos'].isin(synonymous_selected_positions)]
 
         # convert years_since_infection to Gen{0,1,2..}
         df_patient['Gen'] = df_patient['years_since_infection'].apply(lambda ysi: int((ysi*365)/2))
 
+        # TODO- force founder consensus in all timepoints? needs to fit split_by_mutation() code
+        # force ref=consensus in each timepoint (rank 0 == ref)
+        dfs = []
+        for timepoint in df_patient.Gen.unique():
+            df_timepoint = df_patient[df_patient['Gen'] == timepoint]
+            df_timepoint = change_ref_to_consensus(df_timepoint)
+            dfs.append(df_timepoint)
+        df_patient = pd.concat(dfs)
+
         # create FITS input files
         output_path = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/fits/'.format(run_folder)
 
         ### per patient
-        # split_by_mutation(df_patient, output_path, ID= patient)
+        split_by_mutation(df_patient, output_path, ID= patient)
         ### per position
-        for pos in df_patient.Pos.unique():
-            print('pos: {}'.format(pos))
-            df_pos = df_patient[(df_patient['Pos'] == pos)]
-            # split_by_mutation(df_pos, output_path + str(patient) + '/', ID='no_entropy_{}_{}'.format(patient, pos)) # TODO- uncomment
+        # for pos in df_patient.Pos.unique():
+        #     print('pos: {}'.format(pos))
+        #     df_pos = df_patient[(df_patient['Pos'] == pos)]
+        #     split_by_mutation(df_pos, output_path + str(patient) + '/', ID='no_entropy_{}_{}'.format(patient, pos))
 
         ### Alternative
         # fits_input = freq_2_fits(df, filter='transition', out=r'/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/fits_input_unified.csv')
@@ -84,15 +93,7 @@ def get_syn_pos_from_file(file):
 def run_fits():
     input_files_orig_high=  '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/input_files/orig_high_qual/'
 
-    # for patient in orig_high_quality_patients:
-    # for patient in ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']:
-    # for patient in ['26892']:
-    #     for mut in ['AG', 'GA', 'CT', 'TC']:
-    #         input_filepath=     input_files_orig_high + 'FITS_input_file_{}_{}'.format(patient, mut)
-    #         posterior_filepath= output_files_path + '{}_{}_posterior'.format(patient, mut)
-    #         summary_filepath=   output_files_path + '{}_{}_summary'.format(patient, mut)
-    #         fits_runner(1, input_filepath, params_file, alias='FITS_{}_{}'.format(patient, mut), posterior_file=posterior_filepath, summary_file=summary_filepath)
-
+    ## per patient
     # patients_file = glob.glob(input_files_orig_high+'FITS_input_file*')
     # for file in patients_file:
     #     patient_id= int(file.split('_')[8])
@@ -103,19 +104,34 @@ def run_fits():
     #     fits_runner(1, file, params_file, alias='FITS_{}'.format(patient_id),
     #                 posterior_file=file+'.posterior', summary_file=file+'.summary')
 
+
+    ## per pos
     # patients = ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']  # high_q
     patients = ['22763']
     for p in patients:
-        pos_input_files = glob.glob(input_files_orig_high + '{}/FITS_input_file*'.format(p))
         params_file = input_files_orig_high + 'mr_params_{}.txt'.format(p)
 
-        for file in pos_input_files:
+        pos_input_files = glob.glob(input_files_orig_high + '{}/FITS_input_file*.txt'.format(p))
+        already_existing_outputs = glob.glob(input_files_orig_high + '{}/FITS_input_file*.txt.summary'.format(p))
+
+        files_to_run = [f for f in pos_input_files if f not in already_existing_outputs]
+        for file in files_to_run:
             pos = int(file.split('_')[11])
 
             print(params_file)
             print(file)
-            fits_runner(1, file, params_file, alias='FITS_{}_{}'.format(p,pos),
-                        posterior_file=file+'.posterior', summary_file=file+'.summary')
+            # fits_runner(1, file, params_file, alias='FITS_{}_{}'.format(p,pos),
+            #             posterior_file=file+'.posterior', summary_file=file+'.summary')
+
+    # for patient in orig_high_quality_patients:
+    # for patient in ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']:
+    # for patient in ['26892']:
+    #     for mut in ['AG', 'GA', 'CT', 'TC']:
+    #         input_filepath=     input_files_orig_high + 'FITS_input_file_{}_{}'.format(patient, mut)
+    #         posterior_filepath= output_files_path + '{}_{}_posterior'.format(patient, mut)
+    #         summary_filepath=   output_files_path + '{}_{}_summary'.format(patient, mut)
+    #         fits_runner(1, input_filepath, params_file, alias='FITS_{}_{}'.format(patient, mut), posterior_file=posterior_filepath, summary_file=summary_filepath)
+
 
 def post_analysis():
     dfs=[]
