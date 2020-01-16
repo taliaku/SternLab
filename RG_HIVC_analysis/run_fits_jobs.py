@@ -59,7 +59,7 @@ def generate_fits_input():
         output_path = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/fits/'.format(run_folder)
 
         ### per patient
-        split_by_mutation(df_patient, output_path, ID= patient)
+        # split_by_mutation(df_patient, output_path, ID= patient)
         ### per position
         # for pos in df_patient.Pos.unique():
         #     print('pos: {}'.format(pos))
@@ -70,7 +70,7 @@ def generate_fits_input():
         # fits_input = freq_2_fits(df, filter='transition', out=r'/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/fits_input_unified.csv')
 
         ### generate params file - HACK- is based on filtering above
-        # generate_fits_params_file(df_patient, patient)
+        generate_fits_params_file(df_patient, patient)
 
 
 def generate_fits_params_file(df_patient, patient):
@@ -106,22 +106,39 @@ def run_fits():
 
 
     ## per pos
-    # patients = ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']  # high_q
-    patients = ['22763']
+    # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
+    # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097']
+
+    # patients = ['22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
+    patients = ['22763', '22828']
+
     for p in patients:
         params_file = input_files_orig_high + 'mr_params_{}.txt'.format(p)
 
-        pos_input_files = glob.glob(input_files_orig_high + '{}/FITS_input_file*.txt'.format(p))
-        already_existing_outputs = glob.glob(input_files_orig_high + '{}/FITS_input_file*.txt.summary'.format(p))
+        # using separated jobs
+        # pos_input_files = glob.glob(input_files_orig_high + '{}/FITS_input_file*.txt'.format(p))
+        # already_existing_outputs = glob.glob(input_files_orig_high + '{}/FITS_input_file*.txt.summary'.format(p))
+        # files_to_run = [f for f in pos_input_files if (f+'.summary') not in already_existing_outputs]
+        #
+        # for file in files_to_run:
+        #     pos = int(file.split('_')[11])
+        #
+        #     print(params_file)
+        #     print(file)
+        #     fits_runner(1, file, params_file, alias='FITS_{}_{}'.format(p,pos),
+        #                 posterior_file=file+'.posterior', summary_file=file+'.summary')
 
-        files_to_run = [f for f in pos_input_files if f not in already_existing_outputs]
-        for file in files_to_run:
-            pos = int(file.split('_')[11])
-
+        # using pbs array
+        for mut in ['GA', 'AG', 'CT', 'TC']:
+            input_file = input_files_orig_high + '{}/FITS_input_file_no_entropy_{}_$PBS_ARRAY_INDEX_{}.txt'.format(p,p,mut)
             print(params_file)
-            print(file)
-            # fits_runner(1, file, params_file, alias='FITS_{}_{}'.format(p,pos),
-            #             posterior_file=file+'.posterior', summary_file=file+'.summary')
+            print(input_file)
+            fits_runner(1, input_file, params_file,
+                        alias='FITS_{}_{}'.format(p,mut),
+                        posterior_file=input_file+'.posterior',
+                        summary_file=input_file+'.summary',
+                        batch= 9000)
+
 
     # for patient in orig_high_quality_patients:
     # for patient in ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']:
