@@ -2,6 +2,8 @@ import sys
 sys.path.append('/sternadi/home/volume2/noam/SternLab/')
 from pbs_runners import array_script_runner
 
+
+
 #for f in ./*; do split $f $f -l 10000 --numeric-suffixes=1 -a 4 --additional-suffix .fastq; done
 
 #pS2
@@ -158,3 +160,56 @@ array_script_runner('module load python/python-anaconda3.2019.7;\
              printf -v p "%04d" $PBS_ARRAY_INDEX;\
              python -m barcode_utils /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id/HCV-P9-2_S18_L001_R1_001.fastq$p.fastq /sternadi/home/volume2/noam/hcv/references/HCV_primer_id.txt -o /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id/HCV-P9-2_S18_L001_R1_001.fastq$p.barcodes.txt',
              65, alias='barcoding_P9-2', queue='hugemem')
+
+
+
+# filter problematic samples by aligned
+#cat /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/HCV-P9/tmp/HCV-P9_S9_L001_001.part*.fasta.blast | cut -f1 > /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P9.read_ids.txt
+#cat /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/HCV-P7/tmp/HCV-P7*.fasta.blast | cut -f1 > /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P7.read_ids.txt
+#cat /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/HCV-P8-2/tmp/HCV-P8-2*.fasta.blast | cut -f1 > /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P8-2.read_ids.txt
+#cat /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/HCV-P7-2/tmp/HCV-P7-2*.fasta.blast | cut -f1 > /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P7-2.read_ids.txt
+#cat /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/HCV-P8-1/tmp/HCV-P8-1*.fasta.blast | cut -f1 > /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P8-1.read_ids.txt
+
+# filterbyname.sh in=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id/HCV-P9_S9_L001_R1_001.fastq out=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P9_R1.filtered.fastq names=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P9.read_ids.txt include=t
+# filterbyname.sh in=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id/HCV-P7_S7_L001_R1_001.fastq out=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P7_R1.filtered.fastq names=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P7.read_ids.txt include=t
+# filterbyname.sh in=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id/HCV-P7-2_S17_L001_R1_001.fastq out=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P7-2_R1.filtered.fastq names=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P7-2.read_ids.txt include=t
+# filterbyname.sh in=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id/HCV-P8-1_S20_L001_R1_001.fastq out=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P8-1_R1.filtered.fastq names=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P8-1.read_ids.txt include=t
+# filterbyname.sh in=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id/HCV-P8-2_S21_L001_R1_001.fastq out=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P8-2_R1.filtered.fastq names=/sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P8-2.read_ids.txt include=t
+
+
+#for f in ./*.fastq; do split $f $f -l 10000 --numeric-suffixes=1 -a 4 --additional-suffix .fastq; done
+
+#p7
+array_script_runner('module load python/python-anaconda3.2019.7;\
+             PYTHONPATH=":/sternadi/home/volume1/maozgelbart/barcode-utils";\
+             printf -v p "%04d" $PBS_ARRAY_INDEX;\
+             python -m barcode_utils /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P7_R1.filtered.fastq$p.fastq /sternadi/home/volume2/noam/hcv/references/HCV_primer_id.txt -o /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P7_R1.filtered.fastq$p.barcodes.txt',
+             60, alias='barcoding_P7', queue='hugemem')
+
+#p9
+array_script_runner('module load python/python-anaconda3.2019.7;\
+             PYTHONPATH=":/sternadi/home/volume1/maozgelbart/barcode-utils";\
+             printf -v p "%04d" $PBS_ARRAY_INDEX;\
+             python -m barcode_utils /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P9_R1.filtered.fastq$p.fastq /sternadi/home/volume2/noam/hcv/references/HCV_primer_id.txt -o /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P9_R1.filtered.fastq$p.barcodes.txt',
+             49, alias='barcoding_P9', queue='hugemem')
+
+#p7-2
+array_script_runner('module load python/python-anaconda3.2019.7;\
+             PYTHONPATH=":/sternadi/home/volume1/maozgelbart/barcode-utils";\
+             printf -v p "%04d" $PBS_ARRAY_INDEX;\
+             python -m barcode_utils /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P7-2_R1.filtered.fastq$p.fastq /sternadi/home/volume2/noam/hcv/references/HCV_primer_id.txt -o /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P7-2_R1.filtered.fastq$p.barcodes.txt',
+             44, alias='barcoding_P7-2', queue='hugemem')
+
+#p8-1
+array_script_runner('module load python/python-anaconda3.2019.7;\
+             PYTHONPATH=":/sternadi/home/volume1/maozgelbart/barcode-utils";\
+             printf -v p "%04d" $PBS_ARRAY_INDEX;\
+             python -m barcode_utils /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P8-1_R1.filtered.fastq$p.fastq /sternadi/home/volume2/noam/hcv/references/HCV_primer_id.txt -o /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P8-1_R1.filtered.fastq$p.barcodes.txt',
+             2, alias='barcoding_P8-1', queue='hugemem')
+
+#p8-2
+array_script_runner('module load python/python-anaconda3.2019.7;\
+             PYTHONPATH=":/sternadi/home/volume1/maozgelbart/barcode-utils";\
+             printf -v p "%04d" $PBS_ARRAY_INDEX;\
+             python -m barcode_utils /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P8-2_R1.filtered.fastq$p.fastq /sternadi/home/volume2/noam/hcv/references/HCV_primer_id.txt -o /sternadi/nobackup/volume1/noam/hcv_data/180423_TMS2-74068001_R1_primer_id_filtered/HCV-P8-2_R1.filtered.fastq$p.barcodes.txt',
+             31, alias='barcoding_P8-2', queue='hugemem')
