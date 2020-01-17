@@ -693,7 +693,8 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
     :return: sumbit a job\ job array to the cluster
     """
 
-    dataset_file = check_filename(dataset_file)
+    if batch == None:
+        dataset_file = check_filename(dataset_file)
     param_file = check_filename(param_file)
 
     if inference_type not in [0,1,2,3]:

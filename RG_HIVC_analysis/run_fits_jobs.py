@@ -104,33 +104,16 @@ def run_fits():
     #     fits_runner(1, file, params_file, alias='FITS_{}'.format(patient_id),
     #                 posterior_file=file+'.posterior', summary_file=file+'.summary')
 
-
     ## per pos
     # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
-    # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097']
-
-    # patients = ['22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
-    patients = ['22763', '22828']
+    patients = ['12796']
 
     for p in patients:
         params_file = input_files_orig_high + 'mr_params_{}.txt'.format(p)
 
-        # using separated jobs
-        # pos_input_files = glob.glob(input_files_orig_high + '{}/FITS_input_file*.txt'.format(p))
-        # already_existing_outputs = glob.glob(input_files_orig_high + '{}/FITS_input_file*.txt.summary'.format(p))
-        # files_to_run = [f for f in pos_input_files if (f+'.summary') not in already_existing_outputs]
-        #
-        # for file in files_to_run:
-        #     pos = int(file.split('_')[11])
-        #
-        #     print(params_file)
-        #     print(file)
-        #     fits_runner(1, file, params_file, alias='FITS_{}_{}'.format(p,pos),
-        #                 posterior_file=file+'.posterior', summary_file=file+'.summary')
-
-        # using pbs array
+        # using pbs array per mut
         for mut in ['GA', 'AG', 'CT', 'TC']:
-            input_file = input_files_orig_high + '{}/FITS_input_file_no_entropy_{}_$PBS_ARRAY_INDEX_{}.txt'.format(p,p,mut)
+            input_file = input_files_orig_high + '%s/FITS_input_file_no_entropy_%s_$PBS_ARRAY_INDEX\\_%s.txt' % (p,p,mut)
             print(params_file)
             print(input_file)
             fits_runner(1, input_file, params_file,
@@ -138,16 +121,6 @@ def run_fits():
                         posterior_file=input_file+'.posterior',
                         summary_file=input_file+'.summary',
                         batch= 9000)
-
-
-    # for patient in orig_high_quality_patients:
-    # for patient in ['13003', '15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939']:
-    # for patient in ['26892']:
-    #     for mut in ['AG', 'GA', 'CT', 'TC']:
-    #         input_filepath=     input_files_orig_high + 'FITS_input_file_{}_{}'.format(patient, mut)
-    #         posterior_filepath= output_files_path + '{}_{}_posterior'.format(patient, mut)
-    #         summary_filepath=   output_files_path + '{}_{}_summary'.format(patient, mut)
-    #         fits_runner(1, input_filepath, params_file, alias='FITS_{}_{}'.format(patient, mut), posterior_file=posterior_filepath, summary_file=summary_filepath)
 
 
 def post_analysis():
