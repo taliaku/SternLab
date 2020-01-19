@@ -61,6 +61,33 @@ def base_frequencies(filename, in_format="fasta"):
     return freqs
 
 
+def base_counts(filename, in_format="fasta", U_or_T="T", output=None):
+    """
+    calculates base frequencies in sequence file
+    :param filename: input nucleotide sequence filename
+    :param in_format: input format (default: fasta)
+    :return: freqs dictionary
+    """
+    filename = check_filename(filename)
+    dataset = list(SeqIO.parse(filename, in_format))
+    if output == None:
+        output = filename.split(".fasta")[0] + "_nuc_counts.csv"
+    freqs = {"A": 0, "G": 0, "C": 0, U_or_T: 0}
+    df = pd.DataFrame()
+    for seq in dataset:
+        a = seq.seq.count("A")
+        c = seq.seq.count("C")
+        t = seq.seq.count("T")
+        g = seq.seq.count("G")
+        freqs["A"] += a
+        freqs["C"] += c
+        freqs[U_or_T] += t
+        freqs["G"] += g
+        df = df.append({"seq": seq.name, "A": a, "C": c, "G": g, U_or_T: t}, ignore_index=True)
+    df.to_csv(output)
+
+
+
 def get_consensus_from_alignment(aln_file, in_format="fasta"):
     """
     constructs a consensus sequence from alignment file
@@ -407,9 +434,9 @@ def get_dinucleotide_odds_ratio(fasta_file, in_format="fasta", output_dir=None):
     dinucs_average = pd.concat([dinucs_average,
                                 pd.DataFrame([{"baltimore":baltimore, "family": family, "basename": basename,}])], axis=1)
 
-
-    dinucs_or.to_csv(output_dinuc, index=False)
-    dinucs_average.to_csv(output_dinuc_averaged, index=False)
+    print(dinucs_average)
+    #dinucs_or.to_csv(output_dinuc, index=False)
+    #dinucs_average.to_csv(output_dinuc_averaged, index=False)
 
 
 
@@ -486,15 +513,16 @@ def analyze_nuc_frequencies_and_wobble_freqs_from_aln(aln_file, in_format="fasta
     base = aln_file.split(".fasta")[0].split(".aln")[0].split(".aln.best.fas")[0].split(".codon_aln.best.fas")[0]
     basename = base.split("/")[-1]
     if output_dir == None:
-        output_freqs = base + ".base_freqs_info.csv"
-        output_counts = base + ".base_counts_info.csv"
-        output_averaged_freqs = base + ".base_freqs_averaged_freqs.csv"
-        output_averaged_counts = base + ".base_freqs_averaged_counts.csv"
+        output_freqs = base + ".codon_aln_base_freqs_info.csv"
+        output_counts = base + ".codon_aln_base_counts_info.csv"
+        output_averaged_freqs = base + ".codon_aln_base_freqs_averaged_freqs.csv"
+        output_averaged_counts = base + ".codon_aln_base_freqs_averaged_counts.csv"
     else:
-        output_freqs = output_dir + basename + ".base_freqs_info.csv"
-        output_counts = output_dir + basename + ".base_counts_info.csv"
-        output_averaged_freqs = output_dir + basename  + ".base_freqs_averaged_freqs.csv"
-        output_averaged_counts = output_dir + basename + ".base_freqs_averaged_counts.csv"
+        output_dir = output_dir + "/"
+        output_freqs = output_dir + basename + ".codon_aln_base_freqs_info.csv"
+        output_counts = output_dir + basename + ".codon_aln_base_counts_info.csv"
+        output_averaged_freqs = output_dir + basename  + ".codon_aln_base_freqs_averaged_freqs.csv"
+        output_averaged_counts = output_dir + basename + ".codon_aln_base_freqs_averaged_counts.csv"
 
     counts = pd.DataFrame()
     freqs = pd.DataFrame()
@@ -528,6 +556,61 @@ def analyze_nuc_frequencies_and_wobble_freqs_from_aln(aln_file, in_format="fasta
                            "wob_G": wobble.seq.count("G")/wobble_count, "wob_T": wobble.seq.count("T")/wobble_count,
                     "non_wob_A":non_wobble.seq.count("A")/non_wobble_count, "non_wob_C":non_wobble.seq.count("C")/non_wobble_count,
                            "non_wob_G":non_wobble.seq.count("G")/non_wobble_count, "non_wob_T":non_wobble.seq.count("T")/non_wobble_count},
+                           ignore_index=True)
+
+    averaged_freqs = freqs.mean(axis=0).to_frame().transpose()
+    averaged_freqs = pd.concat([averaged_freqs,
+                                pd.DataFrame([{"baltimore":baltimore, "family":family, "basename":basename}])],
+                                axis=1)
+    averaged_counts = counts.mean(axis=0).to_frame().transpose()
+    averaged_counts = pd.concat([averaged_counts,
+                                pd.DataFrame(
+                                    [{"baltimore":baltimore, "family":family, "basename":basename}])],
+                               axis=1)
+
+    counts.to_csv(output_counts, index=False)
+    freqs.to_csv(output_freqs, index=False)
+    averaged_freqs.to_csv(output_averaged_freqs, index=False)
+    averaged_counts.to_csv(output_averaged_counts, index=False)
+
+
+def analyze_nuc_frequencies_from_fasta(fasta_file, in_format="fasta", output_dir=None):
+    fasta_file = check_filename(fasta_file)
+    base = fasta_file.split(".fasta")[0].split(".aln")[0].split(".aln.best.fas")[0].split(".codon_aln.best.fas")[0]
+    basename = base.split("/")[-1]
+    if output_dir == None:
+        output_freqs = base + ".fasta_base_freqs_info.csv"
+        output_counts = base + ".fasta_base_counts_info.csv"
+        output_averaged_freqs = base + ".fasta_base_freqs_averaged_freqs.csv"
+        output_averaged_counts = base + ".fasta_base_freqs_averaged_counts.csv"
+    else:
+        output_dir = output_dir + "/"
+        output_freqs = output_dir + basename + ".fasta_base_freqs_info.csv"
+        output_counts = output_dir + basename + ".fasta_base_counts_info.csv"
+        output_averaged_freqs = output_dir + basename  + ".fasta_base_freqs_averaged_freqs.csv"
+        output_averaged_counts = output_dir + basename + ".fasta_base_freqs_averaged_counts.csv"
+
+    counts = pd.DataFrame()
+    freqs = pd.DataFrame()
+    fasta = list(SeqIO.parse(fasta_file, format=in_format))
+
+
+
+    family = basename.split("_")[0]
+    baltimore = get_baltimore_classifiaction(family)
+
+    for a in fasta:
+        a.seq = a.seq.upper()
+
+        all_count = a.seq.count("A") + a.seq.count("C") + a.seq.count("G") + a.seq.count("T")
+
+        counts = counts.append({"baltimore":baltimore, "family":family, "basename":basename, "seq_name":a.id,
+                        "A": a.seq.count("A"), "C": a.seq.count("C"), "G": a.seq.count("G"), "T": a.seq.count("T")},
+                               ignore_index=True)
+
+        freqs = freqs.append({"baltimore":baltimore, "family":family, "basename":basename, "seq_name":a.id,
+                    "A": a.seq.count("A")/all_count, "C": a.seq.count("C")/all_count,
+                           "G": a.seq.count("G")/all_count, "T": a.seq.count("T")/all_count},
                            ignore_index=True)
 
     averaged_freqs = freqs.mean(axis=0).to_frame().transpose()
