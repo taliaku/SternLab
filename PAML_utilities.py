@@ -7,7 +7,11 @@ import pandas as pd
 import re
 from phyVirus.get_baltimore import get_baltimore_classifiaction
 from pbs_runners import baseml_runner
-
+from scipy.stats.distributions import chi2
+from statsmodels.stats.multitest import multipletests
+import numpy as np
+from phyVirus.phyVirus_utilities import get_basename, get_baltimore_classifiaction
+from Bio.Seq import Seq
 
 
 def write_ctl_file(ctl, seq, tree, out, model, fix_alpha="1", alpha="0"):
@@ -99,10 +103,7 @@ def mlbs_to_df(output, mlbs = [], dirname = None, baltimore=True):
 
     output = check_filename(output, Truefile=False)
 
-    df = pd.DataFrame(columns = ["mlb_file_name",  "basename", "family", "protein", "group", "model", "lnL",
-                                 "freq_T", "freq_C", "freq_A", "freq_G",
-                                 "TC", "TA", "TG", "CT", "CA", "CG", "AT",
-                                 "AC", "AG", "GT", "GC", "GA"])
+    df = pd.DataFrame()
                         
     lnL_1 = re.compile("lnL.*")
     lnL_2 = re.compile("\-?\d*\.\d*")
@@ -613,11 +614,15 @@ def retrive_codeml_delitirious_restults(files, output="./codeml_1-2ratio_results
     for f in files:
         if "unaligned" in f:
             continue
-        basename = f.split("/")[-1].split(".fasta")[0].split(".phy")[0].split(".aln")[0]
-        print("%s/1ratio/%s*.cml" % (dir, basename))
-        print("%s/2ratio/%s*.cml" % (dir, basename))
-        mlc_1ratio = glob.glob("%s/1ratio/%s*.cml" % (dir, basename))[0]
-        mlc_2ratio = glob.glob("%s/2ratio/%s*.cml" % (dir, basename))[0]
+        basename = f.split("/")[-1].split(".fasta")[0].split(".phy")[0].split(".aln")[0].split("codon")[0].split(".")[0]
+        family = basename.split("_")[0]
+        baltimore = get_baltimore_classifiaction(family)
+        mlc_1ratio = glob.glob("%s/c1/%s*mlc" % (dir, basename))
+        mlc_2ratio = glob.glob("%s/c2/%s*mlc" % (dir, basename))
+        if mlc_1ratio == [] or mlc_2ratio == []:
+            continue
+        mlc_1ratio = mlc_1ratio[0]
+        mlc_2ratio = mlc_2ratio[0]
         omega = None
         dN_length_1ratio = None
         dS_length_1ratio = None
@@ -641,22 +646,37 @@ def retrive_codeml_delitirious_restults(files, output="./codeml_1-2ratio_results
             number_of_seqs = float(sequence_info[0])
             length_of_seqs_codons = float(sequence_info[1]) / 3
             lnL_1ratio = float(lnL_pattern.findall(res_1ratio)[0].split("):")[-1].strip().split(" ")[0])
+        else:
+            continue
 
         res_2ratio = open(mlc_2ratio, "r").read()
         if "Time" in res_2ratio:
             dN_length_2ratio = float(dN_length_pattern.findall(res_2ratio)[0].split(":")[-1].strip())
             dS_length_2ratio = float(dS_length_pattern.findall(res_2ratio)[0].split(":")[-1].strip())
             omega_branches_2ratio = omega_branches_2ratio_pattern.findall(res_2ratio)[0].split(" ")[-2:]
-            external_branchs = float(omega_branches_2ratio[0])
-            internal_branchs = float(omega_branches_2ratio[1])
+            external_branchs = float(omega_branches_2ratio[1])
+            internal_branchs = float(omega_branches_2ratio[0])
             lnL_2ratio = float(lnL_pattern.findall(res_2ratio)[0].split("):")[-1].strip().split(" ")[0])
+        else:
+            continue
         #write results to dataframe
         codeml_results = codeml_results.append(
-            {"filename": basename, "num_of_seqs": number_of_seqs, "seg_len_codon": length_of_seqs_codons,
+            {"base": basename, "family":family, "baltimore":baltimore, "num_of_seqs": number_of_seqs, "seg_len_codon": length_of_seqs_codons,
              "lnL_1ratio": lnL_1ratio, "lnL_2ratio": lnL_2ratio,
              "w": omega, "wi": internal_branchs, "we": external_branchs,
              "dN_length_1ratio": dN_length_1ratio, "dS_length_1ratio": dS_length_1ratio,
              "dN_length_2ratio": dN_length_2ratio, "dS_length_2ratio": dS_length_2ratio}, ignore_index=True)
+    codeml_results["diff"] = codeml_results["lnL_2ratio"] - codeml_results["lnL_1ratio"]
+    codeml_results["diff2"] = 2 * codeml_results["diff"]
+    codeml_results["p_value_not_corrected"] = chi2.sf(codeml_results["diff2"], 1)
+    codeml_results["p_value"] = multipletests(codeml_results["p_value_not_corrected"], method="fdr_bh")[1]
+    codeml_results["sig_by_chi2"] = np.where(codeml_results["p_value"] <= 0.05, True, False)
+    codeml_results["sig_by_diff"] = np.where(codeml_results["diff2"] >= 100, True, False)
+    codeml_results["diff_wewi"] = codeml_results["we"] - codeml_results["wi"]
+    codeml_results["sig"] = "non_sig"
+    codeml_results.loc[(codeml_results.sig_by_chi2 == True), "sig"] = "sig"
+    codeml_results["wewi_sig"] = "under_0"
+    codeml_results.loc[(codeml_results.diff_wewi > 0), "wewi_sig"] = "over_0"
     print(output)
     codeml_results.to_csv(output)
     return codeml_results
@@ -717,3 +737,126 @@ def is_complete_mlb_file(mlb_file):
         if "Rate matrix Q" in data or "rate matrix Q" in data:
             return True
     return False
+
+
+def merge_alternative_and_null_dfs(alternative, null, output, degrees_of_freedom=1):
+    alternative = check_filename(alternative)
+    null = check_filename(null)
+    output = check_filename(output, Truefile=False)
+    alter = pd.read_csv(alternative)
+    null = pd.read_csv(null)
+    merged = pd.merge(alter, null, on=['basename', "family", "baltimore"], suffixes=["_alter", "_null"])
+    merged["diff"] = merged["lnL_alter"] - merged["lnL_null"]
+    merged["diff2"] = 2 * merged["diff"]
+    merged["p_value_not_corrected"] = chi2.sf(merged["diff2"], degrees_of_freedom)
+    merged = merged.dropna(axis=0, how="any", subset=["p_value_not_corrected"])
+    merged["p_value"] = multipletests(merged["p_value_not_corrected"], method="fdr_bh")[1]
+    merged["sig_by_chi2"] = np.where(merged["p_value"] <= 0.05, True, False)
+    merged["sig_by_diff"] = np.where(merged["diff2"] >= 100, True, False)
+    merged.to_csv(output)
+
+
+def get_codon_info_from_cml(cml):
+    base = cml.split("/")[-1].split(".mlc")[0]
+    family = base.split("_")[0]
+    baltimore = get_baltimore_classifiaction(family)
+    res = open(cml, "r").read()
+    df = pd.DataFrame()
+    output = os.path.dirname(cml) + "/{}.codon_freqs.csv".format(base)
+    if "Sums of codon usage counts" not in res:
+        return
+    res = res.split("Sums of codon usage counts")[1].split("\n")[1:22]
+    res = "\n".join(res)
+    codons_res = re.findall("([A-Z]{3})\s*(\d*)", res)
+    codons = {}
+    for c in codons_res:
+        aa = Seq(c[0]).translate().tostring()
+        if aa not in codons.keys():
+            codons[aa] = {}
+        codons[aa][c[0]] = int(c[1])
+    codons_sum = {}
+    for c in codons:
+        count = sum(codons[c].values())
+        if count == 0:
+            continue
+        for i in codons[c]:
+            df = df.append({"aa":c, "codon":i, "count": codons[c][i], "ratio":codons[c][i]/count, "A_num":i.count("A")}, ignore_index = True)
+    df["base"] = base
+    df["family"] = family
+    df["baltimore"] = baltimore
+    df.to_csv(output)
+
+
+def get_nuc_freq_from_codon_info_from_cml(cml):
+    base = cml.split("/")[-1].split(".mlc")[0]
+    output = os.path.dirname(cml) + "/{}.nuc_freq_three_positions.csv".format(base)
+    family = base.split("_")[0]
+    baltimore = get_baltimore_classifiaction(family)
+    res = open(cml, "r").read()
+    df = pd.DataFrame()
+    nucs = ["A", "C", "G", "T"]
+    if "Sums of codon usage counts" not in res:
+        return
+    res = res.split("Sums of codon usage counts")[1].split("\n")[1:22]
+    res = "\n".join(res)
+    codons_res = re.findall("([A-Z]{3})\s*(\d*)", res)
+    codons = {}
+    for c in codons_res:
+        aa = str(Seq(c[0]).translate())
+        if aa not in codons.keys():
+            codons[aa] = {}
+        codons[aa][c[0]] = int(c[1])
+    nuc_freqs_count = {"first":{"A":0, "C":0, "T":0, "G":0}, "second":{"A":0, "C":0, "T":0, "G":0}, "third":{"A":0, "C":0, "T":0, "G":0}}
+    nuc_freqs = {"first":{"A":0, "C":0, "T":0, "G":0}, "second":{"A":0, "C":0, "T":0, "G":0}, "third":{"A":0, "C":0, "T":0, "G":0}}
+
+    for c in codons:
+        if sum(codons[c].values()) == 0:
+            continue
+        for i in codons[c]:
+            for n in nucs:
+                if i[0] == n:
+                    nuc_freqs_count["first"][n] += codons[c][i]
+                if i[1] == n:
+                    nuc_freqs_count["second"][n] += codons[c][i]
+                if i[2] == n:
+                    nuc_freqs_count["third"][n] += codons[c][i]
+
+
+    for p in nuc_freqs:
+        s = sum(nuc_freqs_count[p].values())
+        for n in nuc_freqs[p]:
+            nuc_freqs[p][n] = nuc_freqs_count[p][n] / s
+            df = df.append({"codon_pos":p, "nuc":n, "freq":nuc_freqs[p][n]}, ignore_index=True)
+    df["base"] = base
+    df["family"] = family
+    df["baltimore"] = baltimore
+    df.to_csv(output)
+
+
+
+
+def get_aa_info_from_cml(cml):
+    base = cml.split("/")[-1].split(".mlc")[0]
+    family = base.split("_")[0]
+    baltimore = get_baltimore_classifiaction(family)
+    res = open(cml, "r").read()
+    df = pd.DataFrame()
+    output = os.path.dirname(cml) + "/{}.aa_freqs.csv".format(base)
+    if "Sums of codon usage counts" not in res:
+        return
+    res = res.split("Sums of codon usage counts")[1].split("\n")[1:22]
+    res = "\n".join(res)
+    codons_res = re.findall("([A-Z]{3})\s*(\d*)", res)
+    aas = {}
+    for c in codons_res:
+        aa = str(Seq(c[0]).translate())
+        if aa not in aas.keys():
+            aas[aa] = 0
+        aas[aa] += int(c[1])
+    aas_sum = sum(aas.values())
+    for a in aas:
+        df = df.append({"aa":a, "count": aas[a], "freq":aas[a]/aas_sum}, ignore_index = True)
+    df["base"] = base
+    df["family"] = family
+    df["baltimore"] = baltimore
+    df.to_csv(output)
