@@ -124,38 +124,49 @@ def run_fits():
 
 
 def post_analysis():
+    # entropy_position_files_dir = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/mr_summary_files/syn_pos_by_ZN_with_entropy_filter/'
+    entropy_position_files_dir = '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/syn_pos_by_ZN_with_entropy_filter/'
+
+    # fits_dir = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/orig_high/fits/try/'
+    fits_dir = '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/input_files/orig_high_qual/'
+    outputs_dir = fits_dir + 'results_analysis/'
+
+    patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
+    # patients = ['26892']
+
     dfs=[]
-    patients = ['26892']
     for patient in patients:
-        summary_files_dir = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/orig_high/fits/try/%s/' % patient
-        patient_mr_summary = custom_summary_2_csv_biallelic(summary_files_dir,
-                                                     out= summary_files_dir + 'fits_mr_summary_%s.csv' % patient,
+        patient_summary_files_dir = '%s/%s/' % (fits_dir, patient)
+        patient_mr_summary = custom_summary_2_csv_biallelic(patient_summary_files_dir,
+                                                     out= outputs_dir + 'fits_mr_summary_%s.csv' % patient,
                                                      patient=patient,
                                                      filter_entropy=True,
+                                                     syn_position_files_dir= entropy_position_files_dir,
                                                      inverse_direction= False)
         dfs.append(patient_mr_summary)
 
     final = pd.concat(dfs)
-    final.to_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/orig_high/fits/try/fits_mr_summary_orig_high.csv', index=False)
+    final.to_csv('%s/fits_mr_summary_orig_high.csv' % outputs_dir, index=False)
 
     # stats by patient & mut
     final = final[final['significance'] == 'significant']
     stats = final.groupby(['Patient', 'Mutation'])['MR'].agg(['median', 'mean'])
-    stats.to_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/orig_high/fits/try/fits_mr_summary_orig_high_stats.csv')
+    stats.to_csv('%s/fits_mr_summary_orig_high_stats.csv' % outputs_dir)
     print(stats)
 
 
     # plot distribution by patient & mut
     for p in final.Patient.unique():
         for mut in final.Mutation.unique():
+            print(mut)
             ax = sns.distplot(final[(final.Mutation == mut) & (final.Patient == p)]['MR'])
             plot_header = mut
             ax.set_title(plot_header)
             # plt.show()
-            plt.savefig('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/mutation_rate_analysis/' + str(p) + '_' + str(plot_header) + '.png')
+            plt.savefig(outputs_dir + str(p) + '_' + str(plot_header) + '.png')
             plt.cla()
 
-def custom_summary_2_csv_biallelic(summary_dir, out=None, patient='', filter_entropy= True, inverse_direction = False):
+def custom_summary_2_csv_biallelic(summary_dir, out=None, patient='', filter_entropy= True, syn_position_files_dir = None, inverse_direction = False):
     """
     this method creates a summary csv file for all results in summary dir
     :param summary_dir: a directory containing all summary files
@@ -163,7 +174,7 @@ def custom_summary_2_csv_biallelic(summary_dir, out=None, patient='', filter_ent
     :return: a data frame of all results
     """
 
-    files = glob.glob(summary_dir + '/FITS*summary*')
+    files = glob.glob(summary_dir + '/FITS*summary')
 
     dfs = []
     for f in tqdm(files):
@@ -195,7 +206,7 @@ def custom_summary_2_csv_biallelic(summary_dir, out=None, patient='', filter_ent
 
     # filtering to entropy positions
     if filter_entropy:
-        pos_file_with_entropy = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/mutation_rate_analysis/syn_pos_by_ZN_with_entropy_filter/mutation_rate_positions_orig_high_v4_%s_0.3.txt' % patient
+        pos_file_with_entropy = '%smutation_rate_positions_orig_high_v4_%s_0.3.txt' % (syn_position_files_dir, patient)
         synonymous_selected_positions = get_syn_pos_from_file(pos_file_with_entropy)
         final = final[final['Pos'].isin(synonymous_selected_positions)]
 
@@ -206,5 +217,5 @@ def custom_summary_2_csv_biallelic(summary_dir, out=None, patient='', filter_ent
 
 if __name__ == "__main__":
     # generate_fits_input()
-    run_fits()
-    # post_analysis()
+    # run_fits()
+    post_analysis()
