@@ -36,11 +36,9 @@ def SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file):
 		raise Exception ("Unexpected error, file " + FilePath + " is empty, or number of lines in file does not divide by 4\n")
 
 	Num_reads_in_file = Lines/4
-	#print ("Total number of reads for input file is: " + str(int(Num_reads_in_file)) + ". Total number of lines is: " + str(Lines) + "\n")
 	Num_files = int(Num_reads_in_file/Num_reads_per_file)+1
 	if (Num_reads_in_file % Num_reads_per_file) == 0:
 		Num_files -= 1	
-	#print ("Number of files to split into: " + str(Num_files) + ", with " + str(Num_reads_per_file) + " reads per file\n")
 
 	ReadCount = 1
 	File_counter = 1
@@ -57,8 +55,8 @@ def SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file):
 				with open(Curr_out_file, 'at') as FastaFile:
 					try:
 						with open(Curr_qual_out_file, 'at') as QualityFile:
-							while (ReadCount <= Num_reads_per_file*File_counter) and (ReadCount <= Num_reads_in_file):		
-								for i in range(4): 
+							while (ReadCount <= Num_reads_per_file*File_counter) and (ReadCount <= Num_reads_in_file):
+								for i in range(4):
 									if i == 0:
 										read_id = ReadRecords.readline().strip()
 										if "R1" in os.path.basename(FilePath):
@@ -76,23 +74,23 @@ def SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file):
 										if not plus.startswith("+"):
 											raise Exception("Unexpected error, missing +. Cannot identify plus sign in third line of read id\n")
 									if i == 3:
-										qual_line = ReadRecords.readline().strip()  
+										qual_line = ReadRecords.readline().strip()
 										qual_line_length = len(qual_line)
 										for position in range(qual_line_length):
 											if not qual_line[position] in ASCII_signs:
 												raise Exception("Unexpected error at position " + str(position+1) + " in read id " + read_id + ". Cannot identify a valid ASCII letter\n")
-								
+
 								try:
 									QualityFile.write(read_id + "\n" + qual_line + "\n")
 								except:
 									raise Exception("Unexpected error, cannot write into file " + Curr_qual_out_file + "\n")
-					
+
 								read_id = read_id.replace("@",">")
 								try:
 									FastaFile.write(read_id + "\n" + seq_line + "\n")
 								except:
 									raise Exception("Unexpected error, cannot write into file " + Curr_out_file + "\n")
-								
+
 								ReadCount += 1
 					except:
 						raise Exception("Unexpected error, cannot open file " + Curr_qual_out_file + "\n")

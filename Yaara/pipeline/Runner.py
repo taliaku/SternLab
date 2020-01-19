@@ -19,7 +19,7 @@ Pipeline generating frequency files from raw sequencing data files, either fastq
 6.	Warp up. zip files.
 '''
 
-def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, load_python=True, queue="adis"):
+def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True):
 	with open(cmdfile, 'w') as o:
 		o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
 		o.write("#PBS -q %s\n" % queue)
@@ -98,7 +98,7 @@ def create_array(files_list):
 	
 	return array
 
-def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path):
+def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue):
 	alias = "MergeFiles"
 	script_path = "/sternadi/home/volume1/shared/SternLab/scripts/merge_fastq_files.py"
 	
@@ -118,7 +118,8 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 			raise Exception("File" + file + "does not contain R1 or R2 in sample name. Unable to merge file\n")
 
 	if len(R1_files) != len(R2_files) or len(R1_files) != num_of_expected_merged_files:
-		raise Exception("Number of R1 sample files " + str(len(R1_files)) + " is different than number of R2 sample files " + str(len(R2_files)) + "\n")
+		raise Exception("Number of R1 sample files " + str(len(R1_files)) + " is different than number of R2 sample files " + str(len(R2_files)) + \
+						" or from the number of expected merged files " + num_of_expected_merged_files + "\n")
 
 	files_to_merge_list = []
 	for i in range(num_of_expected_merged_files):
@@ -143,7 +144,7 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 	cmds = cmd1 + cmd2 + cmd3
 
 	cmdfile = dir_path + "/merge_files.cmd"	
-	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_expected_merged_files, gmem=gmem, cmds=cmds, load_python=True)
+	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_expected_merged_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
 	print(job_id)
 	Sleep(alias, job_id)
@@ -154,9 +155,9 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 	if len(merged_files) != num_of_expected_merged_files: 
 		raise Exception("Unexpected error, number of merged files does not match expected number of merged files " + str(num_of_expected_merged_files) + "\n")
 	
-def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file):
+def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue):
 	alias = "toFastaAndSplit"
-	script_path = pipeline_dir + "/ToFastaAndSplit_ver7.py"
+	script_path = pipeline_dir + "/ToFastaAndSplit.py"
 
 	num_of_input_files = len(input_files)
 	if num_of_input_files == 0:
@@ -175,7 +176,7 @@ def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file):
 	cmds = cmd1 + cmd2 + cmd3
 	
 	cmdfile = dir_path + "/FastaAndSplit.cmd"
-	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, load_python=True)
+	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
 	print(job_id)
 	Sleep(alias, job_id)
@@ -188,7 +189,7 @@ def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file):
 	if len(fasta_files) != len(quality_files) or len(fasta_files) == 0 or len(quality_files) == 0: 
 		raise Exception("Unexpected error, number of fasta and / or quality output files does not match expected number of output files\n")
 
-def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast):
+def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue):
 	alias = "Blast"
 	blast_dir = "/sternadi/home/volume1/shared/tools/ncbi-blast-2.2.30+/bin"
 
@@ -225,7 +226,7 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast):
 		raise Exception("Unexpected error, blast mode has to be either ReftoSeq, RS, rs or SeqtoRef, SR, sr\n")
 	
 	cmdfile = dir_path + "/Blast.cmd"
-	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, load_python=True)
+	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
 	print(job_id)
 	Sleep(alias, job_id)
@@ -236,9 +237,9 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast):
 	if len(blast_files) != len(input_fasta_files): 
 		raise Exception("Unexpected error, number of blast output files " + str(len(blast_files)) + " does not match number of input fasta files " + str(len(input_fasta_files)) + "\n")				
 		
-def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol):
+def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue):
 	alias = "BaseCalling"
-	script_path = pipeline_dir + "/BaseCall_33.py"
+	script_path = pipeline_dir + "/BaseCall.py"
 		
 	file_type = ".blast"
 	input_blast_files = FindFilesInDir(dir_path, file_type)
@@ -259,7 +260,7 @@ def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode,
 	cmds = cmd1 + cmd2 + cmd3
 	    
 	cmdfile = dir_path + "/BaseCalling.cmd"
-	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, load_python=True)
+	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
 	print(job_id)
 	Sleep(alias, job_id)
@@ -270,9 +271,9 @@ def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode,
 	if len(input_blast_files) != len(freqs_files):  
 		raise Exception("Unexpected error, number of freqs output files " + str(len(freqs_files)) + " does not match number of input blast files " + str(len(input_blast_files)) + "\n")				
 	
-def Join (pipeline_dir, dir_path, ref_genome, Coverage):
+def Join (pipeline_dir, dir_path, ref_genome, Coverage, queue):
 	alias = "Join"
-	script_path = pipeline_dir + "/Join6.py"
+	script_path = pipeline_dir + "/Join.py"
 	
 	file_type = ".freqs"
 	input_freqs_files = FindFilesInDir(dir_path, file_type)
@@ -281,7 +282,7 @@ def Join (pipeline_dir, dir_path, ref_genome, Coverage):
 	
 	cmdfile = dir_path + "/Join.cmd"
 	cmds = "python " + script_path + " -o " + dir_path + " -r " + ref_genome + " -c " + str(Coverage)
-	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, load_python=True)
+	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
 	print(job_id) 
 	Sleep(alias, job_id)
@@ -292,9 +293,9 @@ def Join (pipeline_dir, dir_path, ref_genome, Coverage):
 	if len(merge_file) != 1:
 		raise Exception("Unexpected error, merge.freqs.csv file does not exist in directory " + dir_path + " or is different than 1\n")
 		
-def Summary (pipeline_dir, dir_path, Coverage):
+def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue):
 	alias = "Summary"
-	script_path = pipeline_dir + "/summary7.py"
+	script_path = pipeline_dir + "/Summary.py"
 	
 	file_type = "merge.freqs.csv"
 	input_csv_files = FindFilesInDir(dir_path, file_type)
@@ -312,8 +313,8 @@ def Summary (pipeline_dir, dir_path, Coverage):
 		raise Exception("Unexpected error, there are no blast files in directory " + dir_path + ". Cannot perform summary analysis\n")
 
 	cmdfile = dir_path + "/Summary.cmd"
-	cmds = "python " + script_path + " -o " + dir_path + " -c " + str(Coverage)
-	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, load_python=True)
+	cmds = "python " + script_path + " -o " + dir_path + " -c " + str(Coverage) + " -r " + ref_genome
+	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
 	print(job_id)    
 	Sleep(alias, job_id)
@@ -326,8 +327,21 @@ def Summary (pipeline_dir, dir_path, Coverage):
 		
 def main(args):
 	
-	pipeline_dir = os.path.dirname(os.path.abspath(__file__))
-	pipeline_path = pipeline_dir + "/runner.py"
+	pipeline_dir = os.path.dirname(os.path.abspath(__file__).strip())
+	pipeline_path = pipeline_dir + "/Runner.py"
+
+	if not (os.path.isfile(pipeline_path) and os.path.splitext(pipeline_path)[1] == '.py'):
+		raise Exception("Unexpected error, pipeline path " + pipeline_path + " does not exist or not a .py file\n")
+
+	sample_path = args.path.strip()
+	sample_dir_path = os.path.dirname(sample_path)
+	if not os.path.isdir(sample_dir_path):
+		raise Exception("Directory of sample to merge/split " + sample_dir_path + " does not exist or is not a valid directory path\n")
+	sample_basename_pattern = os.path.basename(sample_path)# + "*"
+	if sample_basename_pattern == "":
+		raise Exception("Sample basename pattern is missing in path " + sample_path + "\n")
+	else:
+		sample_basename_pattern += "*"
 
 	start_stage = args.start
 	if start_stage != None:
@@ -337,6 +351,13 @@ def main(args):
 			raise Exception("Unexpected error, start_stage " + str(start_stage) + " is not a valid value\n")
 		if start_stage not in [0,1,2,3,4,5,6]:
 			raise Exception("Unexpected error, start_stage " + str(start_stage) + " is not a valid value\n")
+	else:
+		file_type = sample_basename_pattern + "_R2*"
+		paired_samples = FindFilesInDir(sample_dir_path, file_type)
+		if len(paired_samples) > 0:
+			start_stage = 0
+		else:
+			start_stage = 1
 
 	end_stage = args.end
 	if end_stage != None:
@@ -350,12 +371,7 @@ def main(args):
 	if start_stage > end_stage:
 		raise Exception ("Unexpected error, start stage " + str(start_stage) + " is larger than end stage " + str(end_stage) + "\n")
 			
-	path = args.path
-	if path != None:
-		sample_dir_path = os.path.dirname(path)
-		if not os.path.isdir(sample_dir_path):
-			raise Exception("Directory of files to merge " + sample_dir_path + " does not exist or is not a valid directory path\n")
-		sample_basename_pattern = os.path.basename(path) + "*"
+	#path = args.path.strip()
 	
 	number_of_N = args.num_of_N
 	if start_stage == 0:		
@@ -365,7 +381,7 @@ def main(args):
 			except:
 				raise Exception("Unexpected error, number of Ns per merge file " + str(number_of_N) + " is not a valid integer value\n")
 
-	dir_path = args.output_dir
+	dir_path = args.output_dir.strip()
 	if start_stage in [0, 1]:
 		if not os.path.isdir(dir_path):
 			try:
@@ -375,7 +391,7 @@ def main(args):
 	if not os.path.isdir(dir_path):
 		raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
 
-	ref_genome = args.ref
+	ref_genome = args.ref.strip()
 	if not (os.path.isfile(ref_genome) and os.path.splitext(ref_genome)[1] == '.fasta'):
 		raise Exception("Unexpected error, " + ref_genome + " reference genome file does not exist, is not a file or is not a fasta file\n")
 
@@ -408,15 +424,20 @@ def main(args):
 		if e_value < 1e-7:
 			print("Warning, running pipeline with e_value < " + str(e_value) + "\n")
 	
-	task = args.blast_task
+	task = args.blast_task.strip()
 	if task != None:
 		if task not in ["megablast", "blastn", "dc-megablast"]:
 			raise Exception("Unexpected error, blast task has to be 'blastn', 'megablast' or 'dc-megablast'\n") 	
 			
-	mode = args.blast_mode
+	mode = args.blast_mode.strip()
 	if mode != None:
 		if mode not in ["ReftoSeq", "RS", "rs", "sr", "SR", "SeqtoRef"]:
-			raise Exception("Unexpected error, blast mode has to be either ReftoSeq, RS, rs or SeqtoRef, SR, sr\n") 
+			raise Exception("Unexpected error, blast mode has to be either ReftoSeq, RS, rs or SeqtoRef, SR, sr\n")
+
+	queue = args.queue.strip()
+	if queue != None:
+		if queue not in ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long"]:
+			raise Exception("Unexpected error, queue " + queue + " has to be either 'inf', 'hugemem', 'pup-interactive', 'parallel', 'adis', 'adis-long'\n")
 
 	min_num_repeats = args.repeats
 	if min_num_repeats != None:
@@ -445,15 +466,15 @@ def main(args):
 		except:
 			raise Exception("Unexpected error, number of reads per file " + Coverage + " is not a valid integer value\n")   
 			
-	Protocol = args.protocol
+	Protocol = args.protocol.strip()
 	if Protocol == None:
 		Protocol = "linear"
 	else:
 		if Protocol not in ["L", "l", "linear", "C", "c", "circular"]:
 			raise Exception("Unexpected error, for linear library prep protocol type 'linear', 'L' or 'l', for circular library prep protocol type 'circular', 'C' or 'c'\n")
 	
-	cmd = "python {} -p {} -o {} -r {} -m {} -t {} -s {} -e {} -q {} -id {} -ev {} -rep {} -n {} -c {} -pr {}".format(pipeline_path, path, dir_path, ref_genome, mode, task, 
-                                                            start_stage, end_stage, q_score, blast_id, e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol)
+	cmd = "python {} -i {} -o {} -r {} -m {} -t {} -s {} -e {} -q {} -id {} -ev {} -rep {} -n {} -c {} -pr {} -qu {}".format(pipeline_path, sample_path, dir_path, ref_genome, mode, task,
+                                                            start_stage, end_stage, q_score, blast_id, e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue)
 	print(cmd)
 		
 	pipeline_summary = dir_path + "/Summary.txt"
@@ -469,18 +490,26 @@ def main(args):
 	
 	for stage in range(start_stage, end_stage+1):	
 		if stage == 0:
-			merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path)
+			merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue)
+
 		if stage == 1:
-			input_gz_files = []; input_fastq_files = []
+			file_type = sample_basename_pattern + "_R2*"
+			paired_samples = FindFilesInDir(sample_dir_path, file_type)
 			file_type = sample_basename_pattern
-			sample_files = FindFilesInDir(sample_dir_path, file_type)
+			if start_stage == 1 and len(paired_samples) == 0:	#for single-end reads use sample_dir_path to get files for split
+				sample_files = FindFilesInDir(sample_dir_path, file_type)
+			elif len(paired_samples) > 0:	#for paired-end reads use dir_path to get merged files for split
+				sample_files = FindFilesInDir(dir_path, file_type)
+			else:
+				raise Exception("Unable to detect sample files with base name pattern " + sample_basename_pattern + " in directory\n")
+			input_gz_files = []; input_fastq_files = []
 			for file in sample_files:
 				if os.path.splitext(file)[1] == ".gz":
 					input_gz_files.append(file)
 				elif os.path.splitext(file)[1] == ".fastq":
 					input_fastq_files.append(file)
 				else:
-					raise Exception("Sample pattern " + os.path.basename(path) + "is not a .gz or .fastq file")
+					raise Exception("Sample pattern " + os.path.basename(sample_path) + " is not a .gz or .fastq file")
 			if (len(input_fastq_files) > 0 and len(input_gz_files) > 0):
 				raise Exception("Unexpected error, there is a mix of fastq and gz files in directory " + dir_path + "\n")
 			elif (len(input_fastq_files) == 0 and len(input_gz_files) == 0):
@@ -489,15 +518,16 @@ def main(args):
 				input_files = input_fastq_files
 			elif (len(input_fastq_files) == 0 and len(input_gz_files) > 0):
 				input_files = input_gz_files	
-			toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file)
+			toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue)
+
 		if stage == 2:
-			Blast(dir_path, ref_genome, task, mode, e_value, blast_id)	
+			Blast(dir_path, ref_genome, task, mode, e_value, blast_id, queue)
 		if stage == 3:
-			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol)
+			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue)
 		if stage == 4:
-			Join(pipeline_dir, dir_path, ref_genome, Coverage)
+			Join(pipeline_dir, dir_path, ref_genome, Coverage, queue)
 		if stage == 5:
-			Summary(pipeline_dir, dir_path, Coverage)
+			Summary(pipeline_dir, dir_path, Coverage, ref_genome, queue)
 		if stage == 6:
 			os.system("zip " + dir_path + "/OutputFiles.zip " + dir_path + "/*.part* " + dir_path + "/*.OU")
 			os.system("rm -rf " + dir_path + "/*.part* " + dir_path + "/*.OU")
@@ -506,21 +536,24 @@ def main(args):
     
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-p", "--path", type=str, help="a full path with a pattern of sample name for merge and/or split. Example: dir1/dir2/sample1_", required=True)
+	parser.add_argument("-i", "--path", type=str, help="a full path with a pattern of sample name for merge and/or split. Example: dir1/dir2/sample1_", required=True)
 	parser.add_argument("-N", "--num_of_N", type=int, help="number of N's to add for merge of R1 and R2 pair-end reads", required=False, default=60) 
 	parser.add_argument("-n", "--num_reads", type=int, help="number of reads per split file, default=25000", required=False, default=25000)
 	parser.add_argument("-o", "--output_dir", type=str, help="a path to an output directory", required=True)
 	parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference fasta file", required=True)
-	parser.add_argument("-m", "--blast_mode", type=str, help="mode for blast, for Seq to Ref blast type SR, sr or SeqtoRef, for Ref to Seq blast type RS, rs or ReftoSeq, default = 'SeqtoRef'", required=False, default="SeqtoRef")
+	parser.add_argument("-m", "--blast_mode", type=str, help="mode for blast, for Seq to Ref blast type SR, sr or SeqtoRef, for Ref to Seq blast type RS, rs or ReftoSeq, default = 'SeqtoRef'",
+						required=False, default="SeqtoRef")
 	parser.add_argument("-id", "--blast_id", type=int, help="% blast id, default=85", required=False, default=85)
 	parser.add_argument("-t", "--blast_task", type=str, help="task for blast, blastn/megablast/dc-megablast?, default='blastn'", required=False, default="blastn")
 	parser.add_argument("-ev", "--evalue", type=float, help="E-value for blast, default=1e-7", required=False, default=1e-7)
-	parser.add_argument("-s", "--start", type=int, help="start step number, default=0", required=False, default=0)
-	parser.add_argument("-e", "--end", type=int, help="end step number, default=6", required=False, default=6)
+	parser.add_argument("-s", "--start", type=int, help="start stage number", required=False)
+	parser.add_argument("-e", "--end", type=int, help="end stage number, default=6", required=False, default=6)
 	parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
 	parser.add_argument("-rep", "--repeats", type=int, help="number of repeats, default=2", required=False, default=2)
 	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default=10000", required=False, default=10000)
-	parser.add_argument("-pr", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'", required=False, default="linear")
+	parser.add_argument("-pr", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'",
+						required=False, default="linear")
+	parser.add_argument("-qu", "--queue", type=str, help="queue to run pipeline, default='adis'", required=False, default="adis")
 	args = parser.parse_args()
 	main(args)
 

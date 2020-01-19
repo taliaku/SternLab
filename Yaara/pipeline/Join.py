@@ -79,11 +79,13 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage, Minimal_i
 	data = pd.DataFrame.groupby(data, level = [0, 1, 2]).sum()
 	data["frequency"] = round(data["base_counter"] / data["coverage"],6)     
 	data["probability"] = round(1 - np.power(10,np.log10(1-data["frequency"]+1e-07)*(data["coverage"]+1)),2)
-	pd.DataFrame.reset_index(data, level = [0,1,2], inplace = True)  
+	#get rank
+	pd.DataFrame.reset_index(data, level = [0,1,2], inplace = True)
 	pd.DataFrame.sort_values(data, by = ['ref_position', 'frequency'], ascending = [True, False], inplace = True)
 	data["coverage_to_set_rank"] = np.where(data["coverage"] > 0, 1, 0)
 	data["rank"] = (pd.Series.cumsum(pd.Series(data["coverage_to_set_rank"])) - 1) % 5
 	del data["coverage_to_set_rank"]
+	#create freqs file
 	pd.DataFrame.set_index(data, keys = "ref_position" , inplace = True)
 	csv_file_path = dir_path + "/" + sample_basename_pattern + "merge.freqs.csv"
 	with open(csv_file_path, 'w') as csv_file:
@@ -92,28 +94,34 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage, Minimal_i
 		except:
 			raise Exception("Unexpected error, cannot write into file " + csv_file_path + "\n")
 
+	#adjust dataframe to get consensus
+	pd.DataFrame.reset_index(data, inplace = True)
+	data = data.drop_duplicates("ref_position")
+	pd.DataFrame.set_index(data, keys = "ref_position", inplace = True)
+	InsertionCoverageIndex = data[(data['coverage'] <= Minimal_insertion_coverage) & (data['ref_base'] == "-")].index	#Get indexes of insertions with minimal coverage to get a "cleaner" consensus ref.
+	data.drop(InsertionCoverageIndex, inplace=True)
+
 	#create dataframe of original ref
 	df_ref = pd.DataFrame.from_dict(REF_GENOME, orient='index')
 	pd.DataFrame.rename_axis(df_ref, "ref_position", inplace = True)
 	pd.DataFrame.rename(df_ref, columns={0: "ref_base"}, inplace = True)
-	
-	#create ref_consensus with insertions
-	pd.DataFrame.reset_index(data, inplace = True)  
-	data = data.drop_duplicates("ref_position")
-	pd.DataFrame.set_index(data, keys = "ref_position", inplace = True)
-	InsertionCoverage = data[(data['coverage'] == Minimal_insertion_coverage) & (data['ref_base'] == "-")].index	#Get indexes of insertions with minimal coverage to get a "cleaner" consensus ref.
-	data.drop(InsertionCoverage, inplace=True)	
+
+	#create consensus with insertions
 	df_insertion = pd.merge(df_ref, data, how = 'outer', on = 'ref_position', sort = False)
 	pd.DataFrame.rename_axis(df_insertion, "ref_position", inplace = True)
 	pd.DataFrame.sort_index(df_insertion, inplace = True)
-	df_insertion["base_consensus"] = np.where(df_insertion["coverage"] > 0.1*Coverage, df_insertion["base"], df_insertion["ref_base_x"])
-	#df_insertion["base_consensus"] = np.where(df_insertion["base_counter"]/df_insertion["coverage"] > 0.5, df_insertion["base"], df_insertion["ref_base_x"])
-	df_insertion["base_consensus"] = np.where(df_insertion["ref_base_y"] == "-", df_insertion["base"], df_insertion["ref_base_x"])
+	df_insertion["base_consensus"] = np.where(df_insertion["coverage"] > 0, df_insertion["base"], df_insertion["ref_base_x"])
 	GET_CONSENSUS = pd.Series.to_dict(pd.Series(df_insertion["base_consensus"]))
 	consensus_file_path = dir_path + "/" + sample_basename_pattern + "consensus_with_insertions.fasta" 
 	create_consensus(GET_CONSENSUS, consensus_file_path)
 
-	#create ref_consensus without insertions to keep in frame with original ref
+	#create consensus without insertions to keep in frame with original ref
+	InsertionIndex = data[df_insertion['ref_base_y'] == "-"].index
+	df_insertion.drop(InsertionIndex, inplace=True)
+	GET_CONSENSUS = pd.Series.to_dict(pd.Series(df_insertion["base_consensus"]))
+	consensus_file_path = dir_path + "/" + sample_basename_pattern + "consensus_without_insertions.fasta"
+	create_consensus(GET_CONSENSUS, consensus_file_path)
+'''	
 	InsertionIndex = data[data['ref_base'] == "-"].index
 	data.drop(InsertionIndex, inplace=True)
 	df_no_insertion = pd.merge(df_ref, data, how = 'outer', on = 'ref_position', sort = False)
@@ -123,7 +131,7 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Coverage, Minimal_i
 	GET_CONSENSUS = pd.Series.to_dict(pd.Series(df_no_insertion["base_consensus"]))
 	consensus_file_path = dir_path + "/" + sample_basename_pattern + "consensus_without_insertions.fasta" 
 	create_consensus(GET_CONSENSUS, consensus_file_path)
-		
+'''
 def links_between_mutations(dir_path, sample_basename_pattern, min_value = 1):
 	file_type = ".good_mutations"
 	input_good_mutations_files = FindFilesInDir(dir_path, file_type)
