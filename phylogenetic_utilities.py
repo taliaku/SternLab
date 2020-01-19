@@ -4,6 +4,9 @@ from os import path
 from Bio import Phylo
 from file_utilities import check_dirname
 from file_utilities import check_filename
+import numpy as np
+import pandas as pd
+import os
 
 def root_tree(tree_file, outgroup, output):
     """
@@ -179,3 +182,80 @@ def get_average_tip_to_root_distance(tree_file):
             sum += tree.distance(c)
             count += 1
     return(sum/count)
+
+
+
+def get_median_branch_length(tree_file):
+    """
+    get  median branch length
+    :param tree_file: input tree path
+    :return:  median branch length
+    """
+    tree_file = check_filename(tree_file)
+    tree = Phylo.read(tree_file, "newick")
+    clades = list(tree.find_clades())
+    branch_lengths = []
+    for c in clades:
+        branch_lengths.append(c.branch_length)
+    return(np.median(branch_lengths))
+
+
+def get_median_leaf_length(tree_file):
+    """
+    get median leaf length
+    :param tree_file: input tree path
+    :return:  median leaf length
+    """
+    tree_file = check_filename(tree_file)
+    tree = Phylo.read(tree_file, "newick")
+    clades = list(tree.find_clades())
+    branch_lengths = []
+    for c in clades:
+        if c.name != None:
+            branch_lengths.append(c.branch_length)
+    return(np.median(branch_lengths))
+
+
+def get_branch_length_info(tree_file):
+    tree_file = check_filename(tree_file)
+    tree = Phylo.read(tree_file, "newick")
+    clades = list(tree.find_clades())
+    df = pd.DataFrame()
+    for c in clades:
+        if c.name != None:
+            df = df.append({"node_name":c.name, "branch_len":c.branch_length}, ignore_index=True)
+    return(df)
+
+
+def label_trees_by_cutoff(tree_file, cutoff, output_dir):
+    tree_file = check_filename(tree_file)
+    output_dir = check_dirname(output_dir)
+    base = os.path.basename(tree_file)
+    output = output_dir + "/" + base
+    tree = Phylo.read(tree_file, "newick")
+    clades = list(tree.find_clades())
+    found_branch = False
+    for c in clades:
+        if c.name == None:
+            continue
+        if c.branch_length < cutoff:
+            c.name = c.name + " #1"
+            found_branch = True
+    if found_branch:
+        Phylo.write(tree, output, "newick")
+        tree = open(output, "r").read()
+        tree = tree.replace("'", "")
+        out = open(output, "w")
+        out.write(tree)
+        out.close()
+
+
+def get_number_of_nodes(tree_file):
+    tree_file = check_filename(tree_file)
+    tree = Phylo.read(tree_file, "newick")
+    clades = list(tree.find_clades())
+    count = 0
+    for c in clades:
+        if c.name != None:
+            count += 1
+    return(count)
