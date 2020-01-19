@@ -3,6 +3,8 @@
 import pandas as pd
 import re
 import math
+import os
+from fastq_utilities import filter_out_fastq_by_read_id
 
 MUTATION_PATTERN = re.compile('[ACGTN]{2}')
 INSERTION_PATTERN = re.compile('-[ACGTN]')
@@ -77,17 +79,15 @@ def parse_btop(row):
     return {'mutations':mutations, 'deletions':deletions, 'insertions':insertions}
 
 
-def get_unaligned_reads(blast_file, fasta_file, out_file):
+def get_unaligned_reads(blast_dir, fastq_file, out_file):
     '''
-    Gets a fasta file and the matching blast results file and
-    creates a fasta file only with the unaligned reads.
+    Gets a fastq file and a directory with blast file(s) (the tmp dir
+    created by pipeline can be used here) and writes to out_file a fastq 
+    file only with the unaligned reads.
     '''
-    blast = blast_to_df(blast_file)
-    with open(fasta_file, 'r') as f:
-        fasta = f.read()
-    fasta = pd.DataFrame([i.split('\n')[:2] for i in fasta[1:].split('\n>')], columns=['read', 'sequence'])
-    unaligned = fasta[~(fasta.read.isin(blast.read.drop_duplicates().tolist()))].copy()
-    unaligned_str = '\n'.join(('>' + unaligned.read + '\n' + unaligned.sequence).tolist())
-    with open(out_file, 'w') as f:
-        f.write(unaligned_str)
+    blasts = []
+    for b in [blast_dir + '/' + f for f in os.listdir(blast_dir) if f.endswith('.blast')]:
+        blasts.append(blast_to_df(b))
+    blast = pd.concat(blasts)
+    filter_out_fastq_by_read_id(fastq_file, out_file, blast.read.drop_duplicates().tolist())
     return

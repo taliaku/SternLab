@@ -58,16 +58,14 @@ def merge_freqs_files(freqs_files, output):
     all.to_csv(output, index=False)
     return output, all
 
-def change_ref_to_consensus(freqs_file):
-    freqs = pd.read_csv(freqs_file, sep="\t")
-    freqs_tmp = pd.read_csv(freqs_file, sep="\t")
-    freqs_tmp = freqs_tmp.drop_duplicates("Pos") # rank 0 only
-    freqs_tmp = freqs_tmp[['Pos', 'Base']]
-    transformed_freq = freqs.set_index(freqs.Pos).join(
-        freqs_tmp.set_index(freqs_tmp.Pos), rsuffix='_r')
+def change_ref_to_consensus(freqs_df):
+    consensus = freqs_df.copy()
+    consensus = consensus.drop_duplicates("Pos") # rank 0 only
+    consensus = consensus[['Pos', 'Base']]
+
+    transformed_freq = freqs_df.set_index(freqs_df.Pos).join(consensus.set_index(consensus.Pos), rsuffix='_r')
     transformed_freq.Ref = transformed_freq.Base_r
-    transformed_freq = transformed_freq.loc[(transformed_freq.Pos >= 1456) & (transformed_freq.Pos <= 4488)][
-        ['Pos', 'Base', 'Freq', 'Ref', 'Read_count', 'Rank', 'Prob']]
+    transformed_freq = transformed_freq.drop(columns=['Pos_r', 'Base_r'])
 
     return transformed_freq
 

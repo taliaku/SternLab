@@ -14,23 +14,34 @@ import sys
 sys.path.append('/sternadi/home/volume2/noam/SternLab')
 sys.path.append(r'X:\volume2\noam\Sternlab')
 from blast_utilities import blast_to_mutations_list, blast_to_df
+from freqs_utilities import estimate_insertion_freq
+import matplotlib.pyplot as plt
 
 def big_freqs_file():
     dfs = []
-    freqs_list = ['Z:/volume1/noam/cmv/1_pipeline_output/1.freqs', 
-                  'Z:/volume1/noam/cmv/2_pipeline_output/2.freqs', 
-                  'Z:/volume1/noam/cmv/3_pipeline_output/3.freqs',
-                  'Z:/volume1/noam/cmv/4_pipeline_output/4.freqs',
-                  'Z:/volume1/noam/cmv/5_pipeline_output/5.freqs',
-                  'Z:/volume1/noam/cmv/6_pipeline_output/6.freqs',
-                  'Z:/volume1/noam/cmv/7_pipeline_output/7.freqs',
-                  'Z:/volume1/noam/cmv/8_pipeline_output/8.freqs']
+    freqs_list = ['Z:/volume1/noam/cmv/cmv_medicine/1_pipeline_output/1.freqs', 
+                  'Z:/volume1/noam/cmv/cmv_medicine/2_pipeline_output/2.freqs', 
+                  'Z:/volume1/noam/cmv/cmv_medicine/3_pipeline_output/3.freqs',
+                  'Z:/volume1/noam/cmv/cmv_medicine/4_pipeline_output/4.freqs',
+                  'Z:/volume1/noam/cmv/cmv_medicine/5_pipeline_output/5.freqs',
+                  'Z:/volume1/noam/cmv/cmv_medicine/6_pipeline_output/6.freqs',
+                  'Z:/volume1/noam/cmv/cmv_medicine/7_pipeline_output/7.freqs',
+                  'Z:/volume1/noam/cmv/cmv_medicine/8_pipeline_output/8.freqs',
+                  'Z:/volume1/noam/cmv/cmv_no_medicine/P16LT/P16LT.freqs',
+                  'Z:/volume1/noam/cmv/cmv_no_medicine/P16ND/P16ND.freqs',
+                  'Z:/volume1/noam/cmv/cmv_no_medicine/P28ND/P28ND.freqs',
+                  ]
     for f in freqs_list:
         df = pd.read_csv(f, sep='\t')
         df['file'] = f.split('/')[-1].split('.')[0]
         dfs.append(df)
     df = pd.concat(dfs)
     return df
+
+df = big_freqs_file()
+df.to_csv('Z:/volume1/noam/cmv/all_freqs.with_without_medicine.csv', index=False)
+
+
 
 
 
@@ -67,108 +78,6 @@ for i in range(1,9):
         if i != j:
             compare_freqs(freqs, mutation_type, i, j, 'Z:/volume1/noam/cmv/comparisons2/')
     
-
-#### mutation type #############3
-
-
-def create_gene_dataframe():
-    genes = []
-    with open('Z:/volume1/noam/cmv/ncbi_genes.txt') as f:
-        fi = f.read()
-    for row in fi.splitlines():
-        if not row.startswith('\t') and not row.startswith('>') and row != '':
-            print('row' + row)
-            protein = fi.split(row)[1].split('product\t')[1].split('\n')[0]
-            start = int(row.split('\t')[0].replace('<', ''))
-            end = int(row.split('\t')[1].replace('<', ''))
-            complement = start > end
-            genes.append((protein, start, end, complement))
-        fi = fi.replace(row, '', 1)
-    gene_df = pd.DataFrame(genes, columns=['protein', 'start', 'end', 'complement'])
-    
-    with open('Z:/volume1/noam/cmv/cmv_dana_ref.fasta') as f:
-        reference_str = f.read()
-        if reference_str.split('\n')[0].startswith('>'):
-            reference_str = ''.join(reference_str.split('\n')[1:])
-        else:
-            reference_str = reference_str.replace('\n', '')
-    gene_df['sequence'] = gene_df.apply(lambda x: get_rna_sequence(x.protein, x.start, x.end, x.complement, reference_str), axis=1)
-    # not complement
-    not_complement_df = gene_df[gene_df.complement == False].copy()
-    not_complement_df['full_sequence'] = not_complement_df.sort_values('start', ascending=True).groupby('protein')['sequence'].transform(lambda x: x.sum())
-    # is complement
-    complement_df = gene_df[gene_df.complement == True].copy()
-    complement_df['full_sequence'] = complement_df.sort_values('start', ascending=False).groupby('protein')['sequence'].transform(lambda x: x.sum())
-    
-    gene_df = pd.concat([complement_df, not_complement_df])
-    gene_df['translated'] = gene_df.full_sequence.apply(translate_seq)
-    gene_df.to_csv('Z:/volume1/noam/cmv/ncbi_genes_dataframe.csv', index=False)
-    return gene_df
-
-def get_rna_sequence(protein, start, end, complement, reference_str):
-    if complement == False:
-        return reference_str[start-1:end]
-    else:
-        return str(Seq(reference_str[end-1:start], IUPAC.unambiguous_dna).reverse_complement())
-        
-def translate_seq(seq):
-    return str(Seq(seq, IUPAC.unambiguous_dna).translate())
-
-
-def create_mutation_type_df():
-    #gene_df = pd.read_csv('Z:/volume1/noam/cmv/ncbi_genes_dataframe.csv')
-    #with open('Z:/volume1/noam/cmv/cmv_dana_ref.fasta') as f:
-    gene_df = pd.read_csv('/sternadi/nobackup/volume1/noam/cmv/ncbi_genes_dataframe.csv')
-    with open('/sternadi/nobackup/volume1/noam/cmv/cmv_dana_ref.fasta') as f:
-        reference_str = f.read()
-        if reference_str.split('\n')[0].startswith('>'):
-            reference_str = ''.join(reference_str.split('\n')[1:])
-        else:
-            reference_str = reference_str.replace('\n', '')
-    positions_dfs = []
-    for i in range(len(reference_str)):
-        positions_ref_bases = []
-        relevant_genes_df = gene_df[(((gene_df.complement == False) & (i + 1 >= gene_df.start) & ( i + 1 <= gene_df.end)) | ((gene_df.complement == True) & (i + 1 >= gene_df.end) & ( i + 1 <= gene_df.start)))].copy()
-        for base in ['A', 'C', 'T', 'G']:
-            if base != reference_str[i]:
-                positions_ref_bases.append([i+1, reference_str[i], base])
-        temp_df = pd.DataFrame(positions_ref_bases, columns=['Pos', 'Ref', 'Base'])
-        temp_df['temp'] = 1
-        relevant_genes_df['temp'] = 1
-        temp_df = pd.merge(temp_df, relevant_genes_df, how='right', on='temp')
-        positions_dfs.append(temp_df)
-    positions_df = pd.concat(positions_dfs)
-    positions_df.Pos = positions_df.Pos.astype(float)
-    
-    # create mutations dict per mutation
-    positions_df['mutation_type'] = positions_df.apply(mutation_type_per_row, axis=1)
-    positions_df.to_csv('/sternadi/nobackup/volume1/noam/cmv/temp_positions_df_new.csv')
-    return
-    
-def mutation_type_per_row(row):
-    if row.complement == False:
-        if row.sequence[int(row.Pos - row.start)] != row.Ref:
-            return 'error 1'
-        else:
-            new_seq = list(row.sequence)
-            new_seq[int(row.Pos - row.start)] = row.Base
-            new_seq = "".join(new_seq)
-            full_seq = row.full_sequence.replace(row.sequence, new_seq)
-            new_translated = translate_seq(full_seq)
-            diffs = [str(row.translated[i]) + str(i + 1) + str(new_translated[i]) for i in range(len(row.translated)) if row.translated[i] != new_translated[i]]
-            return diffs
-    else:
-        if row.sequence[int(-1 * (row.Pos - row.end + 1))] != str(Seq(row.Ref, IUPAC.unambiguous_dna).reverse_complement()):
-            return 'error 2'
-        else:
-            new_seq = list(row.sequence)
-            new_seq[int(-1 * (row.Pos - row.end + 1))] = str(Seq(row.Base, IUPAC.unambiguous_dna).reverse_complement())
-            new_seq = "".join(new_seq)
-            full_seq = row.full_sequence.replace(row.sequence, new_seq)
-            new_translated = translate_seq(full_seq)
-            diffs = [str(row.translated[i]) + str(i + 1) + str(new_translated[i]) for i in range(len(row.translated)) if row.translated[i] != new_translated[i]]
-            return diffs
-
 
 
 
@@ -307,4 +216,121 @@ refs['ref_next_2'] = refs.Ref.shift(-2)
 refs['ref_next_3'] = refs.Ref.shift(-3)
 
 
-pd.merge(a[(a.file == 7) & (a.Base != a.Ref) & (a.Ref != '-') & (a.Base != '-') & (a.Freq > 0.8)], refs, on=['Ref', 'Pos']).groupby(['Ref', 'ref_previous_2']).Pos.count()
+
+
+
+
+
+
+
+
+################## ad169 samples
+p28 = pd.read_csv('Z:/volume1/noam/cmv/cmv_AD169/AD169P28_pipeline/AD169P28.freqs', '\t')
+wt = pd.read_csv('Z:/volume1/noam/cmv/cmv_AD169/AD169wt_pipeline/AD169wt.freqs', '\t')
+p28['Sample'] = 'p28'
+wt['Sample'] = 'wt'
+a = pd.concat([p28,wt])
+a = estimate_insertion_freq(a, extra_columns=['Sample'])
+a['full_mutation'] = a.Ref + a.Pos.astype(str) + a.Base
+
+merged = pd.merge(wt, p28, suffixes=['_wt', '_p28'], on=['Pos', 'Ref', 'Base'], how='outer')
+merged['full_mutation'] = merged.Ref + merged.Pos.astype(str) + merged.Base
+
+fig, ax = plt.subplots(nrows=1, ncols=1)
+merged[(merged.Base != merged.Ref) & (merged.Ref != '-') & (merged.Read_count_wt > 5) & (merged.Read_count_p28 > 5)].plot(x='Freq_wt', y='Freq_p28', kind='scatter', ax=ax)
+fig.set_size_inches(5,3)
+ax.set_xlabel('Frequency WT')
+ax.set_ylabel('Frequency p28')
+ax.set_title('Variant Frequency - WT vs p28')
+
+
+mutation_type = pd.read_csv('X:/volume2/noam/cmv/references/FJ527563.1.mutation_type.csv')
+mutations_in_ad169 = a[(a.Read_count > 5) & (a.Ref != a.Base) & (a.Ref != '-') & (a.Freq > 0.2)].full_mutation.drop_duplicates().tolist()
+merged[merged.full_mutation.isin(mutations_in_ad169)]
+
+
+
+
+
+
+
+
+########### tb40 samples
+df = pd.read_csv('Z:/volume1/noam/cmv/all_freqs.with_without_medicine.csv')
+df['full_mutation'] = df.Ref + df.Pos.astype(str) + df.Base
+mutation_type = pd.read_csv('Z:/volume1/noam/cmv/mutation_type_position_df.csv')
+mutation_type = mutation_type.drop(columns=['Unnamed: 0'])
+mutation_type['full_mutation'] = mutation_type.Ref + mutation_type.Pos.astype(str) + mutation_type.Base
+
+
+## look at UL54 mutations
+ul_54 = pd.merge(df, mutation_type[(mutation_type.protein == 'UL54')][['Pos', 'Ref', 'Base', 'mutation_type']], on=['Pos', 'Ref', 'Base'])
+conditions = [ul_54.mutation_type == '[]', ul_54.mutation_type != '[]']
+choices = ['syn', 'nonsyn']
+ul_54['mtype'] = np.select(conditions, choices)
+
+# plot mutation scatter all samples
+fig, axes = plt.subplots(nrows=4, ncols=3,figsize=(8, 10))
+axes = axes.flatten()
+fig.subplots_adjust(hspace=0.5)
+for (i,(key, group)) in enumerate(ul_54.groupby('file')):
+    group = group[(group.Ref != group.Base) & (group.Ref != '-') & (group.Read_count >5)]
+    group[group.mtype == 'syn'].plot(x='Pos', y='Freq', ax=axes[i], color='blue', kind='scatter')
+    group[group.mtype == 'nonsyn'].plot(x='Pos', y='Freq', ax=axes[i], color='red', kind='scatter')
+    axes[i].set_title(key)
+    axes[i].set_ylim(-0.1,1.1)
+    axes[i].set_xlabel('')
+    axes[i].set_ylabel('')
+fig.text(0.5, 0.04, 'Position (bp)', ha='center')
+fig.text(0.04, 0.5, 'Frequency', va='center', rotation='vertical')
+fig.savefig('Z:/volume1/noam/cmv/UL_54/syn_not_syn_mutations.csv',bbox_layout='tight', dpi=800)
+
+# get excel of mutation over time
+to_pivot = ul_54[ul_54.full_mutation.isin(ul_54[(ul_54.Ref != ul_54.Base) & (ul_54.Ref != '-') & (ul_54.Freq > 0.2) & (ul_54.Read_count > 5)].full_mutation.tolist())]
+to_pivot.pivot_table(values='Freq', index=['full_mutation', 'mutation_type'], columns='file').to_excel('Z:/volume1/noam/cmv/UL_54/mutation_over_0.2.xlsx')
+
+# check that all positions were seqeunced
+ul_54[(ul_54.Ref != '-') & (ul_54.Read_count > 5)][['Pos', 'file']].drop_duplicates().groupby('file').count()
+
+
+
+
+
+###### compare 7+8
+df1 = df[df.file.isin(['7','8'])].copy()
+merged = pd.merge(df1[df1.file == '7'], df1[df1.file == '8'], suffixes=['_7', '_8'], on=['Pos', 'Ref', 'Base'], how='outer')
+fig, ax = plt.subplots(nrows=1, ncols=1)
+merged[(merged.Base != merged.Ref) & (merged.Ref != '-') & (merged.Read_count_7 > 5) & (merged.Read_count_8 > 5)].plot(x='Freq_7', y='Freq_8', kind='scatter', ax=ax)
+fig.set_size_inches(5,3)
+ax.set_xlabel('Frequency 7')
+ax.set_ylabel('Frequency 8')
+ax.set_title('Variant Frequency - 7 vs 8')
+
+# only mutations that show change in frequency
+changed = merged[(merged.Base != merged.Ref) & (merged.Ref != '-') & (merged.Freq_7 >= 0.5) & (merged.Freq_8 <= 0.2) & (merged.Read_count_7 > 5) & (merged.Read_count_8 > 5)]
+changed = pd.merge(changed, mutation_type[['Pos', 'Ref', 'Base', 'mutation_type', 'protein']], on=['Pos', 'Ref', 'Base'], how='left')
+
+
+to_pivot = df[df.full_mutation.isin(changed.full_mutation_7)]
+to_pivot = pd.merge(to_pivot, mutation_type[['Base', 'Ref', 'Pos', 'protein', 'mutation_type']], on=['Ref', 'Pos', 'Base'])
+to_pivot['mutation'] = to_pivot.Ref + to_pivot.Pos.astype(str) + to_pivot.Base
+to_pivot = to_pivot.pivot_table(values='Freq', index=['protein', 'mutation', 'mutation_type'], columns='file')
+to_pivot = to_pivot.reset_index()
+to_pivot[to_pivot.mutation_type.astype(str)!='[]']
+
+
+##### controls
+to_pivot = df[df.full_mutation.isin(df[(df.Ref != df.Base) & (df.Ref != '-') & (df.Freq > 0.2) & (df.Read_count > 5) & (df.file.isin(['P16LT', 'P16ND', 'P28ND']))].full_mutation.tolist())]
+to_pivot = pd.merge(to_pivot, mutation_type[['Pos', 'protein']], on=['Pos'], how='left')
+to_pivot = pd.merge(to_pivot, mutation_type[['full_mutation', 'mutation_type']], on=['full_mutation'], how='left')
+to_pivot['mutation_type'] = to_pivot['mutation_type'].fillna('')
+to_pivot['protein'] = to_pivot['protein'].fillna('')
+to_pivot.pivot_table(values='Freq', index=['full_mutation','protein', 'mutation_type'], columns='file').to_excel('Z:/volume1/noam/cmv/cmv_no_medicine/mutation_over_0.2.xlsx')
+
+
+
+
+#####
+df1 = df[(df.Ref != df.Base) & (df.Ref != '-') & (df.Freq > 0.2) & (df.Read_count > 5)]
+df1['m'] = df1.Ref + df1.Base
+sns.boxplot(data=df1[(df1.file.isin(['3', '7', 'P16ND', 'P28ND', 'P16LT'])) & (df1.Base != '-')], x='file', y='Freq', hue='m')
