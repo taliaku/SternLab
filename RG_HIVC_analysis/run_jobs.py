@@ -1,5 +1,5 @@
 # from RG_HIVC_analysis.constants import orig_high_quality_patients
-from pbs_runners import script_runner
+from pbs_runners import script_runner, array_script_runner
 
 
 ## job submission without PBS files
@@ -33,19 +33,28 @@ def run_merge_script_runner():
                       load_python=True)
 
 
-# array_script_runner
-# def run_array_script_runner():
-#     freqs_filename= sample.split('_')[0] + '.freqs'
-#     output_filename= sample + '.fasta'
-#     array_script_runner('python /sternadi/home/volume3/omer/SternLab/NGS_analysis/make_reference_from_consensus.py '
-#                         '-f sternadi/home/volume1/shared/data/ref_genomes/HXB2.fasta '
-#                         '-p /sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/run2/$sample/$freqs_filename '
-#                         '-o /sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/refs/$output_filename '
-#                         '-i $PBS_ARRAY_INDEX', jnum=76, alias='make_ref_from_con_{}'.format(sample), load_python=True)
+# array_script_runner example
+def run_array_script_runner():
+    input_files_orig_high = '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/input_files/orig_high_qual/'
+    # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892', '28545', '28841', '29219', '29447', '31254', '34253', '47939']
+    patients = ['12796']
+
+    for p in patients:
+        # using pbs array per mut
+        for mut in ['GA', 'AG', 'CT', 'TC']:
+            input_file = input_files_orig_high + '%s/FITS_input_file_no_entropy_%s_$PBS_ARRAY_INDEX\\_%s.txt' % (p, p, mut)
+            gen_threshold = 350
+
+            array_script_runner('python /sternadi/home/volume3/omer/SternLab/RG_HIVC_analysis/trunc_fits_inputs.py '
+                                '-i {} '
+                                '-g {} '.format(input_file, gen_threshold),
+                                jnum=76,
+                                alias='trunc_fits_inputs_{}_{}'.format(p,mut),
+                                load_python=True)
 
 
 if __name__ == "__main__":
-    run_merge_script_runner()
+    run_array_script_runner()
 
 
 
