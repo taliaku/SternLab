@@ -96,7 +96,7 @@ def run_fits():
     ## per patient
     # patients_file = glob.glob(input_files_orig_high+'FITS_input_file*')
     # for file in patients_file:
-    #     patient_id= int(file.split('_')[8])
+    #     patient_id= int(file.split('_')[-3])
     #     params_file = input_files_orig_high + 'mr_params_{}.txt'.format(patient_id)
     #
     #     print(params_file)
@@ -105,8 +105,8 @@ def run_fits():
     #                 posterior_file=file+'.posterior', summary_file=file+'.summary')
 
     ## per pos
-    # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
-    patients = ['12796']
+    patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
+    # patients = ['12796']
 
     for p in patients:
         params_file = input_files_orig_high + 'mr_params_{}.txt'.format(p)
@@ -114,6 +114,13 @@ def run_fits():
         # using pbs array per mut
         for mut in ['GA', 'AG', 'CT', 'TC']:
             input_file = input_files_orig_high + '%s/FITS_input_file_no_entropy_%s_$PBS_ARRAY_INDEX\\_%s.txt' % (p,p,mut)
+
+            #filter Gen > 400
+            df = pd.read_csv(input_file, sep='\t')
+            df = df[df['Gen'] < 400]
+            input_file = input_file + '.trunc'
+            df.to_csv(input_file, sep='\t', encoding='utf-8', index=False)
+
             print(params_file)
             print(input_file)
             fits_runner(1, input_file, params_file,
@@ -151,6 +158,7 @@ def post_analysis():
     # stats by patient & mut
     final = final[final['significance'] == 'significant']
     stats = final.groupby(['Patient', 'Mutation'])['MR'].agg(['median', 'mean'])
+    stats = stats.pivot(index='Mutation', columns='Patient', values=['median', 'mean'])
     stats.to_csv('%s/fits_mr_summary_orig_high_stats.csv' % outputs_dir)
     print(stats)
 
@@ -179,8 +187,8 @@ def custom_summary_2_csv_biallelic(summary_dir, out=None, patient='', filter_ent
     dfs = []
     for f in tqdm(files):
         # print(str(f))
-        pos = int(f.split('_')[7].split('.')[0])
-        mt = f.split('_')[8].split('.')[0]
+        pos = int(f.split('_')[-2])
+        mt = f.split('_')[-1].split('.')[0]
 
         with open(f, 'r') as o:
             lines = o.readlines()
@@ -217,5 +225,6 @@ def custom_summary_2_csv_biallelic(summary_dir, out=None, patient='', filter_ent
 
 if __name__ == "__main__":
     # generate_fits_input()
-    # run_fits()
-    post_analysis()
+    run_fits()
+    # post_analysis()
+
