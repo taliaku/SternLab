@@ -5,7 +5,7 @@ import time
 import glob
 import os
 
-def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, load_python=True, queue="adis"):
+def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True):
 	with open(cmdfile, 'w') as o:
 		o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
 		o.write("#PBS -q %s\n" % queue)
@@ -71,7 +71,7 @@ def FindFilesInDir(dir_path, file_type):
        
 	return list_of_files
 
-def run_multi_projects(pipeline_path, cmds_file):
+def run_multi_projects(pipeline_path, cmds_file, queue):
 	alias = "RunMultiProjects"
 	
 	num_of_cmd = int(os.popen("awk 'END {print NR}' " + cmds_file).read())
@@ -89,7 +89,7 @@ def run_multi_projects(pipeline_path, cmds_file):
 	cmd1 = 'CMD=$(awk "NR==' + NR_value + '" ' + cmds_file + ')\n'
 	cmd2 = "python " + pipeline_path + " $CMD "
 	cmds = cmd1 + cmd2
-	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_cmd, gmem=gmem, cmds=cmds, load_python=True)
+	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_cmd, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
 	print(job_id)
 	Sleep(alias, job_id)
@@ -98,8 +98,8 @@ def run_multi_projects(pipeline_path, cmds_file):
 def main(args):
 	
 	#pipeline_path = args.pipeline_runner
-	pipeline_dir = os.path.dirname(os.path.abspath(__file__))
-	pipeline_path = pipeline_dir + "/runner.py"
+	pipeline_dir = os.path.dirname(os.path.abspath(__file__).strip())
+	pipeline_path = pipeline_dir + "/Runner.py"
 
 	if not os.path.isfile(pipeline_path):
 		raise Exception("Unexpected error, " + pipeline_path + " does not exist, is not a file or or is not a blast file\n")
@@ -107,14 +107,19 @@ def main(args):
 	cmds_file = args.cmds_file
 	if not os.path.isfile(cmds_file):
 		raise Exception("Unexpected error, " + cmds_file + " cmds file does not exist or is not a file\n")
-		
-	run_multi_projects(pipeline_path, cmds_file)
+
+	queue = args.queue
+	if queue != None:
+		if queue not in ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long"]:
+			raise Exception("Unexpected error, queue has to be either 'inf', 'hugemem', 'pup-interactive', 'parallel', 'adis', 'adis-long'\n")
+
+	run_multi_projects(pipeline_path, cmds_file, queue)
 	
 	print("END OF RUN MULTI PROJECTS")
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-f", "--cmds_file", type=str, help="a path to a file containing a list of cmds to run. Different variables for each cmd are excepted", required=True)
-	#parser.add_argument("-run", "--pipeline_runner", type=str, help="a path to current version of pipeline runner", required=True)
+	parser.add_argument("-qu", "--queue", type=str, help="queue to run pipeline, default='adis'", required=False, default="adis")
 	args = parser.parse_args()
 	main(args)

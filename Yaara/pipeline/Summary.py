@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 import argparse
 import os
 import subprocess
-plt.switch_backend('agg')
 
 def FindFilesInDir(dir_path, file_type):
 	file_path = dir_path + "/*" + file_type
@@ -30,7 +29,6 @@ def summarize_stats (dir_path, sample_basename_pattern):
 		input_fasta_files = FindFilesInDir(dir_path, file_type)
 		if len(input_fasta_files) > 0:
 			try:
-				#num_reads = subprocess.getoutput("cat *fasta | grep '^>' | wc -l")
 				num_reads = subprocess.getoutput("grep '^>' *fasta -h | wc -l")
 				o.write("Total number of reads: {}\n".format(int(num_reads)))
 			except:
@@ -40,7 +38,6 @@ def summarize_stats (dir_path, sample_basename_pattern):
 		input_stats_files = FindFilesInDir(dir_path, file_type)
 		if len(input_stats_files) > 0:		
 			try:
-				#only_once_reads = subprocess.getoutput("grep '1\t' *.stats -h | awk '{sum+=$2}; END {print sum}'")
 				num_contributing_reads = subprocess.getoutput("grep 'Number of reads contributing to frequency counts' *stats -h | awk -F '\t' '{sum+=$2}; END{print sum}'")
 				num_contributing_bases = subprocess.getoutput("grep 'Number of bases contributing to frequency counts' *stats -h | awk -F '\t' '{sum+=$2}; END{print sum}'")
 				num_non_contributing_reads = subprocess.getoutput("grep 'Number of non contributing reads' *stats -h | awk -F '\t' '{sum+=$2}; END{print sum}'")
@@ -75,14 +72,15 @@ def length_distribution_plot (dir_path, sample_basename_pattern):
 		lengths = get_lengths[0].split("\n")
 		lengths = [int(i) for i in lengths]
 		sns.set_style("whitegrid")
-		ax=sns.distplot(lengths, bins=[0, 50, 100, 150, 200, 250, 300], axlabel="Length (bp)", label="Count", kde=False)
+		ax=sns.distplot(lengths, bins=[0, 50, 100, 150, 200, 250, 300], axlabel="Length (bp)", kde=False, color="royalblue")
+		ax.set_ylabel("Count")
 		plt.title("Length distribution", fontsize=16)
-		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'length_distribution.png'), format='png')
+		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'length_distribution.png'), format='png', bbox_inches="tight", pad_inches=0.2)
 		plt.close()
 	except:
 		pipeline_summary = dir_path + "/Summary.txt"
 		with open(pipeline_summary, "a") as o:
-			o.write("\nUnable to create coverage plot\n")
+			o.write("\nUnable to create length distribution plot\n")
 
 def match_distribution_plot (dir_path, sample_basename_pattern):
 	try:
@@ -98,26 +96,57 @@ def match_distribution_plot (dir_path, sample_basename_pattern):
 			MATCH_STATISTICS[read_id] += 1
 
 		matches = list(MATCH_STATISTICS.values())
+		match_max = max(matches)
 		sns.set_style("whitegrid")
-		ax=sns.distplot(matches, axlabel="Num of blast matches", label="Count", kde=False, color='magneta')
+		ax=sns.distplot(matches, axlabel="Num of blast matches", kde=False, color="deeppink")
+		ax.set_xticks(list(range(1, match_max+1)))
+		ax.set_ylabel("Count")
 		plt.title("Blast match distribution", fontsize=16)
-		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'blast_match_distribution.png'), format='png')
+		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'blast_match_distribution.png'), format='png', bbox_inches="tight", pad_inches=0.2)
 		plt.close()
 	except:
 		pipeline_summary = dir_path + "/Summary.txt"
 		with open(pipeline_summary, "a") as o:
 			o.write("\nUnable to create blast match distribution plot\n")
 
-def count_coverage_positions (dir_path, freqs_file_path, Coverage):
+def ref_length(ref_FilePath):
+	try:
+		with open(ref_FilePath, 'rt') as ref_file:
+			ReadLines = ref_file.readlines()
+	except:
+		raise Exception("Cannot open ref file " + ref_FilePath + "\n")
+
+	Lines = len(ReadLines)
+	if Lines < 2:
+		raise Exception("Unexpected error, empty or missing lines in ref file " + ref_FilePath + "\n")
+
+	if ReadLines[0].startswith(">"):
+		ref_genome = " "
+		for i in range(1, Lines):
+			if i == 1:
+				ref_genome = ReadLines[i].strip().upper()
+			else:
+				ref_genome += ReadLines[i].strip().upper()
+	else:
+		raise Exception("first line in ref fasta file " + ref_FilePath + " does not start with >\n")
+
+	ref_genome_length = len(ref_genome)
+	return ref_genome_length
+
+def count_coverage_positions (dir_path, freqs_file_path, Coverage, ref_FilePath):
 	pipeline_summary = dir_path + "/Summary.txt"
 	with open(pipeline_summary, "a") as o:
 		try:
+			ref_genome_length = ref_length(ref_FilePath)
+			o.write("\nNumber of positions in reference genome: {}\n".format(int(ref_genome_length)))
 			coverage_key = "x" + str(Coverage)
 			data = pd.read_csv(freqs_file_path, sep = ',')
 			data = data.drop_duplicates("ref_position")
 			data[coverage_key] = np.where(data["coverage"] > Coverage, 1, 0)
 			coverage_stats = pd.DataFrame.sum(data, axis = 0).get(key = coverage_key)
-			o.write("\nNumber of positions with min coverage x{}: {}\n".format(Coverage, coverage_stats))	
+			o.write("Number of positions with min coverage x{}: {}\n".format(str(Coverage), int(coverage_stats)))
+			percentage_coverage = round((int(coverage_stats)/int(ref_genome_length))*100,2)
+			o.write("% of positions with min coverage x{}: {}\n".format(str(Coverage), percentage_coverage))
 		except:
 			print("\nWarning. Unable to count positions with " + Coverage + " coverage, or cannot open or write to file " + pipeline_summary + "\n")
 
@@ -126,13 +155,15 @@ def create_coverage_plot (dir_path, freqs_file_path, sample_basename_pattern):
 		data = pd.read_csv(freqs_file_path, sep=',')
 		data = data.drop_duplicates("ref_position")
 		sns.set_style("whitegrid")
-		ax = sns.lineplot(x='ref_position', y='coverage', data=data, color='teal')
+		ax = sns.lineplot(x='ref_position', y='coverage', data=data, color='lightseagreen')
 		ax.set_yscale("log")
+		ax.set_xlabel("Ref position")
+		ax.set_ylabel("Coverage")
 		plt.title("Coverage", fontsize=16)
-		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'coverage.png'), format='png')
+		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'coverage.png'), format='png', bbox_inches="tight", pad_inches=0.2)
 		plt.close()
 	except:
-		pipeline_summary = dir_path + "/Summary.txt"	
+		pipeline_summary = dir_path + "/Summary.txt"
 		with open(pipeline_summary, "a") as o:
 			o.write("\nUnable to create coverage plot\n")
 
@@ -145,10 +176,10 @@ def create_mutation_rate_plot (dir_path, freqs_file_path, Coverage, sample_basen
 		ax.set_yscale("log")
 		ax.set_ylim(lower_ylim, upper_ylim)
 		plt.title("Mutation Rates", fontsize=16)
-		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'mutation_rate.png'), format='png')
+		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'mutation_rates.png'), format='png', bbox_inches="tight", pad_inches=0.2)
 		plt.close()
 	except:	
-		pipeline_summary = dir_path + "/Summary.txt"	
+		pipeline_summary = dir_path + "/Summary.txt"
 		with open(pipeline_summary, "a") as o:
 			o.write("\nUnable to create mutation rate plot. No mutations were found in positions with >=" + str(Coverage) + " coverage answering the requested number of repeats and q-score\n")
 
@@ -166,6 +197,64 @@ def create_mutation_rate_csv(dir_path, freqs_file_path, Coverage, sample_basenam
 			pipeline_summary = dir_path + "/Summary.txt"
 			with open(pipeline_summary, "a") as o:
 				o.write("\nUnable to create mutation rate csv file. No mutations were found in positions with >=" + str(Coverage) + " coverage answering the requested number of repeats and q-score\n")
+
+
+def pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path, Coverage, lower_ylim=10 ** -5, upper_ylim=10 ** -1):
+	try:
+		os.chdir(dir_path)
+
+		fig, axes = plt.subplots(figsize=(16,10), ncols=2, nrows=2)
+		plt.suptitle(sample_basename_pattern + "Pipeline statistics", fontsize=18)
+		plt.subplots_adjust(wspace=0.25,hspace=0.25)
+		sns.set_style("whitegrid")
+
+		get_lengths = []
+		get_lengths.append(subprocess.getoutput("awk -F '\t' '{print $8}' *blast"))
+		lengths = get_lengths[0].split("\n")
+		lengths = [int(i) for i in lengths]
+		sns.distplot(lengths, bins=[0, 50, 100, 150, 200, 250, 300], axlabel="Length (bp)", kde=False, color="royalblue", ax=axes[0][0])
+		axes[0][0].set_ylabel("Count")
+		axes[0][0].title.set_text('Length distribution')
+
+		get_read_ids = []
+		get_read_ids.append(subprocess.getoutput("awk -F '\t' '{print $1}' *blast"))
+		read_ids = get_read_ids[0].split("\n")
+
+		MATCH_STATISTICS = {}
+		for read_id in read_ids:
+			if read_id not in MATCH_STATISTICS:
+				MATCH_STATISTICS[read_id] = 0
+			MATCH_STATISTICS[read_id] += 1
+
+		matches = list(MATCH_STATISTICS.values())
+		match_max = max(matches)
+		sns.distplot(matches, axlabel="Num of blast matches", kde=False, color="deeppink", ax=axes[0][1])
+		axes[0][1].set_xticks(list(range(1, match_max + 1)))
+		axes[0][1].set_ylabel("Count")
+		axes[0][1].title.set_text('Blast match distribution')
+
+		data = pd.read_csv(freqs_file_path, sep=',')
+		data["mutation"] = data["ref_base"] + ">" + data["base"]
+		sns.boxplot("mutation", "frequency", data=data[(data["rank"] != 0) & (data["coverage"] > Coverage)], ax=axes[1][0])
+		axes[1][0].set_yscale("log")
+		axes[1][0].set_ylim(lower_ylim, upper_ylim)
+		axes[1][0].title.set_text("Mutation Rates")
+
+		data = data.drop_duplicates("ref_position")
+		sns.lineplot(x='ref_position', y='coverage', data=data, color='lightseagreen', ax=axes[1][1])
+		axes[1][1].set_yscale("log")
+		axes[1][1].set_xlabel("Ref position")
+		axes[1][1].set_ylabel("Coverage")
+		axes[1][1].title.set_text("Coverage")
+
+		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'pipeline_plots.png'), format='png', bbox_inches="tight", pad_inches=0.5)
+		plt.close()
+
+	except:
+		pipeline_summary = dir_path + "/Summary.txt"
+		with open(pipeline_summary, "a") as o:
+			o.write("\nUnable to create pipeline statistics plots\n")
+
 
 def main(args):
 	dir_path = args.output_dir
@@ -196,27 +285,37 @@ def main(args):
 	else:
 		print("Warning. stats files or fasta files are missing in directory " + dir_path + ". Cannot perform summary analysis\n")
 
+	ref_FilePath = args.ref
+	if not (os.path.isfile(ref_FilePath) and os.path.splitext(ref_FilePath)[1] == '.fasta'):
+		raise Exception("Unexpected error, " + ref_FilePath + " does not exist, is not a file or is not a fasta file\n")
+
+	#file_type = "merge.freqs.csv"
+	#freqs_file_path = FindFilesInDir(dir_path, file_type)
+	#pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path[0], Coverage, lower_ylim=10 ** -5, upper_ylim=10 ** -1)
+
 	file_type = "merge.freqs.csv"
 	freqs_file_path = FindFilesInDir(dir_path, file_type)
 	if len(freqs_file_path) == 1:
-		count_coverage_positions(dir_path, freqs_file_path[0], Coverage)
-		create_coverage_plot(dir_path, freqs_file_path[0], sample_basename_pattern)
-		create_mutation_rate_plot(dir_path, freqs_file_path[0], Coverage, sample_basename_pattern)
+		#create_coverage_plot(dir_path, freqs_file_path[0], sample_basename_pattern)
+		#create_mutation_rate_plot(dir_path, freqs_file_path[0], Coverage, sample_basename_pattern)
 		create_mutation_rate_csv(dir_path, freqs_file_path[0], Coverage, sample_basename_pattern)
+		count_coverage_positions(dir_path, freqs_file_path[0], Coverage, ref_FilePath)
 	else:
 		print("Warning. number of merge.freqs.csv file in directory " + dir_path + " is different than 1. Cannot perform summary analysis of coverage and mutation rates\n")
 
 	file_type = ".blast"
 	blast_files = FindFilesInDir(dir_path, file_type)
-	if len(blast_files) > 0:
-		length_distribution_plot(dir_path, sample_basename_pattern)
-		match_distribution_plot(dir_path, sample_basename_pattern)
+	if len(blast_files) > 0 and len(freqs_file_path) == 1:
+		pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path[0], Coverage)
+		#length_distribution_plot(dir_path, sample_basename_pattern)
+		#match_distribution_plot(dir_path, sample_basename_pattern)
 	else:
-		print("Warning. blast files are missing in directory " + dir_path + ". Cannot create length distribution plot\n")
+		print("Warning. blast files or freqs file are missing in directory " + dir_path + ". Cannot create summary pipeline plots\n")
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-o", "--output_dir", type=str, help="a path to an output directory containing stats and merge.freqs.csv file", required=True)
+	parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference seq file (fasta)", required=True)
 	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default = 10000", required=True, default=10000)
 	args = parser.parse_args()
 	main(args)
