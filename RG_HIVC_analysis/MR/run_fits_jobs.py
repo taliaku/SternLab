@@ -106,6 +106,7 @@ def run_fits():
 
     ## per pos
     patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
+    patients = ['15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254', '47939'] # relevant after truncation
     # patients = ['12796']
 
     for p in patients:
@@ -115,11 +116,8 @@ def run_fits():
         for mut in ['GA', 'AG', 'CT', 'TC']:
             input_file = input_files_orig_high + '%s/FITS_input_file_no_entropy_%s_$PBS_ARRAY_INDEX\\_%s.txt' % (p,p,mut)
 
-            #filter Gen > 400
-            df = pd.read_csv(input_file, sep='\t')
-            df = df[df['Gen'] < 400]
-            input_file = input_file + '.trunc'
-            df.to_csv(input_file, sep='\t', encoding='utf-8', index=False)
+            # use truncated files
+            # input_file = input_file + '.trunc'
 
             print(params_file)
             print(input_file)
@@ -136,10 +134,11 @@ def post_analysis():
 
     # fits_dir = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/orig_high/fits/try/'
     fits_dir = '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/input_files/orig_high_qual/'
-    outputs_dir = fits_dir + 'results_analysis/'
+    outputs_dir = fits_dir + 'results_analysis/trunc/'
 
-    patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
+    # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
     # patients = ['26892']
+    patients = ['15664', '16207', '22097', '22763', '22828', '26892', '29447', '31254','47939']  # relevant after truncation
 
     dfs=[]
     for patient in patients:
@@ -170,6 +169,7 @@ def post_analysis():
             ax = sns.distplot(final[(final.Mutation == mut) & (final.Patient == p)]['MR'])
             plot_header = mut
             ax.set_title(plot_header)
+            ax.set_xscale('log')
             # plt.show()
             plt.savefig(outputs_dir + str(p) + '_' + str(plot_header) + '.png')
             plt.cla()
@@ -182,7 +182,7 @@ def custom_summary_2_csv_biallelic(summary_dir, out=None, patient='', filter_ent
     :return: a data frame of all results
     """
 
-    files = glob.glob(summary_dir + '/FITS*summary')
+    files = glob.glob(summary_dir + '/FITS*.trunc.summary')
 
     dfs = []
     for f in tqdm(files):
@@ -225,6 +225,6 @@ def custom_summary_2_csv_biallelic(summary_dir, out=None, patient='', filter_ent
 
 if __name__ == "__main__":
     # generate_fits_input()
-    run_fits()
-    # post_analysis()
+    # run_fits()
+    post_analysis()
 
