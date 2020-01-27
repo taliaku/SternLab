@@ -11,11 +11,16 @@ from blast_utilities import blast_to_df
 import re
 from blast_utilities import get_unaligned_reads
 
-sys.path.append('X:/volume2/noam/AccuNGS/')
-import co-occurs_to_stretches
+#sys.path.append('X:/volume2/noam/AccuNGS/')
+#import co-occurs_to_stretches
 
 infection_order = {'HCV-P8':1, 'HCV-P1':2, 'HCV-P11':3, 'HCV-P7':5, 'HCV-P4':6, 'HCV-P3':7, 'HCV-P5':8, 'HCV-P2':9, 'HCV-P6':10, 'HCV-P9':11, 'HCV-P10':12, 'HCV-PS2':0}
 infection_order = pd.DataFrame.from_dict(infection_order, orient='index').reset_index().rename(columns={'index':'Sample', 0:'infection_order'})
+infection_order['paper_name'] = 'Patient ' + infection_order.infection_order.astype(str)
+infection_order.loc[infection_order['Sample'] == 'HCV-PS2', 'paper_name'] = 'Source'
+
+
+
 
 def unite_all_freq_files(freqs_dir, out=None):
     """
@@ -84,6 +89,22 @@ df.loc[df['rb'].isin(['AG', 'GA', 'CT', 'TC']), 'transition_transversion'] = 'tr
 df.loc[df['rb'].isin(['AC', 'AT', 'CA', 'CG', 'TA', 'TG', 'GT', 'GC']), 'transition_transversion'] = 'transversion'
 
 
+## new polyprotein
+
+df = pd.read_csv('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/all_freqs.csv')
+mutation_type = pd.read_csv('X:/volume2/noam/hcv/references/D90208.1_optimized4.mutation_type.csv')
+mutation_type = mutation_type[['Pos', 'Ref', 'Base', 'protein', 'mutation_type']]
+mutation_type['aa'] = (((mutation_type.Pos - 330) / 3) + 1).astype(int).astype(float)
+df = df[(df.Sample != 'HCV-P12')]
+df = df[df.Pos.isin(range(738,2758))]
+df = pd.merge(df, mutation_type, on=['Pos', 'Base', 'Ref'], how='left')
+df.loc[df['mutation_type'] == '[]', 'mtype'] = 'synonymous'
+df.loc[((df['mutation_type'] != '[]') & ~(df['mutation_type'].isna())), 'mtype'] = 'non-synonymous'
+df.loc[((df['mutation_type'].isna()) & (df.Base != df.Ref)), 'mtype'] = 'non-coding'
+df.loc[df['Base'] == '-', 'mtype'] = 'frameshift'
+df['rb'] = df.Ref + df.Base
+df.loc[df['rb'].isin(['AG', 'GA', 'CT', 'TC']), 'transition_transversion'] = 'transition'
+df.loc[df['rb'].isin(['AC', 'AT', 'CA', 'CG', 'TA', 'TG', 'GT', 'GC']), 'transition_transversion'] = 'transversion'
 
 
 ### synonymous non-synonymous plot
@@ -127,6 +148,57 @@ axes[-1].set_visible(False)
 fig.savefig('X:/volume2/noam/hcv/variant_frequencies2.png' , bbox_inches='tight', dpi=800)
 
 
+###### syn not-syn and transition transversion plots
+
+
+
+
+fig, axes = plt.subplots(nrows=3, ncols=4)
+fig.set_size_inches(14,10)
+axes = axes.flatten()
+fig.subplots_adjust(hspace=0.3)
+i = 0
+sample_order = ['HCV-PS2',
+ 'HCV-P8',
+ 'HCV-P1',
+ 'HCV-P11',
+ 'HCV-P7',
+ 'HCV-P4',
+ 'HCV-P3',
+ 'HCV-P5',
+ 'HCV-P2',
+ 'HCV-P6',
+ 'HCV-P9',
+ 'HCV-P10',]
+for key in sample_order:
+    group = df[(df.Base != df.Ref) & (df.Ref != '-') & (df.Read_count > 5) & (df.Sample.str.count('-') == 1) & (df.Freq >= 0.01) & (df.Sample == key)]
+    group[(group.mtype == 'synonymous') & (group.transition_transversion == 'transition')].plot(kind='scatter', x='Pos', y='Freq', ax=axes[i], color='#4285BB', label='synonymous transition')
+    #group[(group.mtype == 'non-coding') & (group.transition_transversion == 'transition')].plot(kind='scatter', x='Pos', y='Freq', ax=axes[i], color='black', label='non-coding transition')
+    try:
+        group[(group.mtype == 'synonymous') & (group.transition_transversion == 'transversion')].plot(kind='scatter', x='Pos', y='Freq', ax=axes[i], color='#558B2F', label='synonymous transversion')
+    except:
+        pass
+    group[(group.mtype == 'non-synonymous') & (group.transition_transversion == 'transition')].plot(kind='scatter', x='Pos', y='Freq', ax=axes[i], color='#FDA318', label='non-synonymous transition')
+    try:
+        group[(group.mtype == 'non-synonymous') & (group.transition_transversion == 'transversion')].plot(kind='scatter', x='Pos', y='Freq', ax=axes[i], color='#D51313', label='non-synonymous transversion')
+    except:
+        pass
+    #group[(group.mtype == 'non-coding') & (group.transition_transversion == 'transversion')].plot(kind='scatter', x='Pos', y='Freq', ax=axes[i], color='black', marker='x', label='non-coding transversion')
+    #group[group.mtype == 'frameshift'].plot(kind='scatter', x='Pos', y='Freq', ax=axes[i], color='grey', label='frameshift')
+    axes[i].set_title( infection_order.loc[infection_order.Sample == key, 'paper_name'].values[0], fontsize=14)
+    #axes[i].set_yscale('log')
+    axes[i].legend().remove()
+    axes[i].set_ylim(-0.05, 1.05)
+    axes[i].set_xlabel('')
+    axes[i].set_ylabel('')
+    i += 1
+axes[9].legend(loc='center', bbox_to_anchor=(1, -0.7), fontsize=16, ncol=2)
+fig.text(0.5, 0.04, 'Position (Base)', ha='center', va='center', fontsize=16)
+fig.text(0.06, 0.5, 'Mutation Frequency', ha='center', va='center', rotation='vertical', fontsize=16)
+fig.savefig('X:/volume2/noam/hcv/variant_frequencies3.png' , bbox_inches='tight', dpi=800)
+
+
+
 ## frequencies compared to source - correlations
 compare_df = pd.merge(df, df[df.Sample=='HCV-PS2'], on=['Pos', 'Base', 'Ref'], suffixes=['', '_source'])
 fig, axes = plt.subplots(nrows=4, ncols=6)
@@ -164,6 +236,72 @@ fig.savefig('X:/volume2/noam/hcv/correlations.png' , bbox_inches='tight', dpi=80
 #ax.set_title("y=%fx+%f, r2=%f" % (slope,intercept, r_value**2))
 #
 
+## color coded
+fig, axes = plt.subplots(nrows=3, ncols=4)
+fig.set_size_inches(14,10)
+axes = axes.flatten()
+fig.subplots_adjust(hspace=0.3)
+i = 0
+sample_order = ['HCV-PS2',
+ 'HCV-P8',
+ 'HCV-P1',
+ 'HCV-P11',
+ 'HCV-P7',
+ 'HCV-P4',
+ 'HCV-P3',
+ 'HCV-P5',
+ 'HCV-P2',
+ 'HCV-P6',
+ 'HCV-P9',
+ 'HCV-P10',]
+compare_df = pd.merge(df, df[(df.Sample == 'HCV-PS2')], how='right', on=['Pos', 'Base','Ref','protein', 'mutation_type', 'aa', 'mtype', 'rb','transition_transversion'], suffixes=['', '_source'])
+variants_to_look_at = compare_df[(compare_df.Base != compare_df.Ref) & (compare_df.Ref != '-') & (compare_df.Base != '-') & (compare_df.Read_count > 5) & (compare_df.Read_count_source > 5) & (compare_df.Freq > 0.01)][['Pos', 'Base']].drop_duplicates()
+compare_df = pd.merge(compare_df, variants_to_look_at, how='right', on=['Pos', 'Base'])
+correlations = []
+for key in sample_order:
+    group = compare_df[(compare_df.Sample == key)]
+    group = group[(group.Freq >= 0.01) | (group.Freq_source >= 0.01)]
+    group[(group.mtype == 'synonymous') & (group.transition_transversion == 'transition')].plot(kind='scatter', x='Freq_source', y='Freq', ax=axes[i], color='#4285BB', label='synonymous transition')
+    try:
+        group[(group.mtype == 'synonymous') & (group.transition_transversion == 'transversion')].plot(kind='scatter', x='Freq_source', y='Freq', ax=axes[i], color='#558B2F', label='synonymous transversion')
+    except:
+        pass
+    group[(group.mtype == 'non-synonymous') & (group.transition_transversion == 'transition')].plot(kind='scatter', x='Freq_source', y='Freq', ax=axes[i], color='#FDA318', label='non-synonymous transition')
+    try:
+        group[(group.mtype == 'non-synonymous') & (group.transition_transversion == 'transversion')].plot(kind='scatter', x='Freq_source', y='Freq', ax=axes[i], color='#D51313', label='non-synonymous transversion')
+    except:
+        pass
+    #group[(group.mtype == 'non-coding') & (group.transition_transversion == 'transversion')].plot(kind='scatter', x='Pos', y='Freq', ax=axes[i], color='black', marker='x', label='non-coding transversion')
+    #group[group.mtype == 'frameshift'].plot(kind='scatter', x='Pos', y='Freq', ax=axes[i], color='grey', label='frameshift')
+    axes[i].legend().remove()
+    axes[i].set_ylim(-0.05, 1.05)
+    #axes[i].set_xlim(0.005, 1.005)
+    sns.regplot(x=group.Freq_source, y=group.Freq, ax=axes[i], scatter=False, color='grey')
+    axes[i].set_title( infection_order.loc[infection_order.Sample == key, 'paper_name'].values[0], fontsize=14)
+    axes[i].set_xlabel('')
+    axes[i].set_ylabel('')
+    i += 1
+    c, pvalue = stats.pearsonr(group.Freq_source, group.Freq)
+    correlations.append((infection_order.loc[infection_order.Sample == key, 'paper_name'].values[0], c, pvalue))
+correlations = pd.DataFrame(correlations, columns=['Sample', 'correlation_coefficient', 'pvalue'])
+axes[9].legend(loc='center', bbox_to_anchor=(1, -0.7), fontsize=16, ncol=2)
+fig.text(0.5, 0.04, 'Mutation Frequency in Source', ha='center', va='center', fontsize=16)
+fig.text(0.06, 0.5, 'Mutation Frequency in Sample', ha='center', va='center', rotation='vertical', fontsize=16)
+fig.savefig('X:/volume2/noam/hcv/correlations.png' , bbox_inches='tight', dpi=800)
+correlations.to_csv('X:/volume2/noam/hcv/correlations.csv', index=False)
+
+
+
+fig, ax = plt.subplots(nrows=1, ncols=1)
+sns.regplot(correlations[correlations.Sample != 'Source'].infection_order, correlations[correlations.Sample != 'Source'].correlation_coefficient, ax=ax)
+c, pvalue = stats.pearsonr(correlations[correlations.Sample != 'Source'].infection_order, correlations[correlations.Sample != 'Source'].correlation_coefficient)
+ax.set_title('Order of Infection vs. Correlation Coefficient\n' + 'r = ' + str(round(c, 3)) + ', p-value = ' + str(round(pvalue, 3)))
+fig.set_size_inches(5,3)
+ax.set_xlabel('Order of infection')
+ax.set_ylabel('Correlation Coefficient to Source')
+#fig.savefig('X:/volume2/noam/hcv/correlations_regression.png' , bbox_inches='tight', dpi=800)
+
+
 
 
 compare_df = pd.merge(df, df[df.Sample=='HCV-PS2'], on=['Pos', 'Base', 'Ref'], suffixes=['', '_source'])
@@ -185,10 +323,18 @@ ax.set_title("y=%fx+%f, r2=%f, pvalue=%f" % (slope,intercept, r_value**2, p_valu
 
 
 
+
+
+def check_correlation(x_data, y_data):
+   c, pvalue = stats.pearsonr(x_data, y_data)
+   sns.regplot(x=x_data, y=y_data)
+   print('correaltion: ', c, '\npvalue: ', pvalue)
+
 #### save mutations over time with mutation types
 
 df = pd.read_csv('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/all_freqs.csv')
-mutation_type = pd.read_csv('X:/volume2/noam/hcv/references/D90208.1_optimized4.mutation_type.peptides.csv')
+#mutation_type = pd.read_csv('X:/volume2/noam/hcv/references/D90208.1_optimized4.mutation_type.peptides.csv')
+mutation_type = pd.read_csv('X:/volume2/noam/hcv/references/D90208.1_optimized4.mutation_type.polypeptides.csv')
 df = df[(df.Sample != 'HCV-P12')]
 df = df[df.Pos.isin(range(738,2758))]
 mutations_to_keep = df[(df.Ref != df.Base) & (df.Ref != '-') & (df.Freq > 0.01)][['Pos', 'Base']].drop_duplicates()
@@ -198,15 +344,27 @@ to_pivot = pd.merge(to_pivot, mutation_type, how='left', on=['Pos', 'Base', 'Ref
 
 to_pivot.loc[to_pivot['mutation_type'] == '[]', 'mtype'] = 'synonymous'
 to_pivot.loc[((to_pivot['mutation_type'] != '[]') & ~(to_pivot['mutation_type'].isna())), 'mtype'] = 'non-synonymous'
-to_pivot.loc[((to_pivot['mutation_type'].isna()) & (to_pivot.Base != to_pivot.Ref)), 'mtype'] = 'non-coding'
+#to_pivot.loc[((to_pivot['mutation_type'].isna()) & (to_pivot.Base != to_pivot.Ref)), 'mtype'] = 'non-coding'
 to_pivot.loc[to_pivot['Base'] == '-', 'mtype'] = 'frameshift'
 
 to_pivot = to_pivot[['Pos', 'Ref', 'Base', 'mutation_type', 'aa', 'protein', 'mtype', 'HCV-P1', 'HCV-P10', 'HCV-P11', 'HCV-P11-1',
        'HCV-P2', 'HCV-P2-1', 'HCV-P3', 'HCV-P3-1', 'HCV-P4', 'HCV-P5',
        'HCV-P5-1', 'HCV-P6', 'HCV-P6-1', 'HCV-P7', 'HCV-P7-2', 'HCV-P8',
        'HCV-P8-1', 'HCV-P8-2', 'HCV-P9', 'HCV-P9-2', 'HCV-PS2',]]
-to_pivot.to_excel('X:/volume2/noam/hcv/mutations_over_0.01.xlsx', index=False)
-    
+#to_pivot.to_excel('X:/volume2/noam/hcv/mutations_over_0.01.xlsx', index=False)
+#to_pivot.to_excel('X:/volume2/noam/hcv/mutations_over_0.01.polyprotein.xlsx', index=False)
+
+
+to_pivot['full_mutation'] = to_pivot.Ref + to_pivot.Pos.astype(int).astype(str) + to_pivot.Base
+columns_order = ['full_mutation', 'Patient 1', 'Patient 2', 'Patient 3', 
+                 'Patient 5', 'Patient 6', 'Patient 7', 'Patient 8',
+                 'Patient 9', 'Patient 10', 'Patient 11', 'Patient 12', 'Source']
+to_pivot = to_pivot.rename(columns=pd.Series(infection_order.paper_name.values,index=infection_order.Sample).to_dict())
+to_pivot[to_pivot['Source'] >= 0.09][columns_order].round(4).sort_values('Source', ascending=False).to_excel('X:/volume2/noam/hcv/mutations_over_0.1.compact.xlsx', index=False)
+ 
+
+
+
 # cluster
 df = pd.read_csv('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/all_freqs.csv')
 mutation_type = pd.read_csv('X:/volume2/noam/hcv/references/D90208.1_optimized4.mutation_type.peptides.csv')
@@ -219,6 +377,77 @@ mutations_to_keep = mutations_to_keep[~mutations_to_keep.Sample.isin(['HCV-P2-1'
 to_pivot = mutations_to_keep.pivot_table(values='Freq', index=['mutation'], columns='Sample')
 sns.clustermap(to_pivot)
 
+
+
+
+
+
+
+
+
+########## intrastrain correlation ############
+strain_grey = ['T905C',
+ 'C2720T',
+ 'G1666A',
+ 'A1559G',
+ 'G1830A',
+ 'G1211A',
+ 'C2390T',
+ 'C2021T',
+ 'T1058C']
+strain_blue = ['G1493A',
+ 'G1527A',
+ 'C2594T',
+ 'T1580C',
+ 'G1630A',
+ 'T1244C',
+ 'C1181T',
+ 'G2582A',
+ 'T1748C',
+ 'C1190T',
+ 'C2408T',
+ 'G2286A',
+ 'T1946C',
+ 'G1659A',
+ 'C1938T',
+ 'T2715C',
+ 'T2050C',
+ 'C2381T']
+strain_blue = to_pivot[to_pivot.full_mutation.isin(strain_blue)]
+strain_grey = to_pivot[to_pivot.full_mutation.isin(strain_grey)]
+columns_order = ['Patient 1', 'Patient 2', 'Patient 3', 
+                 'Patient 5', 'Patient 6', 'Patient 7', 'Patient 8',
+                 'Patient 9', 'Patient 10', 'Patient 11', 'Patient 12', 'Source']
+strain_blue.loc[strain_blue['Source'] < 0.04, c] = 0
+strain_grey.loc[strain_grey['Source'] < 0.04, c] = 0
+
+
+fig, axes = plt.subplots(nrows=3, ncols=4)
+fig.set_size_inches(14,10)
+axes = axes.flatten()
+fig.subplots_adjust(hspace=0.4)
+i = 0
+for c in columns_order:
+    strain_grey.loc[strain_grey[c] < 0.04, c] = 0
+    strain_blue.loc[strain_blue[c] < 0.04, c] = 0
+    slope, intercept, r_value, p_value, std_err = stats.linregress(strain_grey['Source'], strain_grey[c])
+    sns.regplot(x=strain_grey['Source'], y=strain_grey[c], ax = axes[i], color='grey')
+    title = c + '\ngrey r: ' + str(round(r_value, 3)) + ', p: ' + "{:.1e}".format(p_value) + ', slope: ' + str(round(slope, 3))
+    slope, intercept, r_value, p_value, std_err = stats.linregress(strain_blue['Source'], strain_blue[c])
+    sns.regplot(x=strain_blue['Source'], y=strain_blue[c], ax = axes[i], color='blue')
+    title +='\nblue r: ' + str(round(r_value, 3)) + ', p: ' + "{:.1e}".format(p_value) + ', slope: ' + str(round(slope, 3))
+    axes[i].legend().remove()
+    axes[i].set_title(title, fontsize=10)
+    axes[i].set_xlabel('')
+    axes[i].set_ylabel('')
+    i += 1
+#    c, pvalue = stats.pearsonr(group.Freq_source, group.Freq)
+#    correlations.append((infection_order.loc[infection_order.Sample == key, 'paper_name'].values[0], c, pvalue))
+#correlations = pd.DataFrame(correlations, columns=['Sample', 'correlation_coefficient', 'pvalue'])
+axes[9].legend(loc='center', bbox_to_anchor=(1, -0.7), fontsize=16, ncol=2)
+fig.text(0.5, 0.04, 'Mutation Frequency in Source', ha='center', va='center', fontsize=16)
+fig.text(0.06, 0.5, 'Mutation Frequency in Sample', ha='center', va='center', rotation='vertical', fontsize=16)
+fig.savefig('X:/volume2/noam/hcv/intra_strain_correlations.png' , bbox_inches='tight', dpi=800)
 
 
 
@@ -410,8 +639,18 @@ def create_protein_dataframe(ncbi_feature_table):
     gene_df = pd.DataFrame(genes, columns=['protein', 'start', 'end', 'complement'])
     return gene_df
 
-
-
+### get mutation types with non-protein areas of polyprotein
+mutation_type = pd.read_csv('X:/volume2/noam/hcv/references/D90208.1_optimized4.mutation_type.csv')
+mutation_type = mutation_type[['Pos', 'Ref', 'Base', 'protein', 'mutation_type']]
+mutation_type['aa'] = (((mutation_type.Pos - 330) / 3) + 1).astype(int).astype(float)
+proteins = create_protein_dataframe('X:/volume2/noam/hcv/references/BAA14233.1_features_table.txt')
+proteins2 = []
+for row in proteins.itertuples():
+    for i in range(row.start, row.end+1):
+        proteins2.append([i, row.protein])
+proteins2 = pd.DataFrame(proteins2, columns=['aa', 'protein'])   
+mutation_type = pd.merge(mutation_type.drop(columns=['protein']), proteins2, on='aa', how='left')
+mutation_type.to_csv('X:/volume2/noam/hcv/references/D90208.1_optimized4.mutation_type.polypeptides.csv', index=False)
 
 
 
@@ -457,3 +696,14 @@ def get_aligned_read_ids(blast_dir, out_file):
     return
 
 get_aligned_read_ids('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/HCV-P9/tmp', 'Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/unaligned/HCV-P9/HCV-P9_S9_L001_001.fastq.aligned.txt')
+
+
+
+
+######  phylogeny
+for f in ['Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4_individual_concensus/' + f for f in os.listdir('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4_individual_concensus')]:
+    with open(f) as text:
+        text = text.read()
+    text = text.replace('D90208.1 Hepatitis C virus ORF gene, complete cds', f.split('/')[-1])
+    with open(f, 'w') as new_text:
+        new_text.write(text)
