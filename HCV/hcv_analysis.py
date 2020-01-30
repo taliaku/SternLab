@@ -367,14 +367,15 @@ to_pivot[to_pivot['Source'] >= 0.09][columns_order].round(4).sort_values('Source
 
 # cluster
 df = pd.read_csv('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/all_freqs.csv')
-mutation_type = pd.read_csv('X:/volume2/noam/hcv/references/D90208.1_optimized4.mutation_type.peptides.csv')
+#mutation_type = pd.read_csv('X:/volume2/noam/hcv/references/D90208.1_optimized4.mutation_type.peptides.csv')
 df = df[(df.Sample != 'HCV-P12')]
 df = df[df.Pos.isin(range(738,2758))]
 df['mutation'] = df.Ref + df.Pos.astype(str) + df.Base
-mutations_to_keep = df[(df.Ref != df.Base) & (df.Ref != '-') & (df.Freq > 0.1) & (df['Sample'] == 'HCV-PS2')][['mutation']].drop_duplicates()
+mutations_to_keep = df[(df.Ref != df.Base) & (df.Ref != '-') & (df.Freq > 0.09) & (df['Sample'] == 'HCV-PS2')][['mutation']].drop_duplicates()
 mutations_to_keep = pd.merge(mutations_to_keep, df, on=['mutation'])
 mutations_to_keep = mutations_to_keep[~mutations_to_keep.Sample.isin(['HCV-P2-1', 'HCV-P3-1', 'HCV-P5-1', 'HCV-P6-1', 'HCV-P7-2', 'HCV-P8-1', 'HCV-P8-2', 'HCV-P9-2', 'HCV-P11-1'])]
 to_pivot = mutations_to_keep.pivot_table(values='Freq', index=['mutation'], columns='Sample')
+to_pivot = to_pivot.rename(columns=pd.Series(infection_order.paper_name.values,index=infection_order.Sample).to_dict())
 sns.clustermap(to_pivot)
 
 
@@ -418,8 +419,8 @@ strain_grey = to_pivot[to_pivot.full_mutation.isin(strain_grey)]
 columns_order = ['Patient 1', 'Patient 2', 'Patient 3', 
                  'Patient 5', 'Patient 6', 'Patient 7', 'Patient 8',
                  'Patient 9', 'Patient 10', 'Patient 11', 'Patient 12', 'Source']
-strain_blue.loc[strain_blue['Source'] < 0.04, c] = 0
-strain_grey.loc[strain_grey['Source'] < 0.04, c] = 0
+#strain_blue.loc[strain_blue['Source'] < 0.04, c] = 0
+#strain_grey.loc[strain_grey['Source'] < 0.04, c] = 0
 
 
 fig, axes = plt.subplots(nrows=3, ncols=4)
@@ -427,23 +428,24 @@ fig.set_size_inches(14,10)
 axes = axes.flatten()
 fig.subplots_adjust(hspace=0.4)
 i = 0
+correlations = []
 for c in columns_order:
-    strain_grey.loc[strain_grey[c] < 0.04, c] = 0
-    strain_blue.loc[strain_blue[c] < 0.04, c] = 0
+    #strain_grey.loc[strain_grey[c] < 0.04, c] = 0
+    #strain_blue.loc[strain_blue[c] < 0.04, c] = 0
     slope, intercept, r_value, p_value, std_err = stats.linregress(strain_grey['Source'], strain_grey[c])
+    correlations.append((c, 'grey', r_value, p_value, slope))
     sns.regplot(x=strain_grey['Source'], y=strain_grey[c], ax = axes[i], color='grey')
     title = c + '\ngrey r: ' + str(round(r_value, 3)) + ', p: ' + "{:.1e}".format(p_value) + ', slope: ' + str(round(slope, 3))
     slope, intercept, r_value, p_value, std_err = stats.linregress(strain_blue['Source'], strain_blue[c])
-    sns.regplot(x=strain_blue['Source'], y=strain_blue[c], ax = axes[i], color='blue')
+    correlations.append((c, 'blue', r_value, p_value, slope))
+    sns.regplot(x=strain_blue['Source'], y=strain_blue[c], ax = axes[i], color='#468CC1')
     title +='\nblue r: ' + str(round(r_value, 3)) + ', p: ' + "{:.1e}".format(p_value) + ', slope: ' + str(round(slope, 3))
     axes[i].legend().remove()
     axes[i].set_title(title, fontsize=10)
     axes[i].set_xlabel('')
     axes[i].set_ylabel('')
     i += 1
-#    c, pvalue = stats.pearsonr(group.Freq_source, group.Freq)
-#    correlations.append((infection_order.loc[infection_order.Sample == key, 'paper_name'].values[0], c, pvalue))
-#correlations = pd.DataFrame(correlations, columns=['Sample', 'correlation_coefficient', 'pvalue'])
+correlations = pd.DataFrame(correlations, columns=['Sample', 'strain', 'r_value', 'pvalue', 'slope'])
 axes[9].legend(loc='center', bbox_to_anchor=(1, -0.7), fontsize=16, ncol=2)
 fig.text(0.5, 0.04, 'Mutation Frequency in Source', ha='center', va='center', fontsize=16)
 fig.text(0.06, 0.5, 'Mutation Frequency in Sample', ha='center', va='center', rotation='vertical', fontsize=16)

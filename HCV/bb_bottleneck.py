@@ -28,29 +28,30 @@ def prepare_for_bb(donor_freq, recipient_freq, out_path):
     merged = merged[(merged.Ref != '-') & (merged.Var_read_count_recipient > 0) & (merged.Rank_donor == 0)]
     merged['Freq_donor'] = 1 - merged['Freq_donor']
     merged['Freq_recipient'] = 1 - merged['Freq_recipient']
-    merged = merged[~merged.Pos.isin([1559.0,
- 1181.0,
- 1190.0,
- 1938.0,
- 2381.0,
- 2390.0,
- 2408.0,
- 2594.0,
- 2720.0,
- 1493.0,
- 1527.0,
- 1630.0,
- 1659.0,
- 1666.0,
- 1830.0,
- 2582.0,
- 1244.0,
- 1580.0,
- 1748.0,
- 1946.0,
- 2050.0,
- 2715.0,
- 905.0])]
+    #merged.loc[merged.Freq_recipient < 0.04, 'Freq_recipient'] = 0
+#    merged = merged[~merged.Pos.isin([1559.0,
+# 1181.0,
+# 1190.0,
+# 1938.0,
+# 2381.0,
+# 2390.0,
+# 2408.0,
+# 2594.0,
+# 2720.0,
+# 1493.0,
+# 1527.0,
+# 1630.0,
+# 1659.0,
+# 1666.0,
+# 1830.0,
+# 2582.0,
+# 1244.0,
+# 1580.0,
+# 1748.0,
+# 1946.0,
+# 2050.0,
+# 2715.0,
+# 905.0])]
     #
     merged[['Freq_donor', 'Freq_recipient', 'Read_count_donor', 'Var_read_count_recipient']].to_csv(out_path, header=False, index=False, sep='\t')
     return merged
@@ -58,7 +59,7 @@ def prepare_for_bb(donor_freq, recipient_freq, out_path):
 for f in ['Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/freqs/' + f for f in os.listdir('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/freqs/')]:
     prepare_for_bb('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4/freqs/HCV-PS2.freqs', 
                f,
-               'X:/volume2/noam/hcv/BB_bottleneck_output/' + f.split('/')[-1].split('.')[0] + '_rank0_variants_no_hvr_strain_cluster.csv')
+               'X:/volume2/noam/hcv/BB_bottleneck_output2/' + f.split('/')[-1].split('.')[0] + '.csv')
 
 for f in ['/sternadi/home/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('/sternadi/home/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('')]:
     os.system('module load R/3.6.1 & Rscript /sternadi/home/volume2/noam/hcv/BB_bottleneck/Bottleneck_size_estimation_approx.r --file ' + f + ' > ' + f + '.bb.txt')
@@ -77,11 +78,12 @@ all_results = []
 #for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('bb.rank0.txt')]:
 #for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('bb.0.001.rank0.txt')]:
 #for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('.bb.rank0.no_hvr_strain.txt')]:
-for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('.bb.rank0.no_hvr_strain.0.001.txt')]:
+#for f in ['X:/volume2/noam/hcv/BB_bottleneck_output/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output/') if f.endswith('.bb.rank0.no_hvr_strain.0.001.txt')]:
+for f in ['X:/volume2/noam/hcv/BB_bottleneck_output2/' + f for f in os.listdir('X:/volume2/noam/hcv/BB_bottleneck_output2/') if f.endswith('.bb.txt')]:
 
     try:
         results = parse_bb_output(f)
-        results = [f.split('/')[-1].split('_')[0]] + results
+        results = [f.split('/')[-1].split('.')[0]] + results
         all_results.append(results)
     except:
         print(f)
