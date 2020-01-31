@@ -106,7 +106,6 @@ df['rb'] = df.Ref + df.Base
 df.loc[df['rb'].isin(['AG', 'GA', 'CT', 'TC']), 'transition_transversion'] = 'transition'
 df.loc[df['rb'].isin(['AC', 'AT', 'CA', 'CG', 'TA', 'TG', 'GT', 'GC']), 'transition_transversion'] = 'transversion'
 
-
 ### synonymous non-synonymous plot
 fig, axes = plt.subplots(nrows=4, ncols=6)
 fig.set_size_inches(25,18)
@@ -199,6 +198,30 @@ fig.savefig('X:/volume2/noam/hcv/variant_frequencies3.png' , bbox_inches='tight'
 
 
 
+
+
+############ quantify diversity
+sys.path.append('X:/volume2/noam/SternLab/RG_HIVC_analysis/')
+from diversity_calculation import pis_calc
+diversities = pis_calc(df, ['Sample'])
+diversities = pd.merge(diversities, infection_order, on='Sample')[['paper_name', 'infection_order', 'Pi']]
+diversities.to_csv('X:/volume2/noam/hcv/diversities.csv', index=False)
+
+fig, ax = plt.subplots(nrows=1, ncols=1)
+diversities = diversities[diversities.paper_name != 'Source']
+sns.regplot(diversities.infection_order, diversities.Pi, ax=ax)
+c, pvalue = stats.pearsonr(diversities.infection_order, diversities.Pi)
+ax.set_title('Order of Infection vs. Pi Diversity\n' + 'r = ' + str(round(c, 3)) + ', p-value = ' + str(round(pvalue, 3)))
+fig.set_size_inches(5,3)
+ax.set_xlabel('Order of infection')
+ax.set_ylabel('Pi Diversity')
+fig.savefig('X:/volume2/noam/hcv/diversities_regression.png' , bbox_inches='tight', dpi=800)
+
+
+
+
+
+
 ## frequencies compared to source - correlations
 compare_df = pd.merge(df, df[df.Sample=='HCV-PS2'], on=['Pos', 'Base', 'Ref'], suffixes=['', '_source'])
 fig, axes = plt.subplots(nrows=4, ncols=6)
@@ -255,12 +278,11 @@ sample_order = ['HCV-PS2',
  'HCV-P9',
  'HCV-P10',]
 compare_df = pd.merge(df, df[(df.Sample == 'HCV-PS2')], how='right', on=['Pos', 'Base','Ref','protein', 'mutation_type', 'aa', 'mtype', 'rb','transition_transversion'], suffixes=['', '_source'])
-variants_to_look_at = compare_df[(compare_df.Base != compare_df.Ref) & (compare_df.Ref != '-') & (compare_df.Base != '-') & (compare_df.Read_count > 5) & (compare_df.Read_count_source > 5) & (compare_df.Freq > 0.01)][['Pos', 'Base']].drop_duplicates()
+variants_to_look_at = df[(df.Base != df.Ref) & (df.Ref != '-') & (df.Base != '-') & (df.Read_count > 5) & (df.Freq > 0.01)][['Pos', 'Base']].drop_duplicates()
 compare_df = pd.merge(compare_df, variants_to_look_at, how='right', on=['Pos', 'Base'])
 correlations = []
 for key in sample_order:
     group = compare_df[(compare_df.Sample == key)]
-    group = group[(group.Freq >= 0.01) | (group.Freq_source >= 0.01)]
     group[(group.mtype == 'synonymous') & (group.transition_transversion == 'transition')].plot(kind='scatter', x='Freq_source', y='Freq', ax=axes[i], color='#4285BB', label='synonymous transition')
     try:
         group[(group.mtype == 'synonymous') & (group.transition_transversion == 'transversion')].plot(kind='scatter', x='Freq_source', y='Freq', ax=axes[i], color='#558B2F', label='synonymous transversion')
@@ -293,13 +315,15 @@ correlations.to_csv('X:/volume2/noam/hcv/correlations.csv', index=False)
 
 
 fig, ax = plt.subplots(nrows=1, ncols=1)
+correlations = correlations[correlations.Sample != 'Source']
+correlations = pd.merge(correlations, infection_order[['infection_order', 'paper_name']], left_on='Sample', right_on='paper_name')
 sns.regplot(correlations[correlations.Sample != 'Source'].infection_order, correlations[correlations.Sample != 'Source'].correlation_coefficient, ax=ax)
 c, pvalue = stats.pearsonr(correlations[correlations.Sample != 'Source'].infection_order, correlations[correlations.Sample != 'Source'].correlation_coefficient)
 ax.set_title('Order of Infection vs. Correlation Coefficient\n' + 'r = ' + str(round(c, 3)) + ', p-value = ' + str(round(pvalue, 3)))
 fig.set_size_inches(5,3)
 ax.set_xlabel('Order of infection')
 ax.set_ylabel('Correlation Coefficient to Source')
-#fig.savefig('X:/volume2/noam/hcv/correlations_regression.png' , bbox_inches='tight', dpi=800)
+fig.savefig('X:/volume2/noam/hcv/correlations_regression.png' , bbox_inches='tight', dpi=800)
 
 
 
@@ -321,6 +345,54 @@ slope, intercept, r_value, p_value, std_err = stats.linregress(correlations3.inf
 sns.regplot(x=correlations3.infection_order, y=correlations3.correlation_coefficient, ax = ax)
 ax.set_title("y=%fx+%f, r2=%f, pvalue=%f" % (slope,intercept, r_value**2, p_value))
 
+
+
+
+
+############################ corelation between time points
+## color coded
+fig, axes = plt.subplots(nrows=3, ncols=3)
+fig.set_size_inches(10,10)
+axes = axes.flatten()
+fig.subplots_adjust(hspace=0.3)
+i = 0
+pair_order = [('HCV-P8','HCV-P8-1'),
+              ('HCV-P8','HCV-P8-2'),
+              ('HCV-P11','HCV-P11-1'),
+              ('HCV-P7','HCV-P7-2'),
+              ('HCV-P3','HCV-P3-1'),
+              ('HCV-P5','HCV-P5-1'),
+              ('HCV-P2','HCV-P2-1'),
+              ('HCV-P6','HCV-P6-1'),
+              ('HCV-P9','HCV-P9-2'),]
+
+#compare_df = pd.merge(df, df[(df.Sample == 'HCV-PS2')], how='right', on=['Pos', 'Base','Ref','protein', 'mutation_type', 'aa', 'mtype', 'rb','transition_transversion'], suffixes=['', '_source'])
+variants_to_look_at = df[(df.Base != df.Ref) & (df.Ref != '-') & (df.Base != '-') & (df.Read_count > 5) & (df.Freq > 0.01)][['Pos', 'Base']].drop_duplicates()
+#compare_df = pd.merge(compare_df, variants_to_look_at, how='right', on=['Pos', 'Base'])
+df = pd.merge(df, variants_to_look_at, how='right', on=['Pos', 'Base'])
+df['full_mutation'] = df.Ref + df.Pos.astype(int).astype(str) + df.Base
+correlations = []
+for pair in pair_order:
+    group = pd.merge(df[df.Sample == pair[0]], df[df.Sample == pair[1]], on=['Pos', 'Base','Ref','protein', 'mutation_type', 'aa', 'mtype', 'rb','transition_transversion', 'full_mutation'], suffixes=['_0', '_1'])
+    #sns.regplot(x=group.Freq_0, y=group.Freq_1, ax=axes[i], scatter=False, color='red')
+    group[~group.full_mutation.isin(strain_grey + strain_blue + ['A1479G'])].plot(kind='scatter', x='Freq_0', y='Freq_1', ax=axes[i], color='black', label='other')
+    group[group.full_mutation.isin(strain_blue)].plot(kind='scatter', x='Freq_0', y='Freq_1', ax=axes[i], color='#468CC1', label='blue strain')
+    group[group.full_mutation.isin(strain_grey)].plot(kind='scatter', x='Freq_0', y='Freq_1', ax=axes[i], color='grey', label='grey strain')
+    group[group.full_mutation.isin(['G1479A'])].plot(kind='scatter', x='Freq_0', y='Freq_1', ax=axes[i], color='#B268DC', label='A1479G')
+    axes[i].legend().remove()
+    axes[i].set_ylim(-0.05, 1.05)
+    axes[i].set_title( infection_order.loc[infection_order.Sample == pair[0], 'paper_name'].values[0] + ', time point ' + pair[1].split('-')[-1], fontsize=14)
+    axes[i].set_xlabel('')
+    axes[i].set_ylabel('')
+    i += 1
+    c, pvalue = stats.pearsonr(group.Freq_0, group.Freq_1)
+    correlations.append((infection_order.loc[infection_order.Sample == pair[0], 'paper_name'].values[0] + ', time point ' + pair[1].split('-')[-1], c, pvalue))
+correlations = pd.DataFrame(correlations, columns=['Sample', 'correlation_coefficient', 'pvalue'])
+axes[7].legend(loc='center', bbox_to_anchor=(0.4, -0.55), fontsize=14, ncol=2)
+fig.text(0.5, 0.07, 'Mutation Frequency in First Sample', ha='center', va='center', fontsize=16)
+fig.text(0.06, 0.5, 'Mutation Frequency in Current Sample', ha='center', va='center', rotation='vertical', fontsize=16)
+fig.savefig('X:/volume2/noam/hcv/time_points_correlations.png' , bbox_inches='tight', dpi=800)
+#correlations.to_csv('X:/volume2/noam/hcv/time_points_correlations.csv', index=False)
 
 
 
