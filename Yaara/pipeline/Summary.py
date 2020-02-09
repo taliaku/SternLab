@@ -64,51 +64,6 @@ def summarize_stats (dir_path, sample_basename_pattern):
 		else:
 			print("\nWarning. Missing stats files. Cannot summarize pipeline results\n")
 	
-def length_distribution_plot (dir_path, sample_basename_pattern):
-	try:
-		os.chdir(dir_path)
-		get_lengths = []
-		get_lengths.append(subprocess.getoutput("awk -F '\t' '{print $8}' *blast"))
-		lengths = get_lengths[0].split("\n")
-		lengths = [int(i) for i in lengths]
-		sns.set_style("whitegrid")
-		ax=sns.distplot(lengths, bins=[0, 50, 100, 150, 200, 250, 300], axlabel="Length (bp)", kde=False, color="royalblue")
-		ax.set_ylabel("Count")
-		plt.title("Length distribution", fontsize=16)
-		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'length_distribution.png'), format='png', bbox_inches="tight", pad_inches=0.2)
-		plt.close()
-	except:
-		pipeline_summary = dir_path + "/Summary.txt"
-		with open(pipeline_summary, "a") as o:
-			o.write("\nUnable to create length distribution plot\n")
-
-def match_distribution_plot (dir_path, sample_basename_pattern):
-	try:
-		os.chdir(dir_path)
-		get_read_ids = []
-		get_read_ids.append(subprocess.getoutput("awk -F '\t' '{print $1}' *blast"))
-		read_ids = get_read_ids[0].split("\n")
-
-		MATCH_STATISTICS = {}
-		for read_id in read_ids:
-			if read_id not in MATCH_STATISTICS:
-				MATCH_STATISTICS[read_id] = 0
-			MATCH_STATISTICS[read_id] += 1
-
-		matches = list(MATCH_STATISTICS.values())
-		match_max = max(matches)
-		sns.set_style("whitegrid")
-		ax=sns.distplot(matches, axlabel="Num of blast matches", kde=False, color="deeppink")
-		ax.set_xticks(list(range(1, match_max+1)))
-		ax.set_ylabel("Count")
-		plt.title("Blast match distribution", fontsize=16)
-		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'blast_match_distribution.png'), format='png', bbox_inches="tight", pad_inches=0.2)
-		plt.close()
-	except:
-		pipeline_summary = dir_path + "/Summary.txt"
-		with open(pipeline_summary, "a") as o:
-			o.write("\nUnable to create blast match distribution plot\n")
-
 def ref_length(ref_FilePath):
 	try:
 		with open(ref_FilePath, 'rt') as ref_file:
@@ -150,46 +105,13 @@ def count_coverage_positions (dir_path, freqs_file_path, Coverage, ref_FilePath)
 		except:
 			print("\nWarning. Unable to count positions with " + Coverage + " coverage, or cannot open or write to file " + pipeline_summary + "\n")
 
-def create_coverage_plot (dir_path, freqs_file_path, sample_basename_pattern):
-	try:
-		data = pd.read_csv(freqs_file_path, sep=',')
-		data = data.drop_duplicates("ref_position")
-		sns.set_style("whitegrid")
-		ax = sns.lineplot(x='ref_position', y='coverage', data=data, color='lightseagreen')
-		ax.set_yscale("log")
-		ax.set_xlabel("Ref position")
-		ax.set_ylabel("Coverage")
-		plt.title("Coverage", fontsize=16)
-		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'coverage.png'), format='png', bbox_inches="tight", pad_inches=0.2)
-		plt.close()
-	except:
-		pipeline_summary = dir_path + "/Summary.txt"
-		with open(pipeline_summary, "a") as o:
-			o.write("\nUnable to create coverage plot\n")
-
-def create_mutation_rate_plot (dir_path, freqs_file_path, Coverage, sample_basename_pattern, lower_ylim = 10**-5, upper_ylim = 10**-1):
-	try:
-		data = pd.read_csv(freqs_file_path, sep=',')
-		data["mutation"] = data["ref_base"] + ">" + data["base"]
-		sns.set_style("whitegrid")
-		ax = sns.boxplot("mutation", "frequency", data=data[(data["rank"] != 0) & (data["coverage"] > Coverage)])
-		ax.set_yscale("log")
-		ax.set_ylim(lower_ylim, upper_ylim)
-		plt.title("Mutation Rates", fontsize=16)
-		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'mutation_rates.png'), format='png', bbox_inches="tight", pad_inches=0.2)
-		plt.close()
-	except:	
-		pipeline_summary = dir_path + "/Summary.txt"
-		with open(pipeline_summary, "a") as o:
-			o.write("\nUnable to create mutation rate plot. No mutations were found in positions with >=" + str(Coverage) + " coverage answering the requested number of repeats and q-score\n")
-
-def create_mutation_rate_csv(dir_path, freqs_file_path, Coverage, sample_basename_pattern):
-	mutation_rates = dir_path + "/" + sample_basename_pattern + 'mutation_rates.csv'
+def create_mutation_rate_csv(dir_path, freqs_file_path, Coverage, sample_basename_pattern, probability_limit):
+	mutation_rates = dir_path + "/" + sample_basename_pattern + 'mutations_frequencies.csv'
 	with open(mutation_rates, "w") as mutations_file:
 		try:
 			data = pd.read_csv(freqs_file_path, sep=',')
 			data["mutation"] = data["ref_base"] + ">" + data["base"]
-			data = pd.DataFrame.groupby(data[(data["rank"] != 0) & (data["coverage"] > Coverage)], by=["mutation"]).sum()  # & (data["base"] != "-") to also remove deletions
+			data = pd.DataFrame.groupby(data[(data["rank"] != 0) & (data["coverage"] > Coverage) & (data["probability"] >= probability_limit)], by=["mutation"]).sum()  # & (data["base"] != "-") to also remove deletions
 			data["mutation_frequency"] = round(data["base_counter"] / data["coverage"], 6)
 			data.drop(columns=["ref_position", "base_counter", "coverage", "frequency", "probability", "rank"], inplace=True)
 			mutations_file.write(data.to_csv())
@@ -198,34 +120,31 @@ def create_mutation_rate_csv(dir_path, freqs_file_path, Coverage, sample_basenam
 			with open(pipeline_summary, "a") as o:
 				o.write("\nUnable to create mutation rate csv file. No mutations were found in positions with >=" + str(Coverage) + " coverage answering the requested number of repeats and q-score\n")
 
-
-def pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path, Coverage, lower_ylim=10 ** -5, upper_ylim=10 ** -1):
+def pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path, Coverage, probability_limit, lower_ylim=10**-5, upper_ylim=10**-1):
 	try:
 		os.chdir(dir_path)
 
-		fig, axes = plt.subplots(figsize=(16,10), ncols=2, nrows=2)
+		fig, axes = plt.subplots(figsize=(25,10), ncols=3, nrows=2)
 		plt.suptitle(sample_basename_pattern + "Pipeline statistics", fontsize=18)
-		plt.subplots_adjust(wspace=0.25,hspace=0.25)
+		plt.subplots_adjust(wspace=0.2,hspace=0.25)
 		sns.set_style("whitegrid")
 
 		get_lengths = []
 		get_lengths.append(subprocess.getoutput("awk -F '\t' '{print $8}' *blast"))
 		lengths = get_lengths[0].split("\n")
 		lengths = [int(i) for i in lengths]
-		sns.distplot(lengths, bins=[0, 50, 100, 150, 200, 250, 300], axlabel="Length (bp)", kde=False, color="royalblue", ax=axes[0][0])
-		axes[0][0].set_ylabel("Count")
+		sns.distplot(lengths, axlabel="Length (bp)", kde=True, color="royalblue", ax=axes[0][0])
+		axes[0][0].set_ylabel("Density")
 		axes[0][0].title.set_text('Length distribution')
 
 		get_read_ids = []
 		get_read_ids.append(subprocess.getoutput("awk -F '\t' '{print $1}' *blast"))
 		read_ids = get_read_ids[0].split("\n")
-
 		MATCH_STATISTICS = {}
 		for read_id in read_ids:
 			if read_id not in MATCH_STATISTICS:
 				MATCH_STATISTICS[read_id] = 0
 			MATCH_STATISTICS[read_id] += 1
-
 		matches = list(MATCH_STATISTICS.values())
 		match_max = max(matches)
 		sns.distplot(matches, axlabel="Num of blast matches", kde=False, color="deeppink", ax=axes[0][1])
@@ -235,17 +154,28 @@ def pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path
 
 		data = pd.read_csv(freqs_file_path, sep=',')
 		data["mutation"] = data["ref_base"] + ">" + data["base"]
-		sns.boxplot("mutation", "frequency", data=data[(data["rank"] != 0) & (data["coverage"] > Coverage)], ax=axes[1][0])
+		sns.boxplot("mutation", "frequency", data=data[(data["rank"] != 0) & (data["coverage"] > Coverage) & (data["probability"] >= probability_limit)], ax=axes[1][0])
 		axes[1][0].set_yscale("log")
 		axes[1][0].set_ylim(lower_ylim, upper_ylim)
-		axes[1][0].title.set_text("Mutation Rates")
+		axes[1][0].set_xlabel("Mutation")
+		axes[1][0].set_ylabel("Frequency")
+		axes[1][0].title.set_text("Mutations frequencies by group")
+
+		sns.scatterplot(x="ref_position", y="frequency", data=data[(data["rank"] != 0) & (data["coverage"] > Coverage) & (data["probability"] >= probability_limit)], ax=axes[1][1])
+		axes[1][1].set_yscale("log")
+		axes[1][1].set_ylim(lower_ylim, upper_ylim)
+		axes[1][1].set_xlabel("Ref position")
+		axes[1][1].set_ylabel("Frequency")
+		axes[1][1].title.set_text("Mutations frequencies by position")
 
 		data = data.drop_duplicates("ref_position")
-		sns.lineplot(x='ref_position', y='coverage', data=data, color='lightseagreen', ax=axes[1][1])
-		axes[1][1].set_yscale("log")
-		axes[1][1].set_xlabel("Ref position")
-		axes[1][1].set_ylabel("Coverage")
-		axes[1][1].title.set_text("Coverage")
+		InsertionIndex = data[data['ref_base'] == "-"].index
+		data.drop(InsertionIndex, inplace=True)
+		sns.lineplot(x='ref_position', y='coverage', data=data, color='lightseagreen', ax=axes[0][2])
+		axes[0][2].set_yscale("log")
+		axes[0][2].set_xlabel("Ref position")
+		axes[0][2].set_ylabel("Coverage")
+		axes[0][2].title.set_text("Coverage")
 
 		plt.savefig(os.path.join(dir_path, sample_basename_pattern + 'pipeline_plots.png'), format='png', bbox_inches="tight", pad_inches=0.5)
 		plt.close()
@@ -254,7 +184,6 @@ def pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path
 		pipeline_summary = dir_path + "/Summary.txt"
 		with open(pipeline_summary, "a") as o:
 			o.write("\nUnable to create pipeline statistics plots\n")
-
 
 def main(args):
 	dir_path = args.output_dir
@@ -289,16 +218,12 @@ def main(args):
 	if not (os.path.isfile(ref_FilePath) and os.path.splitext(ref_FilePath)[1] == '.fasta'):
 		raise Exception("Unexpected error, " + ref_FilePath + " does not exist, is not a file or is not a fasta file\n")
 
-	#file_type = "merge.freqs.csv"
-	#freqs_file_path = FindFilesInDir(dir_path, file_type)
-	#pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path[0], Coverage, lower_ylim=10 ** -5, upper_ylim=10 ** -1)
+	probability_limit = 0.85
 
 	file_type = "merge.freqs.csv"
 	freqs_file_path = FindFilesInDir(dir_path, file_type)
 	if len(freqs_file_path) == 1:
-		#create_coverage_plot(dir_path, freqs_file_path[0], sample_basename_pattern)
-		#create_mutation_rate_plot(dir_path, freqs_file_path[0], Coverage, sample_basename_pattern)
-		create_mutation_rate_csv(dir_path, freqs_file_path[0], Coverage, sample_basename_pattern)
+		create_mutation_rate_csv(dir_path, freqs_file_path[0], Coverage, sample_basename_pattern, probability_limit)
 		count_coverage_positions(dir_path, freqs_file_path[0], Coverage, ref_FilePath)
 	else:
 		print("Warning. number of merge.freqs.csv file in directory " + dir_path + " is different than 1. Cannot perform summary analysis of coverage and mutation rates\n")
@@ -306,9 +231,7 @@ def main(args):
 	file_type = ".blast"
 	blast_files = FindFilesInDir(dir_path, file_type)
 	if len(blast_files) > 0 and len(freqs_file_path) == 1:
-		pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path[0], Coverage)
-		#length_distribution_plot(dir_path, sample_basename_pattern)
-		#match_distribution_plot(dir_path, sample_basename_pattern)
+		pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path[0], Coverage, probability_limit)
 	else:
 		print("Warning. blast files or freqs file are missing in directory " + dir_path + ". Cannot create summary pipeline plots\n")
 
@@ -316,6 +239,6 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-o", "--output_dir", type=str, help="a path to an output directory containing stats and merge.freqs.csv file", required=True)
 	parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference seq file (fasta)", required=True)
-	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default = 10000", required=True, default=10000)
+	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default = 10000", required=False, default=10000)
 	args = parser.parse_args()
 	main(args)

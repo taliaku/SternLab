@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import pandas as pd
 
 def count_num_times_read_matches (ReadLines, Lines, mode, counter = 0, plus_counter = 1, minus_counter = 2):
 	READ_IDS_VALUES = {}
@@ -100,8 +99,6 @@ def read_id_qscore (blast_FilePath, read_id, Quality_line, ASCII_Q_SCORE):
 	return READ_ID_QSCORE
 
 def ASCII_for_quality(pipeline_dir):
-	#ASCII_FilePath = "/sternadi/home/volume1/shared/SternLab/pipeline/ascii_table_processed.txt"
-	#ASCII_FilePath = "/sternadi/home/volume2/yaara/SternLab/Yaara/pipeline/ascii_table_processed.txt"
 	ASCII_FilePath = pipeline_dir + "/ascii_table_processed.txt"
 	try:
 		with open(ASCII_FilePath, 'rt') as ASCII_file:
@@ -134,7 +131,7 @@ def double_position_counter(read_counter, READ_ID_DOUBLE_POSITION_COUNTER, ref_c
 	return READ_ID_DOUBLE_POSITION_COUNTER
 
 def create_read_id_seq_qscore (read_id, read_start, read_end, ref_start, ref_end, strand, aln, READ_ID_QSCORE, REF_GENOME, \
-	READ_ID_BASE_CALL_COUNTER, READ_ID_DOUBLE_POSITION_COUNTER, q_score, mode, counter = 0, q_score_sum = 1, mutation_positions = 2):
+		READ_ID_BASE_CALL_COUNTER, READ_ID_DOUBLE_POSITION_COUNTER, q_score, mode, counter = 0, q_score_sum = 1, mutation_positions = 2):
 	
 	if mode in ["sr", "SR", "SeqtoRef"]: 
 		mode = "SeqtoRef"
@@ -291,14 +288,13 @@ def create_read_id_seq_qscore (read_id, read_start, read_end, ref_start, ref_end
 def create_supporting_data_files(blast_FilePath):
 	root_FilePath = os.path.splitext(blast_FilePath)[0]
 	root_FilePath = root_FilePath.replace(".fasta","")
-	good_reads_file = root_FilePath + ".good_reads" 
-	good_reads_quality_file = root_FilePath + ".good_reads_quality" 
+	good_reads_file = root_FilePath + ".good_reads"
 	good_mutations_file = root_FilePath + ".good_mutations" 
 	stats_file = root_FilePath + ".freqs.stats" 
 	Non_contributing_file = root_FilePath + ".NonContributing" 
 	frequencies_file = root_FilePath + ".freqs"
 
-	return good_reads_file, good_reads_quality_file, good_mutations_file, stats_file, frequencies_file, Non_contributing_file
+	return good_reads_file, good_mutations_file, stats_file, frequencies_file, Non_contributing_file
 
 def remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter, counter = 0, mapping_positions = 1):
 	for read_position in READ_ID_DOUBLE_POSITION_COUNTER:		
@@ -313,7 +309,7 @@ def remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_C
 	return READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter  
                             
 def calculate_read_id_contribution (READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_COUNTER, q_score, num_of_repeats, REF_GENOME, good_mutations_file, \
-	Non_contributing_file, read_id, Total_base_counter_per_read_id, counter = 0, q_score_sum = 1, mutation_positions = 2):
+		Non_contributing_file, read_id, Total_base_counter_per_read_id, counter = 0, q_score_sum = 1, mutation_positions = 2):
 	
 	BASE_POSITION = {'A':1, 'C':2, 'G':3, 'T':4, '-':5} 
 	with open(good_mutations_file, 'at') as good_reads_mutations:
@@ -347,15 +343,15 @@ def calculate_read_id_contribution (READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_C
 							else:
 								ref_base = "-" 	#insertion					
 							try:
-								bad_reads_mutations.write("Base Calling or mutation at ref position " + str(ref_position) + " " + ref_base + ">" + base + " with " + str(read_id_base_call_counter) + \
-								" repeat/s and Q " + str(average_q_score) + " was removed from " + read_id + "\n") 
+								bad_reads_mutations.write("Base Calling or mutation at ref position " + str(ref_position) + " " + ref_base + ">" + base + " with " + \
+										str(read_id_base_call_counter) + " repeat/s and Q " + str(average_q_score) + " was removed from " + read_id + "\n")
 							except:
 								raise Exception("Unexpected error, cannot write into file " + Non_contributing_file + "\n")  
 	
 	return READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_COUNTER, Total_base_counter_per_read_id
     
-def summarize_total_contribution_statistics_1 (CONTRIBUTING_STATS, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter, Total_base_counter_per_read_id, match_counter, \
-	good_reads_file, good_reads_quality_file, read_id, Quality_line, repeat_read_counter = 0, repeat_base_counter = 1):
+def summarize_total_contribution_statistics_1 (CONTRIBUTING_STATS, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter, \
+			Total_base_counter_per_read_id, match_counter, good_reads_file, read_id, Quality_line, repeat_read_counter = 0, repeat_base_counter = 1):
 
 	if Total_base_counter_per_read_id > 0:
 		with open(good_reads_file, 'at') as good_reads:
@@ -363,12 +359,6 @@ def summarize_total_contribution_statistics_1 (CONTRIBUTING_STATS, Contributing_
 				good_reads.write("@" + read_id + "\n") 
 			except:
 				raise Exception("Unexpected error, cannot write into file " + good_reads_file + "\n")
-		with open(good_reads_quality_file, 'at') as good_reads_quality:
-			try:
-				good_reads_quality.write("@" + read_id + "\n")
-				good_reads_quality.write(Quality_line + "\n")
-			except:
-				raise Exception("Unexpected error, cannot write into file " + good_reads_quality_file + "\n")	
 
 		Contributing_reads_counter += 1
 		Contributing_bases_counter += Total_base_counter_per_read_id
@@ -408,8 +398,8 @@ def calculate_frequencies(TOTAL_BASE_CALL_COUNTER, REF_GENOME, frequencies_file,
 	os.system("sort -V " + frequencies_file + " -o " + frequencies_file + "\n")
 	os.system("sed -i $'1i ref_position\tref_base\tbase\tbase_counter\tcoverage\tfrequency\n' " + frequencies_file)
   
-def summarize_total_contribution_statistics_2(CONTRIBUTING_STATS, stats_file, double_mapping_counter, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter, \
-	MATCH_STATISTICS, repeat_read_counter = 0, repeat_base_counter = 1):
+def summarize_total_contribution_statistics_2(CONTRIBUTING_STATS, stats_file, double_mapping_counter, Contributing_reads_counter, Contributing_bases_counter, \
+				 Non_contributing_reads_counter, MATCH_STATISTICS, repeat_read_counter = 0, repeat_base_counter = 1):
 	
 	with open(stats_file, 'at') as stats:
 		try:
@@ -463,11 +453,8 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 	except:
 		raise Exception("Cannot open/read file " + blast_FilePath + "\n")
 
-	#REF_GENOME = {}
-	REF_GENOME = create_ref_seq(ref_FilePath)	   
-	#ASCII_Q_SCORE = {}
+	REF_GENOME = create_ref_seq(ref_FilePath)
 	ASCII_Q_SCORE = ASCII_for_quality(pipeline_dir)
-	#READ_IDS_VALUES = {}
 	READ_IDS_VALUES = count_num_times_read_matches(ReadLines, Lines, mode)
 	READ_IDS_VALUES = reads_id_quality(READ_IDS_VALUES, blast_FilePath)
 	TOTAL_BASE_CALL_COUNTER = {} 
@@ -477,9 +464,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 	Contributing_bases_counter = 0
 	double_mapping_counter = 0
 	Non_contributing_reads_counter = 0
-	good_reads_file, good_reads_quality_file, good_mutations_file, stats_file, frequencies_file, Non_contributing_file = \
-	create_supporting_data_files(blast_FilePath)
-	#os.system("sort " + blast_FilePath + " -o " + blast_FilePath)	#execute sort command???
+	good_reads_file, good_mutations_file, stats_file, frequencies_file, Non_contributing_file = create_supporting_data_files(blast_FilePath)
 
 	RowNum = 0
 	while RowNum < Lines:   
@@ -493,15 +478,15 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 			MATCH_STATISTICS[number_of_matchs] = 0
 		MATCH_STATISTICS[number_of_matchs] += 1
 		
-		if (number_of_matchs >= num_of_repeats) and ((Protocol in ["C", "c", "circular"]) or (Protocol in ["L", "l", "linear"] and num_of_repeats == 2 and number_of_plus_matches == 1 and number_of_minus_matches == 1) \
-			or (Protocol in ["L", "l", "linear"] and num_of_repeats == 1 and number_of_plus_matches < 2 and number_of_minus_matches < 2)): 	    	
+		if (number_of_matchs >= num_of_repeats) and ((Protocol in ["C", "c", "circular"]) \
+		 		or (Protocol in ["L", "l", "linear"] and num_of_repeats == 2 and number_of_plus_matches == 1 and number_of_minus_matches == 1) \
+				or (Protocol in ["L", "l", "linear"] and num_of_repeats == 1 and number_of_plus_matches < 2 and number_of_minus_matches < 2)):
 			if read_id in READ_IDS_VALUES:
 				Quality_line = READ_IDS_VALUES[read_id][quality_line]
 			else:
 				raise Exception("read id " + read_id + " was not found in qual file\n")
 			
-			#READ_ID_QSCORE = {}
-			READ_ID_QSCORE = read_id_qscore(blast_FilePath, read_id, Quality_line, ASCII_Q_SCORE)	#get q-score of read id			
+			READ_ID_QSCORE = read_id_qscore(blast_FilePath, read_id, Quality_line, ASCII_Q_SCORE)	#get q-score of read id
 			#For each read_id in blast file, create a dictionary READ_ID_BASE_CALL_COUNTER that will get ref position base count and q-score. 
 			#Including mutations and / or gaps.
 			READ_ID_BASE_CALL_COUNTER = {}  
@@ -553,10 +538,10 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 			#Create contributing statistics files, part1	
 			CONTRIBUTING_STATS, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter = \
 			summarize_total_contribution_statistics_1(CONTRIBUTING_STATS, Contributing_reads_counter, Contributing_bases_counter, Non_contributing_reads_counter, Total_base_counter_per_read_id, match_counter-1, \
-			good_reads_file, good_reads_quality_file, read_id, Quality_line)
+			good_reads_file, read_id, Quality_line)
 		
 		else:
-			with open(Non_contributing_file, 'at') as bad_reads_mutations:
+			with open(Non_contributing_file, 'at') as bad_reads_mutations:	#Record any non contributing reads
 				while match_counter <= number_of_matchs:	
 					try:
 						bad_reads_mutations.write("\t".join(read_record_split) + "\n") 
@@ -596,24 +581,16 @@ def main(args):
 	if not (os.path.isfile(ref_FilePath) and os.path.splitext(ref_FilePath)[1] == '.fasta'):
 		raise Exception("Unexpected error, " + ref_FilePath + " does not exist, is not a file or is not a fasta file\n")
 	
-	num_of_repeats = args.repeats
-	try:
-		min_num_repeats = int(args.repeats)
-	except:
-		raise Exception("Unexpected error, min number of repeats " + str(min_num_repeats) + " is not a valid integer value\n")
-	if min_num_repeats < 1: 
+	min_num_repeats = args.repeats
+	if min_num_repeats < 1:
 		raise Exception ("Unexpected error, min number of repeats is less than 1\n")
-	if min_num_repeats < 2:  
+	if min_num_repeats < 2:
 		print("\nWarning. Running base calling with min number of repeats less than 2\n")
-	if min_num_repeats > 2:  
+	if min_num_repeats > 2:
 		print("\nWarning. Running pipeline with min number of repeats bigger than 2\n")
 
 	q_score = args.q_score
-	try:
-		q_score = int(q_score) 
-	except:
-		raise Exception("Unexpected error, q_score should be an integer value between 0-40\n")
-	if q_score < 0 or q_score > 40: 
+	if q_score < 0 or q_score > 40:
 		raise Exception("Unexpected error, q-score value " + str(q_score) + " is not valid\n")
 	if q_score < 16:
 		print("Warning, running pipeline with q-score value of " + str(q_score) + "\n")
@@ -633,15 +610,16 @@ def main(args):
 		if Protocol not in ["L", "l", "linear", "C", "c", "circular"]:
 			raise Exception("Unexpected error, for linear library prep protocol type 'linear' or 'L', for circular library prep protocol type 'circular' or 'C'\n") 
 			
-	BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protocol)
+	BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, min_num_repeats, q_score, mode, Protocol)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-f", "--file_path", type=str, help="input blast file", required=True)
 	parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference seq file (fasta)", required=True)
-	parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=True, default=30)
-	parser.add_argument("-rep", "--repeats", type=int, help="number of repeats, default=2", required=True, default=2)
-	parser.add_argument("-m", "--blast_mode", type=str, help="mode for blast, for Seq to Ref blast type SR, sr or SeqtoRef, for Ref to Seq blast type RS, rs or ReftoSeq. Default='blastn'", required=True, default='blastn')
-	parser.add_argument("-pr", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'", required=False, default="linear")
+	parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
+	parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=2", required=False, default=2)
+	parser.add_argument("-m", "--blast_mode", type=str, help="mode for blast, for Seq to Ref blast type SR, sr or SeqtoRef, for Ref to Seq blast type RS, rs or ReftoSeq, default = 'SeqtoRef'",
+						required=False, default="SeqtoRef")
+	parser.add_argument("-p", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'", required=False, default="linear")
 	args = parser.parse_args()
 	main(args)

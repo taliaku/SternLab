@@ -118,12 +118,15 @@ def main(args):
 	FilePath = args.file
 	if not (os.path.isfile(FilePath) and ((os.path.splitext(FilePath)[1] == '.gz') or (os.path.splitext(FilePath)[1] == '.fastq'))):
 		raise Exception("/ninput file " + FilePath + " does not exist or is not a valid gz. or fastq. file\n")
-	
+
+	Min_Num_reads_per_file = 10000
+	Max_Num_reads_per_file = 40000
 	Num_reads_per_file = args.num_reads
-	try:
-		Num_reads_per_file = int(Num_reads_per_file) 
-	except:
-		raise Exception("/nUnexpected error, number of reads per file " + Num_reads_per_file + " is not a valid integer value\n")
+	if Num_reads_per_file != None:
+		if Num_reads_per_file < Min_Num_reads_per_file:
+			print("\nWarning. Running pipeline with less than " + str(Min_Num_reads_per_file) + " reads per split file\n")
+		if Num_reads_per_file > Max_Num_reads_per_file:
+			print("\nWarning. Running pipeline with more than " + str(Max_Num_reads_per_file) + " reads per split file\n")
 
 	SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file)
 
