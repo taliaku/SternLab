@@ -472,12 +472,12 @@ def main(args):
 	
 	for stage in range(start_stage, end_stage+1):	
 		if stage == 0:
-			file_type = "merged*"
+			file_type = "merged.fastq*"
 			merged_files = FindFilesInDir(dir_path, file_type)
 			if len(merged_files) > 0 and overwrite in ["N", "n"]:
 				raise Exception("Unexpected error, merged files were found in directory" + dir_path + ". Cannot run merge_fastq_files\n")
 			elif len(merged_files) > 0	and overwrite in ["Y","y"]:
-				os.system("rm -rf " + dir_path + "/*.merged*")
+				os.system("rm -rf " + dir_path + "/*.merged.fastq*")
 			merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue)
 
 		if stage == 1:
@@ -492,10 +492,12 @@ def main(args):
 
 			file_type = sample_basename_pattern + "_R2*"
 			paired_samples = FindFilesInDir(sample_dir_path, file_type)
+			file_type = "merged.fastq*"
+			merged_files = FindFilesInDir(dir_path, file_type)
 			file_type = sample_basename_pattern
 			if start_stage == 1 and len(paired_samples) == 0:	#for single-end reads use sample_dir_path to get files for split
 				sample_files = FindFilesInDir(sample_dir_path, file_type)
-			elif len(paired_samples) > 0:	#for paired-end reads use dir_path to get merged files for split
+			elif len(merged_files) > 0:		#for paired-end reads use dir_path to get merged files for split
 				sample_files = FindFilesInDir(dir_path, file_type)
 			else:
 				raise Exception("Unable to detect sample files with base name pattern " + sample_basename_pattern + " in directory\n")

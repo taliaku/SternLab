@@ -120,6 +120,6 @@ def main(args):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-f", "--cmds_file", type=str, help="a path to a file containing a list of cmds to run. Different variables for each cmd are excepted", required=True)
-	parser.add_argument("-qu", "--queue", type=str, help="queue to run pipeline, default='adis'", required=False, default="adis")
+	parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='adis'", required=False, default="adis")
 	args = parser.parse_args()
 	main(args)

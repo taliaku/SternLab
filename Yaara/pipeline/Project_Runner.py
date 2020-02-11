@@ -85,22 +85,25 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
                 e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern):
     alias = "RunProject"
 
-    if sample_basename_pattern == "":
-        file_type = "_R1*"
-    else:
-        file_type = sample_basename_pattern + "*_R1*"
+    file_type = sample_basename_pattern + "*"
+    project_samples = FindFilesInDir(input_dir, file_type)
+    if len(project_samples) == 0:
+        raise Exception("Unexpected error, input directory " + input_dir + " is empty\n")
 
-    R1_samples_files = FindFilesInDir(input_dir, file_type)
-    if len(R1_samples_files) == 0:
-        raise Exception("Unexpected error, there are no input files in input directory " + input_dir + "\n")
+    file_type = os.path.basename(project_samples[0]).split('L001')[0] + "*"
+    Lanes = len(FindFilesInDir(input_dir, file_type))
 
     samples_list = []
-    for sample in R1_samples_files:
+    for sample in project_samples:
         if not '_L00' in sample:
             raise Exception("Unexpected error. '_L00' is missing in sample name, cannot identify sample name pattern\n")
         else:
             sample_name = os.path.basename(sample).split('_L00')[0]
-        sample_pattern = input_dir + "/" + sample_name + "_"
+
+        sample_pattern = sample + "/" + sample_name + "_"
+        if "FASTQ_Generation_" in sample:
+            sample_pattern = sample + "/" + sample_name.replace("_","-") + "_"
+
         if not sample_pattern in samples_list:
             sample_dir_path = dir_path + "/" + sample_name
             if not os.path.isdir(sample_dir_path):
@@ -110,19 +113,41 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
                     raise Exception("failed to create input directory " + sample_dir_path + "\n")
                 if not os.path.isdir(sample_dir_path):
                     raise Exception("Sample directory " + sample_dir_path + " does not exist or is not a valid directory path\n")
-            samples_list.extend((sample_pattern, sample_dir_path))
+
+            if Lanes == 1:
+               samples_list.extend((sample_pattern, sample_dir_path))
+            elif Lanes > 1:
+                input_samples_dir = sample_dir_path + "/input_files"
+                try:
+                    os.system("mkdir -p " + input_samples_dir)
+                except:
+                    raise Exception("failed to create input directory " + input_samples_dir + "\n")
+                if not os.path.isdir(input_samples_dir):
+                    raise Exception("Sample directory " + input_samples_dir + " does not exist or is not a valid directory path\n")
+
+        if Lanes > 1:
+            file_type = "*_R*"
+            Sample_reads = FindFilesInDir(sample, file_type)
+            for read in Sample_reads:
+                os.system("cp " + read + " " + input_samples_dir + "/" + os.path.basename(read))
+            sample_pattern = input_samples_dir + "/"
+            if not sample_pattern in samples_list:
+                samples_list.extend((sample_pattern, sample_dir_path))
+
+    if Lanes > 1:
+        for i in range(0, len(samples_list)-1, 2):
+            file_type = "*_R*"
+            Sample_reads = FindFilesInDir(os.path.dirname(samples_list[i]), file_type)
+            sample_pattern = os.path.commonprefix(Sample_reads)
+            samples_list[i] = sample_pattern
 
     if len(samples_list) % 2 != 0:
         raise Exception("Unexpected error, number of samples for pipeline does not match number of output directory created\n")
 
+    file_type = "*_R2*"
+    R2_samples_files = len(FindFilesInDir(project_samples[0], file_type))
     if start_stage == None:
-        if sample_basename_pattern == "":
-            file_type = "_R2*"
-        else:
-            file_type = sample_basename_pattern + "*_R2*"
-
-        R2_samples_files = FindFilesInDir(input_dir, file_type)
-        if len(R2_samples_files) > 0:  # paired-end reads
+        if R2_samples_files > 0:  # paired-end reads
             start_stage = 0
         else:  # single-end reads
             start_stage = 1
@@ -130,7 +155,7 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
     if start_stage > end_stage:
         raise Exception("Unexpected error, start stage " + str(start_stage) + " is larger than end stage " + str(end_stage) + "\n")
 
-    num_of_samples = len(R1_samples_files)
+    num_of_samples = int(len(samples_list)/2)
     if num_of_samples == 1:
         p = '0'
         o = '1'

@@ -344,6 +344,16 @@ def main(args):
 	else:
 		sample_path =""; sample_dir_path = ""; sample_basename_pattern = ""
 
+	dir_path = args.output_dir.strip()
+	if start_stage in [0, 1]:
+		if not os.path.isdir(dir_path):
+			try:
+				os.system("mkdir -p " + dir_path)
+			except:
+				raise Exception("failed to create directory " + dir_path + "\n")
+	if not os.path.isdir(dir_path):
+		raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
+
 	if start_stage == None or start_stage in [0,1]:
 		if not os.path.isdir(sample_dir_path):
 			raise Exception("Directory of sample to merge/split " + sample_dir_path + " does not exist or is not a valid directory path\n")
@@ -353,11 +363,13 @@ def main(args):
 			sample_basename_pattern += "*"
 		file_type = sample_basename_pattern + "_R2*"
 		paired_samples = FindFilesInDir(sample_dir_path, file_type)
+		file_type = "merged.fastq*"
+		merged_files = FindFilesInDir(dir_path, file_type)
 		if len(paired_samples) > 0 and start_stage == None:
 			start_stage = 0
 		elif len(paired_samples) == 0 and start_stage == None:
 			start_stage = 1
-		elif len(paired_samples) > 0 and start_stage > 0:
+		elif len(paired_samples) > 0 and start_stage > 0 and len(merged_files) == 0:
 			raise Exception("R2 reads for sample pattern " + os.path.basename(sample_path) + " were identified in directory " + sample_dir_path + ". Pipeline should start at stage 0\n")
 		elif len(paired_samples) == 0 and start_stage == 0:
 			raise Exception("R2 reads for sample pattern " + os.path.basename(sample_path) + " were not identified in directory " + sample_dir_path + ". Pipeline should start at stage 1\n")
@@ -374,16 +386,6 @@ def main(args):
 	if start_stage == 0 and number_of_N != None:
 		if number_of_N < 60:
 			print("\nWarning. Running merge reads with number_of_N smaller than 60\n")
-
-	dir_path = args.output_dir.strip()
-	if start_stage in [0, 1]:
-		if not os.path.isdir(dir_path):
-			try:
-				os.system("mkdir -p " + dir_path)
-			except:
-				raise Exception("failed to create directory " + dir_path + "\n")
-	if not os.path.isdir(dir_path):
-		raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
 
 	ref_genome = args.ref.strip()
 	if not (os.path.isfile(ref_genome) and os.path.splitext(ref_genome)[1] == '.fasta'):
@@ -472,12 +474,12 @@ def main(args):
 	
 	for stage in range(start_stage, end_stage+1):	
 		if stage == 0:
-			file_type = "merged*"
+			file_type = "merged.fastq*"
 			merged_files = FindFilesInDir(dir_path, file_type)
 			if len(merged_files) > 0 and overwrite in ["N", "n"]:
-				raise Exception("Unexpected error, merged files were found in directory" + dir_path + ". Cannot run merge_fastq_files\n")
+				raise Exception("Unexpected error, merged files were found in directory" + dir_path + ". Cannot run merge_fastq_files. To re-write add -w Y to command line\n")
 			elif len(merged_files) > 0	and overwrite in ["Y","y"]:
-				os.system("rm -rf " + dir_path + "/*.merged*")
+				os.system("rm -rf " + dir_path + "/*.merged.fastq*")
 			merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue)
 
 		if stage == 1:
@@ -486,16 +488,17 @@ def main(args):
 			file_type = ".qual"
 			quality_files = FindFilesInDir(dir_path, file_type)
 			if (len(fasta_files) > 0 or len(quality_files) > 0) and overwrite == "N":
-				raise Exception("Unexpected error, fasta and / or quality files were found in directory " + dir_path + ". Cannot run toFastaAndSplit\n")
+				raise Exception("Unexpected error, fasta and / or quality files were found in directory " + dir_path + ". Cannot run toFastaAndSplit. To re-write add -w Y to command line\n")
 			elif (len(fasta_files) > 0 or len(quality_files) > 0) and overwrite == "Y":
 				os.system("rm -rf " + dir_path + "/*.fasta " + dir_path + "/*.qual")
 
 			file_type = sample_basename_pattern + "_R2*"
 			paired_samples = FindFilesInDir(sample_dir_path, file_type)
-			file_type = sample_basename_pattern
+			file_type = "merged.fastq*"
+			merged_files = FindFilesInDir(dir_path, file_type)
 			if start_stage == 1 and len(paired_samples) == 0:	#for single-end reads use sample_dir_path to get files for split
 				sample_files = FindFilesInDir(sample_dir_path, file_type)
-			elif len(paired_samples) > 0:	#for paired-end reads use dir_path to get merged files for split
+			elif len(merged_files) > 0:		#for paired-end reads use dir_path to get merged files for split
 				sample_files = FindFilesInDir(dir_path, file_type)
 			else:
 				raise Exception("Unable to detect sample files with base name pattern " + sample_basename_pattern + " in directory\n")
@@ -507,13 +510,16 @@ def main(args):
 					input_fastq_files.append(file)
 				else:
 					raise Exception("Sample pattern " + os.path.basename(sample_path) + " is not a .gz or .fastq file")
-			if (len(input_fastq_files) > 0 and len(input_gz_files) > 0):
+			if len(input_fastq_files) > 0 and len(input_gz_files) > 0 and overwrite in ["N", "n"]:
 				raise Exception("Unexpected error, there is a mix of fastq and gz files in directory " + dir_path + "\n")
-			elif (len(input_fastq_files) == 0 and len(input_gz_files) == 0):
+			elif len(input_fastq_files) > 0 and len(input_gz_files) > 0 and overwrite in ["Y", "y"]:
+				os.system("rm -rf " + dir_path + "/*.fastq")
+				input_files = input_gz_files
+			elif len(input_fastq_files) == 0 and len(input_gz_files) == 0:
 				raise Exception("Unexpected error, there are no fastq or gz files in directory " + dir_path + "\n")
-			elif (len(input_fastq_files) > 0 and len(input_gz_files) == 0):
+			elif len(input_fastq_files) > 0 and len(input_gz_files) == 0:
 				input_files = input_fastq_files
-			elif (len(input_fastq_files) == 0 and len(input_gz_files) > 0):
+			elif len(input_fastq_files) == 0 and len(input_gz_files) > 0:
 				input_files = input_gz_files	
 			toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue)
 
@@ -521,7 +527,7 @@ def main(args):
 			file_type = ".blast"
 			blast_files = FindFilesInDir(dir_path, file_type)
 			if len(blast_files) > 0 and overwrite in ["N", "n"]:
-				raise Exception("Unexpected error, blast files were found in directory " + dir_path + ". Cannot run Blast\n")
+				raise Exception("Unexpected error, blast files were found in directory " + dir_path + ". Cannot run Blast. To re-write add -w Y to command line\n")
 			elif len(blast_files) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.blast")
 			Blast(dir_path, ref_genome, task, mode, e_value, blast_id, queue)
@@ -530,7 +536,7 @@ def main(args):
 			file_type = ".freqs"
 			freqs_files = FindFilesInDir(dir_path, file_type)
 			if len(freqs_files) > 0 and overwrite in ["N", "n"]:
-				raise Exception("Unexpected error, freqs files were found in directory " + dir_path + ". Cannot run BaseCall\n")
+				raise Exception("Unexpected error, freqs files were found in directory " + dir_path + ". Cannot run BaseCall. To re-write add -w Y to command line\n")
 			elif len(freqs_files) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.freqs* " + dir_path + "/*.good* " + dir_path + "/*.NonContributing")
 			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue)
@@ -539,7 +545,7 @@ def main(args):
 			file_type = "merge.freqs.csv"
 			merged_freqs = FindFilesInDir(dir_path, file_type)
 			if len(merged_freqs) > 0 and overwrite in ["N", "n"]:
-				raise Exception("Unexpected error, merge.freqs.csv was found in directory " + dir_path + ". Cannot run Join\n")
+				raise Exception("Unexpected error, merge.freqs.csv was found in directory " + dir_path + ". Cannot run Join. To re-write add -w Y to command line\n")
 			elif len(merged_freqs) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.merge.freqs.csv")
 			Join(pipeline_dir, dir_path, ref_genome, Coverage, queue)
