@@ -62,7 +62,7 @@ def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_pyt
         o.write("date\n")
         o.write("hostname\n")
         if load_python:
-            o.write("module load python/anaconda_python-3.6.1\n")
+            o.write("module load python/python-anaconda3.2019.7\n")
 
         o.write("\n")
         o.write(cmds)

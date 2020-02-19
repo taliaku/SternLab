@@ -689,7 +689,7 @@ def pipeline_runner(input_dir, output_dir, ref_file, NGS_or_Cirseq, TYPE_OF_INPU
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior_file=None, summary_file=None, batch=None):
+def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior_file=None, summary_file=None, batch=None, queue="adis"):
     """
     run fits currect version on cluster
     :param inference_type: the type of inference - fitness = 0, mutation rate =1, population size=2, simulate=3,
@@ -720,9 +720,9 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
         '{} {} {} {}'.format(param_file, dataset_file, posterior_file,summary_file)
 
         if batch == None:
-            script_runner(cmds, alias)
+            script_runner(cmds, alias, queue=queue)
         else:
-            array_script_runner(cmds,batch,alias)
+            array_script_runner(cmds,batch,alias, queue=queue)
 
     elif inference_type == 1: # mutation rate inference
         if posterior_file == None:
@@ -734,9 +734,9 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
         '{} {} {} {}'.format(param_file, dataset_file, posterior_file,summary_file)
 
         if batch == None:
-            script_runner(cmds, alias)
+            script_runner(cmds, alias, queue=queue)
         else:
-            array_script_runner(cmds,batch,alias)
+            array_script_runner(cmds,batch,alias, queue=queue)
 
     elif inference_type == 2:  # population size inference
         if posterior_file == None:
@@ -748,9 +748,9 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
                '{} {} {} {}'.format(param_file, dataset_file, posterior_file, summary_file)
 
         if batch == None:
-            script_runner(cmds, alias)
+            script_runner(cmds, alias, queue=queue)
         else:
-            array_script_runner(cmds, batch, alias)
+            array_script_runner(cmds, batch, alias, queue=queue)
 
     else:  # simulations
 
@@ -759,9 +759,9 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
                '{} {}'.format(param_file, dataset_file)
 
         if batch == None:
-            script_runner(cmds, alias)
+            script_runner(cmds, alias, queue=queue)
         else:
-            array_script_runner(cmds, batch, alias)
+            array_script_runner(cmds, batch, alias, queue=queue)
 
 
 
