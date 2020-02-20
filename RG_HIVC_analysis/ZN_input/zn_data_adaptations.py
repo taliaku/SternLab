@@ -5,11 +5,12 @@ import numpy as np
 import pandas as pd
 
 from RG_HIVC_analysis import constants
-from RG_HIVC_analysis.constants import excluded_patients_control
+from RG_HIVC_analysis.constants import control_excluded_patients
 
 
 def convert_freqs_to_zn_input_format():
-    freq_files = glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/control_high/*.freqs')
+    run_name = 'orig_high'
+    freq_files = glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/%s/*.freqs' % run_name)
     # freq_files = glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ET86_2s/100888_S14.freqs')
 
     for file in freq_files:
@@ -42,7 +43,7 @@ def convert_freqs_to_zn_input_format():
         counts_array = counts_df.to_numpy().astype(int).transpose()
         # print(counts_array.shape)
 
-        output_folder = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_input/snv_control_high_qual'
+        output_folder = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_input/snv_%s_qual' % run_name
         npy_file_name = os.path.splitext(os.path.basename(file))[0] + '.npy'
         path = output_folder +'/'+ npy_file_name
         print(path)
@@ -82,7 +83,7 @@ def generate_samples_tables_control():
     patients_info_table = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/control_patients_info.csv', dtype={'ind_id': str})
 
     # filtering out low quality patients\samples
-    patients_info_table = patients_info_table[~patients_info_table['ind_id'].isin(excluded_patients_control)]
+    patients_info_table = patients_info_table[~patients_info_table['ind_id'].isin(control_excluded_patients)]
 
 
     for patient_id in patients_info_table.ind_id:
@@ -103,12 +104,64 @@ def generate_samples_tables_control():
         # print(samples_table)
         samples_table.to_csv(f'/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_input/tables_control/samples_{patient_id}.tsv',index=False, sep='\t')
 
+def zn_to_freq_file():
+    zn_patients = ['p1','p2','p3','p4','p5','p6','p7','p8','p9','p10','p11']
+    for p in zn_patients:
+        print('patient: ' + p)
+        zn_sample_files = glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_rawdata/act_{}/*_days.tsv'.format(p))
+        for zn_file in zn_sample_files:
+            sample_id = os.path.splitext(os.path.basename(zn_file))[0]
+            print('sample_id: ' + sample_id)
+            zn_df = pd.read_csv(zn_file, sep='\t', skiprows=2, names=['A', 'C', 'G', 'T', '-', 'N'], header=None, index_col=False)
+
+            # add arbitrary Pos column-
+            # no need for real position for FITS
+            zn_df.reset_index(inplace=True)
+            zn_df.rename(columns={"index": "Pos"}, inplace= True)
+            zn_df['Pos'] = zn_df['Pos'] + 1
+
+            # remove N column
+            zn_df.drop(columns=['N'], inplace= True)
+
+            # sum columns to Read_count
+            zn_df['Read_count'] = zn_df['A'] + zn_df['C'] + zn_df['G'] + zn_df['T'] + zn_df['-']
+
+            # add arbitrary Ref column-
+            # transformed to real ref in unified_freqs
+            zn_df['Ref'] = 'M'
+
+            # pivot columns to Base, counts_for_position
+            # stack?
+            freq_df = zn_df.melt(id_vars=['Pos', 'Read_count', 'Ref'])
+            freq_df.rename(columns={"variable": "Base", "value": "counts_for_position"}, inplace= True)
+
+            # sort per pos
+            freq_df = freq_df.sort_values(by=['Pos', 'counts_for_position'], ascending=[True, False])
+
+            # Add Rank
+            freq_df['Rank'] = freq_df.groupby('Pos').cumcount()
+
+            # add Prob = 1
+            freq_df['Prob'] = 1.00
+
+            # Normalize counts to freqs (according to Read_count)
+            freq_df['Freq'] = freq_df['counts_for_position'] / freq_df['Read_count']
+
+            # columns to right order
+            freq_df = freq_df[['Pos','Base','Freq','Ref','Read_count','Rank','Prob']]
+
+            # export to freqs file
+            freq_df.to_csv(f'/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_rawdata/freq_files/{p}_{sample_id}.freqs', index=False, sep='\t')
+
+
 
 
 if __name__ == "__main__":
     # generate_samples_tables()
-    generate_samples_tables_control()
+    # generate_samples_tables_control()
 
     # convert_freqs_to_zn_input_format()
     # aft = np.load('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_input/single_nucleotide_variants/100888_S14.npy')
     # print(len(aft.argmax(axis=0)))
+
+    zn_to_freq_file()
