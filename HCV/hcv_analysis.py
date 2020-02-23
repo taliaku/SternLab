@@ -106,6 +106,12 @@ df['rb'] = df.Ref + df.Base
 df.loc[df['rb'].isin(['AG', 'GA', 'CT', 'TC']), 'transition_transversion'] = 'transition'
 df.loc[df['rb'].isin(['AC', 'AT', 'CA', 'CG', 'TA', 'TG', 'GT', 'GC']), 'transition_transversion'] = 'transversion'
 
+
+
+
+
+
+
 ### synonymous non-synonymous plot
 fig, axes = plt.subplots(nrows=4, ncols=6)
 fig.set_size_inches(25,18)
@@ -432,8 +438,9 @@ columns_order = ['full_mutation', 'Patient 1', 'Patient 2', 'Patient 3',
                  'Patient 5', 'Patient 6', 'Patient 7', 'Patient 8',
                  'Patient 9', 'Patient 10', 'Patient 11', 'Patient 12', 'Source']
 to_pivot = to_pivot.rename(columns=pd.Series(infection_order.paper_name.values,index=infection_order.Sample).to_dict())
-to_pivot[to_pivot['Source'] >= 0.09][columns_order].round(4).sort_values('Source', ascending=False).to_excel('X:/volume2/noam/hcv/mutations_over_0.1.compact.xlsx', index=False)
- 
+to_pivot[to_pivot['Source'] >= 0.09][columns_order].round(4).sort_values('Source', ascending=False).to_excel('X:/volume2/noam/hcv/mutations_over_0.09.order_names.compact.xlsx', index=False)
+to_pivot[to_pivot['Source'] >= 0.01][columns_order].round(4).sort_values('Source', ascending=False).to_excel('X:/volume2/noam/hcv/mutations_over_0.01.order_names.compact.xlsx', index=False)
+
 
 
 
@@ -442,12 +449,12 @@ df = pd.read_csv('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimiz
 #mutation_type = pd.read_csv('X:/volume2/noam/hcv/references/D90208.1_optimized4.mutation_type.peptides.csv')
 df = df[(df.Sample != 'HCV-P12')]
 df = df[df.Pos.isin(range(738,2758))]
-df['mutation'] = df.Ref + df.Pos.astype(str) + df.Base
-mutations_to_keep = df[(df.Ref != df.Base) & (df.Ref != '-') & (df.Freq > 0.09) & (df['Sample'] == 'HCV-PS2')][['mutation']].drop_duplicates()
-mutations_to_keep = pd.merge(mutations_to_keep, df, on=['mutation'])
+df['full_mutation'] = df.Ref + df.Pos.astype(int).astype(str) + df.Base
+mutations_to_keep = df[(df.Ref != df.Base) & (df.Ref != '-') & (df.Freq > 0.09) & (df['Sample'] == 'HCV-PS2')][['full_mutation']].drop_duplicates()
+mutations_to_keep = pd.merge(mutations_to_keep, df, on=['full_mutation'])
 mutations_to_keep = mutations_to_keep[~mutations_to_keep.Sample.isin(['HCV-P2-1', 'HCV-P3-1', 'HCV-P5-1', 'HCV-P6-1', 'HCV-P7-2', 'HCV-P8-1', 'HCV-P8-2', 'HCV-P9-2', 'HCV-P11-1'])]
-to_pivot = mutations_to_keep.pivot_table(values='Freq', index=['mutation'], columns='Sample')
-to_pivot = to_pivot.rename(columns=pd.Series(infection_order.paper_name.values,index=infection_order.Sample).to_dict())
+to_pivot = mutations_to_keep.pivot_table(values='Freq', index=['full_mutation'], columns='Sample')
+#to_pivot = to_pivot.rename(columns=pd.Series(infection_order.paper_name.values,index=infection_order.Sample).to_dict())
 sns.clustermap(to_pivot)
 
 
@@ -486,11 +493,25 @@ strain_blue = ['G1493A',
  'T2715C',
  'T2050C',
  'C2381T']
+to_pivot = to_pivot.reset_index()
+to_pivot = to_pivot.rename(columns={'HCV-PS2':'Source'})
 strain_blue = to_pivot[to_pivot.full_mutation.isin(strain_blue)]
 strain_grey = to_pivot[to_pivot.full_mutation.isin(strain_grey)]
-columns_order = ['Patient 1', 'Patient 2', 'Patient 3', 
-                 'Patient 5', 'Patient 6', 'Patient 7', 'Patient 8',
-                 'Patient 9', 'Patient 10', 'Patient 11', 'Patient 12', 'Source']
+#columns_order = ['Patient 1', 'Patient 2', 'Patient 3', 
+#                 'Patient 5', 'Patient 6', 'Patient 7', 'Patient 8',
+#                 'Patient 9', 'Patient 10', 'Patient 11', 'Patient 12', 'Source']
+columns_order = ['Source',
+ 'HCV-P8',
+ 'HCV-P1',
+ 'HCV-P11',
+ 'HCV-P7',
+ 'HCV-P4',
+ 'HCV-P3',
+ 'HCV-P5',
+ 'HCV-P2',
+ 'HCV-P6',
+ 'HCV-P9',
+ 'HCV-P10',]
 #strain_blue.loc[strain_blue['Source'] < 0.04, c] = 0
 #strain_grey.loc[strain_grey['Source'] < 0.04, c] = 0
 
@@ -516,13 +537,14 @@ for c in columns_order:
     axes[i].set_title(title, fontsize=10)
     axes[i].set_xlabel('')
     axes[i].set_ylabel('')
+    axes[i].set_ylim(0,1)
     i += 1
 correlations = pd.DataFrame(correlations, columns=['Sample', 'strain', 'r_value', 'pvalue', 'slope'])
 axes[9].legend(loc='center', bbox_to_anchor=(1, -0.7), fontsize=16, ncol=2)
 fig.text(0.5, 0.04, 'Mutation Frequency in Source', ha='center', va='center', fontsize=16)
 fig.text(0.06, 0.5, 'Mutation Frequency in Sample', ha='center', va='center', rotation='vertical', fontsize=16)
 fig.savefig('X:/volume2/noam/hcv/intra_strain_correlations.png' , bbox_inches='tight', dpi=800)
-
+correlations.to_csv('X:/volume2/noam/hcv/intra_strain_correlations.csv', index=False)
 
 
 
