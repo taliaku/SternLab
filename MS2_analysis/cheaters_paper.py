@@ -146,7 +146,55 @@ def c3000_helper(input_plate_reader_excel_c3000, c3000_columns, input_plate_read
     return
 
 c3000_helper('X:/volume2/noam/lysis/Lysis 1.4.19 (0001).xls', ['B1', 'B2', 'B3'], 'X:/volume2/noam/lysis/Helper13.5.19 (0001).xls', ['B1', 'B2', 'B3'], 'X:/volume2/noam/lysis/c3000_vs_helper.png')    
+
+
+  
+
+# lysis main text
+
+def lysis_main_text(input_plate_reader_excel, input_mapping_excel, output) :    
+    plt.style.use('default')
+    #if not os.path.isdir(output_directory + '/triplicates'):
+    #    os.mkdir(output_directory + '/triplicates')
+    #if not os.path.isdir(output_directory + '/samples'):
+    #    os.mkdir(output_directory + '/samples')
+    lysis = pd.read_excel(input_plate_reader_excel, header=4)
+    lysis = lysis[~(lysis.apply(lambda row: row.astype(str).str.contains('\?').any(), axis=1))]
+    lysis['kinetic_read'] = pd.to_datetime(lysis['Kinetic read'], format='%H:%M:%S').dt.time
+    mapping = pd.read_excel(input_mapping_excel)
+    mapping['plate_reader_columns'] = mapping.plate_reader_columns.str.split(',')
+    for s in mapping.sample_name.tolist():
+        sample_columns = mapping[mapping.sample_name == s].iloc[0]['plate_reader_columns']
+        data = lysis[['kinetic_read'] + sample_columns]
+        #fig, axes = plt.subplots(nrows=1, ncols=1)
+        #data.plot(x='kinetic_read', ax=axes, xticks=range(0, 3600*6 + 1, 3600), legend=False)
+        #axes.set_title(s)
+        #axes.xaxis.set_tick_params(rotation=45)
+        #fig.legend(loc='center right')
+        #fig.savefig(output_directory + '/triplicates/' + s + '.png', dpi=800, bbox_inches='tight')
+        lysis[s] = data[sample_columns].mean(axis=1)
+    fig, axes = plt.subplots(nrows=2, ncols=1)
+    for gn, a in zip(mapping.graph_name.drop_duplicates().tolist(), axes):
+        lysis2 = lysis[['kinetic_read'] + mapping[mapping.graph_name == gn].sample_name.tolist()]
+        lysis2.plot(x='kinetic_read', ax=a, xticks=range(0, 3600*6 + 1, 3600), legend=False, cmap='Dark2')        
+        a.set_ylabel('', fontsize=14)
+        a.xaxis.set_tick_params(rotation=45)
+        #a.set_xticklabels(labels=['0','1','2','3','4','5','6'])
+        a.set_title(gn.replace('37', 'Line '))
+        a.set_xlabel('', fontsize=14)
+    fig.text(-0.05, 0.5, 'O.D.600', va='center', rotation='vertical', fontsize = 14)
+    a.set_xlabel('Time Post Infection (hrs)', fontsize=14)
+    plt.subplots_adjust(hspace=0.7)
     
+    handles, labels = a.get_legend_handles_labels()
+    labels = [x.split('-')[0] for x in labels]
+    a.legend(labels=labels, loc='center left', bbox_to_anchor=(1.05, 1.2))
+    
+    #fig.legend(loc='center left', bbox_to_anchor=(1.05, 0.5))
+    fig.set_size_inches(3, 4)
+    fig.savefig(output, dpi=800, bbox_inches='tight')
+
+lysis_main_text('X:/volume2/noam/lysis/Lysis 1.4.19 (0001).xls', 'X:/volume2/noam/lysis/map_c3000_1.4.xlsx', 'X:/volume2/noam/lysis/c3000/lysis_main_text.png')
 
 
 
@@ -156,6 +204,7 @@ def create_mutations_graph(df, mutations_list, output_file, title=None):
     """
     This function gets a df of freq files, a list of mutations and a path to save graph to.
     """
+    plt.style.use('ggplot')
     fig, axes = plt.subplots(nrows=1, ncols=2)
     axes = axes.flatten()
     for sample, a in zip(['37A', '37B'], axes):
@@ -164,27 +213,27 @@ def create_mutations_graph(df, mutations_list, output_file, title=None):
                 for m in mutations_list:
                     df_line_mutation = df_line[(df_line.Pos == float(m[1:-1])) & (df_line.Base == m[-1])].sort_values('Time')
                     if m in COLORS:
-                        a.plot('Time', 'Freq', data = df_line_mutation, marker='.', linestyle='-', label = m.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'), color=COLORS[m])
+                        a.plot('Time', 'Freq', data = df_line_mutation, linestyle='-', marker='.', label = m.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'), color=COLORS[m])
                     else:
-                        a.plot('Time', 'Freq', data = df_line_mutation, marker='.', linestyle='-', label = m)
-                a.set_ylim(top=1, bottom=0)
-                a.set_title('Line ' + sample.replace('37', ''), fontsize=18)
-                a.set_xlabel('Time (Passages)', fontsize=14)
-                a.set_ylabel('Mutation Frequency', fontsize=14)
+                        a.plot('Time', 'Freq', data = df_line_mutation, linestyle='-', marker='.', label = m)
+                a.set_ylim(top=0.8, bottom=0)
+                a.set_yticks([0.0,0.2,0.4,0.6,0.8])
+                a.set_title('Line ' + sample.replace('37', ''), fontsize=16)
+                a.set_xlabel('Time (Passages)', fontsize=14, color='black')
+                a.set_ylabel('Mutation Frequency', fontsize=14, color='black')
                 #a.minorticks_on()
                 #a.grid(which='minor', alpha=0.2)
-                a.grid(which='major', alpha=0.7)
-                a.set_xticks([1,3,5,7,9,11,13,15])
+                #a.grid(which='major', alpha=0.7)
+                #a.set_xticks([1,3,5,7,9,11,13,15])
     a.set_ylabel('', fontsize=14)
     fig.set_size_inches(8, 3)
     if title:
         fig.set_title(title)
     #plt.subplots_adjust(wspace=0.3, hspace=0.4)
-    plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
+    plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0, facecolor='white', edgecolor='white')
     plt.savefig(output_file, bbox_inches='tight', dpi=800)
     plt.show()
     return
-
 
 joined = pd.read_csv('X:/volume2/noam/passages/201908_w_2019_passages/old_passages/all_freqs.csv')
 joined['Full_mutation'] = joined.Ref + joined.Pos.astype(str) + joined.Base
@@ -203,6 +252,7 @@ def create_mutations_graph2(df, mutations_list, output_file, title=None):
     """
     This function gets a df of freq files, a list of mutations and a path to save graph to.
     """
+    plt.style.use('ggplot')
     fig, axes = plt.subplots(nrows=1, ncols=2)
     axes = axes.flatten()
     for sample, a in zip(['37A', '37B'], axes):
@@ -214,21 +264,22 @@ def create_mutations_graph2(df, mutations_list, output_file, title=None):
                         a.plot('Time', 'Freq', data = df_line_mutation, marker='.', linestyle='-', label = m.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'), color=COLORS[m])
                     else:
                         a.plot('Time', 'Freq', data = df_line_mutation, marker='.', linestyle='-', label = m)
-                a.set_ylim(top=1, bottom=0)
-                a.set_title('Line ' + sample.replace('37', ''), fontsize=18)
-                a.set_xlabel('Time (Passages)', fontsize=14)
-                a.set_ylabel('Mutation Frequency', fontsize=14)
+                a.set_ylim(top=0.8, bottom=0)
+                a.set_yticks([0.0,0.2,0.4,0.6,0.8])
+                a.set_title('Line ' + sample.replace('37', ''), fontsize=16)
+                a.set_xlabel('Time (Passages)', fontsize=14, color='black')
+                a.set_ylabel('Mutation Frequency', fontsize=14, color='black')
                 #a.minorticks_on()
                 #a.grid(which='minor', alpha=0.2)
-                a.grid(which='major', alpha=0.7)
+                #a.grid(which='major', alpha=0.7)
                 #a.set_xticks([1,3,5,7,9,11,13,15,17])
-                a.set_xticks(range(0,25,3))
+                #a.set_xticks(range(0,25,3))
     a.set_ylabel('', fontsize=14)
     fig.set_size_inches(8, 3)
     if title:
         fig.set_title(title)
     #plt.subplots_adjust(wspace=0.3, hspace=0.4)
-    plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
+    plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0, facecolor='white', edgecolor='white')
     plt.savefig(output_file, bbox_inches='tight', dpi=800)
     plt.show()
     return
@@ -255,10 +306,11 @@ create_mutations_graph2(df, mutations, 'X:/volume2/noam/passages/201909/mutation
 
 ##########
 # diverging_mois
-def create_mutations_graph3(df, mutations_list, output_file, title=None):
+def create_mutations_graph3(df, mutations_list, output_file, moi, title=None):
     """
     This function gets a df of freq files, a list of mutations and a path to save graph to.
     """
+    plt.style.use('ggplot')
     fig, axes = plt.subplots(nrows=1, ncols=2)
     axes = axes.flatten()
     for sample, a in zip(['A', 'B'], axes):
@@ -270,21 +322,31 @@ def create_mutations_graph3(df, mutations_list, output_file, title=None):
                         a.plot('Time', 'Freq', data = df_line_mutation, marker='.', linestyle='-', label = m.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'), color=COLORS[m])
                     else:
                         a.plot('Time', 'Freq', data = df_line_mutation, marker='.', linestyle='-', label = m)
-                a.set_ylim(top=1, bottom=0)
-                a.set_title('Line ' + sample.replace('37', ''), fontsize=18)
-                a.set_xlabel('Time (Passages)', fontsize=14)
-                a.set_ylabel('Mutation Frequency', fontsize=14)
+                a.set_ylim(top=0.8, bottom=0)
+                a.set_yticks([0.0,0.2,0.4,0.6,0.8])
+                a.set_title('Line ' + sample.replace('37', ''), fontsize=16)
+                a.set_xlabel('Time (Passages)', fontsize=14, color='black')
+                a.set_ylabel('Mutation Frequency', fontsize=14, color='black')
                 #a.minorticks_on()
                 #a.grid(which='minor', alpha=0.2)
-                a.grid(which='major', alpha=0.7)
-                a.set_xticks([1,3,5,7,9,11,13,15,16])
+                #a.grid(which='major', alpha=0.7)
+                a.set_xticks([5,10,15,16])
+                a.xaxis.set_tick_params(rotation=45)
+                a.axvspan(15, 17, facecolor='#B5DF8B', alpha=0.5)
+                a.set_xlim(0,17)
+                
+    
+    patch2 = mpatches.Patch(color='#9BBD78', label='MOI ' + moi, alpha=0.7)
+    patch1 = mpatches.Patch(color='#ECEBEB', label='MOI 1')
+    lgd2 = axes[0].legend(bbox_to_anchor=(1.1, -0.4), handles=[patch1, patch2], loc='lower center', borderaxespad=0, facecolor='white', edgecolor='white', ncol=2)
+    
     a.set_ylabel('', fontsize=14)
     fig.set_size_inches(8, 3)
     if title:
         fig.set_title(title)
     #plt.subplots_adjust(wspace=0.3, hspace=0.4)
-    plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
-    plt.savefig(output_file, bbox_inches='tight', dpi=800)
+    lgd = plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0, facecolor='white', edgecolor='white')
+    plt.savefig(output_file, bbox_inches='tight', dpi=800)#, bbox_extra_artists=[lgd,lgd2])
     plt.show()
     return
 
@@ -309,7 +371,7 @@ mutations = moi_01_16[(moi_01_16.Base != moi_01_16.Ref) & (moi_01_16.Ref != '-')
 mutations.remove('G1554.0A')
 mutations.remove('C224.0T')
 mutations.remove('C3299.0T')
-create_mutations_graph3(moi_01_16, mutations, 'X:/volume2/noam/passages/201908_w_2019_passages/diverging_mois/p16_moi_0.1_no11,12,14.png')
+create_mutations_graph3(moi_01_16, mutations, 'X:/volume2/noam/passages/201908_w_2019_passages/diverging_mois/p16_moi_0.1_no11,12,14.png', '0.1')
 
 
 
@@ -329,7 +391,55 @@ mutations = moi_001_16[(moi_001_16.Base != moi_001_16.Ref) & (moi_001_16.Ref != 
 mutations.remove('G1554.0A')
 mutations.remove('C224.0T')
 mutations.remove('C3299.0T')
-create_mutations_graph3(moi_001_16, mutations, 'X:/volume2/noam/passages/201908_w_2019_passages/diverging_mois/p16_moi_0.01_no11,12,14.png')
+create_mutations_graph3(moi_001_16, mutations, 'X:/volume2/noam/passages/201908_w_2019_passages/diverging_mois/p16_moi_0.01_no11,12,14.png', '0.01')
+
+############# 20 plaques
+# get original mutations
+joined = pd.read_csv('X:/volume2/noam/passages/201908_w_2019_passages/old_passages/all_freqs.csv')
+joined['Full_mutation'] = joined.Ref + joined.Pos.astype(int).astype(str) + joined.Base
+joined = joined[(joined.Time <= 15) & (joined.Degree == 37)]
+joined = joined[~joined.Time.isin([11, 12, 14])]
+mutations = joined[(joined.Base != joined.Ref) & (joined.Ref != '-') & ~(joined.Pos.isin(n)) & (joined.Freq >= 0.1)].sort_values('Freq', ascending=False)[['Full_mutation']].drop_duplicates()
+mutations = mutations[~(mutations.Full_mutation.isin(['C3299T', 'G1554A', 'C224T']))]
+
+df = pd.read_csv('X:/volume2/noam/plaques_40/all_freqs.csv')
+df['Full_mutation'] = df.Ref + df.Pos.astype(int).astype(str) + df.Base
+df['Line'] = df.Sample.str.split('_').str[1]
+df = df[df.Line.str.contains('37')]
+df = pd.merge(mutations, df, on='Full_mutation')
+
+df = df[(df.Freq > 0.8)].groupby(['Line', 'Full_mutation']).Sample.count().reset_index()
+df = df.rename(columns={'Sample':'Plaque_freq'})
+df['Plaque_freq'] = df.Plaque_freq / 10
+
+mutations37A = mutations.copy()
+mutations37A['Line'] = '37A'
+mutations37B = mutations.copy()
+mutations37B['Line'] = '37B'
+df = pd.merge(df, pd.concat([mutations37A, mutations37B]), how='right', on=['Line', 'Full_mutation'])
+df = df.fillna(0)
+df['Line'] = 'Line ' + df['Line'].str.replace('37', '')
+
+df['Full_mutation'] = df.Full_mutation.str.replace('T', 'U').str.replace('U1764-', '$\Delta$1764')
+
+fig, axes = plt.subplots(nrows=1, ncols=2)
+for sample, a in zip(['Line A', 'Line B'], axes):
+    sns.stripplot(x='Line', y='Plaque_freq', hue='Full_mutation', data=df[(df.Line==sample) & (df.Plaque_freq != 0)], jitter=0, size=7, palette={i.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'):COLORS[i] for i in COLORS}, ax=a)
+    sns.stripplot(x='Line', y='Plaque_freq', hue='Full_mutation', data=df[(df.Line==sample) & (df.Plaque_freq == 0)], jitter=0.2, size=7, palette={i.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'):COLORS[i] for i in COLORS}, ax=a, alpha=0.3)
+    a.set_ylabel('Plaque Frequency')
+    a.set_xlabel('')
+    a.minorticks_on()
+    a.grid(which='major', alpha=0.7, axis='y')
+    a.get_legend().remove()
+    a.set_ylim(-0.05,0.5)
+    #a.set_title(sample.replace('_', ' '))
+a.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
+a.set_ylabel('')
+fig.set_size_inches(4, 2.5)
+fig.subplots_adjust(wspace=0.4)
+fig.savefig('X:/volume2/noam/plaques_40/37_plaques_new3.png', bbox_inches='tight', dpi=800)
+
+
 
 
 ################# coverage plots
