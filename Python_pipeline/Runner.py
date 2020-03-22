@@ -119,7 +119,7 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 
 	if len(R1_files) != len(R2_files) or len(R1_files) != num_of_expected_merged_files:
 		raise Exception("Number of R1 sample files " + str(len(R1_files)) + " is different than number of R2 sample files " + str(len(R2_files)) + \
-						" or from the number of expected merged files " + num_of_expected_merged_files + "\n")
+						" or from the number of expected merged files " + str(num_of_expected_merged_files) + "\n")
 
 	files_to_merge_list = []
 	for i in range(num_of_expected_merged_files):
