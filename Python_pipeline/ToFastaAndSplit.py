@@ -43,9 +43,9 @@ def SplitToSmallerFiles(dir_path, FilePath, Num_reads_per_file):
 	ReadCount = 1
 	File_counter = 1
 	Bases = ['A', 'T', 'C', 'G', 'N']    
-	ASCII_signs = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', \
-            '!', '"', '#', '$', '%', '&',"'", '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '@', '?'] 
-	
+	ASCII_signs = ['!', '"', '#', '$', '%', '&',"'", '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', \
+				   ':', ';', '<', '=', '>', '@', '?', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R',]
+
 	split_file_basename = dir_path + "/" + os.path.basename(FilePath).split(".fastq")[0]
 	with open(FilePath, 'rt') as ReadRecords:
 		while File_counter <= Num_files: 

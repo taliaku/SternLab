@@ -90,7 +90,7 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
     if len(project_samples) == 0:
         raise Exception("Unexpected error, input directory " + input_dir + " is empty\n")
 
-    file_type = os.path.basename(project_samples[0]).split('L001')[0] + "*"
+    file_type = os.path.basename(project_samples[0]).split('L001')[0] + "*" # pattern extraction logic- 'pattern_L00*_R*.fastq'
     Lanes = len(FindFilesInDir(input_dir, file_type))
 
     samples_list = []

@@ -7,7 +7,7 @@ from optparse import OptionParser
 def merger_generator(forward_handle,reverse_handle, rep_length):
     for a, b in zip (SeqIO.parse(forward_handle, "fastq"),SeqIO.parse(reverse_handle, "fastq")):
         if (a.id.split(" ")[0] !=  b.id.split(" ")[0]):
-                    print("Problem:" + str(i))
+                print("Problem, discrepancy in pair id's: {}, {}".format(a.id.split(" ")[0], b.id.split(" ")[0]))
         new_seq_id=a.id.split(" ")[0]
         new_seq_str = str(a.seq) + ("N"*rep_length) + str(b.seq)
         a_quals=a.letter_annotations["phred_quality"]

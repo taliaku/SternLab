@@ -110,9 +110,9 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 
 	R1_files = [];	R2_files = []
 	for file in files_to_merge:
-		if "R1" in file:
+		if "_R1" in file:
 			R1_files.append(file)
-		elif "R2" in file:
+		elif "_R2" in file:
 			R2_files.append(file)
 		else:
 			raise Exception("File" + file + "does not contain R1 or R2 in sample name. Unable to merge file\n")
@@ -123,7 +123,7 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 
 	files_to_merge_list = []
 	for i in range(num_of_expected_merged_files):
-		output_file_basename = os.path.basename(files_to_merge[2*i]).replace('_001', '').replace('R1', 'merged')
+		output_file_basename = os.path.basename(files_to_merge[2*i]).replace('_001', '').replace('_R1', '_merged')
 		files_to_merge_list.extend((files_to_merge[2*i], files_to_merge[2*i+1], dir_path + "/" + output_file_basename))
 
 	if num_of_expected_merged_files == 1:
@@ -497,8 +497,11 @@ def main(args):
 			file_type = "merged.fastq*"
 			merged_files = FindFilesInDir(dir_path, file_type)
 			if start_stage == 1 and len(paired_samples) == 0:	#for single-end reads use sample_dir_path to get files for split
+				file_type = ".fastq*"
+				print("Single-end read, fetching files from {}\n".format(sample_dir_path))
 				sample_files = FindFilesInDir(sample_dir_path, file_type)
 			elif len(merged_files) > 0:		#for paired-end reads use dir_path to get merged files for split
+				print("Paired-end read, fetching files from {}\n".format(dir_path))
 				sample_files = FindFilesInDir(dir_path, file_type)
 			else:
 				raise Exception("Unable to detect sample files with base name pattern " + sample_basename_pattern + " in directory\n")

@@ -66,7 +66,7 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Minimal_insertion_c
 	data["probability"] = round(1 - np.power(10,np.log10(1-data["frequency"]+1e-07)*(data["coverage"]+1)),2)
 	#Get ranks
 	pd.DataFrame.reset_index(data, level = [0,1,2], inplace = True)
-	pd.DataFrame.sort_values(data, by = ['ref_position', 'frequency'], ascending = [True, False], inplace = True)
+	pd.DataFrame.sort_values(data, by = ['ref_position', 'frequency', 'base'], ascending = [True, False, False], inplace = True)
 	data["coverage_to_set_rank"] = np.where(data["coverage"] > 0, 1, 0)
 	data["rank"] = (pd.Series.cumsum(pd.Series(data["coverage_to_set_rank"])) - 1) % 5
 	del data["coverage_to_set_rank"]

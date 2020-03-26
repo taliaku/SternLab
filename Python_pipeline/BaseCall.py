@@ -80,7 +80,7 @@ def create_ref_seq (ref_FilePath):
 		if ref_genome[i] in ['A','C','G','T']:
 			REF_GENOME[i+1] = ref_genome[i]
 		else:
-			raise Exception("Found a non valid DNA letter in position " + ref_genome[i+1] + " of the reference genome\n")
+			raise Exception("Found a non valid DNA letter [{}] in position [{}] of the reference genome".format(ref_genome[i], i+1))
 		
 	return REF_GENOME    
 
@@ -327,7 +327,7 @@ def calculate_read_id_contribution (READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_C
 							if ref_position not in TOTAL_BASE_CALL_COUNTER:
 								TOTAL_BASE_CALL_COUNTER[ref_position] = [0, 0, 0, 0, 0, 0] #TOTAL_BASE_CALL_COUNTER[ref_position] = [Total_counter, A_counter, C_counter, G_counter, T_counter, -_counter] 
 							Base_position = BASE_POSITION.get(base)
-							TOTAL_BASE_CALL_COUNTER[ref_position][Base_position] += 1	
+							TOTAL_BASE_CALL_COUNTER[ref_position][Base_position] += 1
 							TOTAL_BASE_CALL_COUNTER[ref_position][counter] += 1 
 							Total_base_counter_per_read_id += 1 
 							if len(READ_ID_BASE_CALL_COUNTER[ref_position][base][mutation_positions]) > 0:
