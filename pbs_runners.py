@@ -5,6 +5,7 @@ import os
 from os import path
 from seqFileTools import convert_fasta_to_phylip, get_longest_sequence_name_in_fasta
 from file_utilities import set_filenames_for_pbs_runs, check_filename, check_dirname
+from beast_utilities import configure_log_path
 
 def baseml_runner(ctl, alias = "bml"):
     """
@@ -573,7 +574,7 @@ def r4s_runner(tree_file, seq_file, outfile, dirname, tree_outfile=None, unormel
                                                             + " -l " + log_outfile\
                                                             + " -Mh -k " + n_categories
 
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, queue="adis")# added change
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -771,5 +772,136 @@ def dirSel_runner(dirSel_params, dirSel_path="/sternadi/home/volume1/taliakustin
     cmd = "%s %s" % (dirSel_path, dirSel_params)
     cmds = "echo %s \n%s" %(cmd, cmd)
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+
+def threeseq_runner(alignment, alias = "3seq", identifier = None, start=0, end=-1):
+    """
+    run 3seq on cluster
+    :param alignment: alignment file path, fasta or phylip
+    :param alias: job name (default: 3seq)
+    :param identifier: default None. run id, if not provided the program will automatically generate an id
+    :param start: start position for recombination detection, default 0
+    :param end: end position for recombination detection, default -1
+    :return: job id
+    """
+    alignment = check_filename(alignment)
+
+    cmdfile = pbs_jobs.get_cmdfile_dir("3seq", alias); tnum = 1; gmem = 2
+    if identifier != None:
+        if end > 0:
+            if start >= end:
+                raise Exception ("end should be larger than start")
+            else:
+                cmds = "/sternadi/home/volume1/shared/tools/3seq_build_170612/3seq -f {} -d -id {}" \
+                       "-f{} -l{} -p".format(alignment, identifier, start, end)
+        else:
+            cmds = "/sternadi/home/volume1/shared/tools/3seq_build_170612/3seq -f {} -d -id {} -p".format(alignment, identifier)
+    else: # no identifier
+        if end > 0:
+            if start >= end:
+                raise Exception("end should be larger than start")
+            else:
+                cmds = "/sternadi/home/volume1/shared/tools/3seq_build_170612/3seq -f {} -d -id-auto" \
+                       "-f{} -l{} -p".format(alignment, start, end)
+        else:
+            cmds = "/sternadi/home/volume1/shared/tools/3seq_build_170612/3seq -f {} -d -id-auto -p".format(alignment)
+
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+def r4s_runner_aln(tree_file, seq_file, outfile, dirname, tree_outfile=None, unormelized_outfile=None, log_outfile=None, \
+               ref_seq = None, alias = "r4s"):
+    """
+    run r4site on cluster
+    :param tree_file: input tree file path
+    :param seq_file: input sequence file path
+    :param outfile: outfile path
+    :param dirname: dirname for ouput files
+    :param tree_outfile: output tree file path (default: None)
+    :param unormelized_outfile: unormelized rated output file (default: None)
+    :param log_outfile: output log file (default: None)
+    :param alias: job name (default: r4s)
+    :return: job id
+    """
+    tree_file = check_filename(tree_file)
+    seq_file = check_filename(seq_file)
+    dirname = check_dirname(dirname)
+
+    if tree_outfile != None:
+        tree_outfile = check_filename(tree_outfile, Truefile=False)
+    else:
+        tree_outfile = dirname + "/" + "out-tree"
+    if unormelized_outfile != None:
+        unormelized_outfile = check_filename(unormelized_outfile, Truefile=False)
+    else:
+        unormelized_outfile = dirname + "/out-unormelized"
+    if log_outfile != None:
+        log_outfile = check_filename(log_outfile, Truefile=False)
+    else:
+        log_outfile = dirname + "/out-log"
+
+
+    cmdfile = pbs_jobs.get_cmdfile_dir("r4s_cmd.txt", alias); tnum = 1; gmem = 2
+    ref_seq_parameter = " -a " + ref_seq if ref_seq is not None else ""
+    if tree_file !=None:
+        cmds = "/sternadi/home/volume1/daniellem1/software/rate4site.3.2.source/sourceMar09/rate4site"\
+                                                            + " -t " + tree_file\
+                                                            + " -s " + seq_file\
+                                                            + " -o " + outfile\
+                                                            + ref_seq_parameter \
+                                                            + " -x " + tree_outfile\
+                                                            + " -y " + unormelized_outfile\
+                                                            + " -V 10"\
+                                                            + " -l " + log_outfile\
+
+    else:
+        cmds = "/sternadi/home/volume1/daniellem1/software/rate4site.3.2.source/sourceMar09/rate4site"\
+                                                            + " -s " + seq_file\
+                                                            + " -o " + outfile \
+                                                            + ref_seq_parameter\
+                                                            + " -x " + tree_outfile\
+                                                            + " -y " + unormelized_outfile\
+                                                            + " -V 10"\
+                                                            + " -l " + log_outfile\
+
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+
+def beast_runner(xml_config, logpath=None, outlogfile=None, multi_thread=True, gpu=False, alias="beast",ncpus=4, ngpus=4, gmem=2):
+    """
+    run beast on cluster - output as pipeline - format 6
+    :param seqfile: sequence file path
+    :param dbfile: db file
+    :param outfile: output file path
+    :param alias: job name (blast)
+    :return: job id
+    """
+    xml_config = check_filename(xml_config)
+    beast_loc = "/sternadi/home/volume1/shared/tools/BEASTv1.10.4"
+
+    if logpath != None:
+        configure_log_path(xml_config, logpath, outlogfile)
+
+    cmdfile = pbs_jobs.get_cmdfile_dir("beast_cmd", alias)
+    if gpu:
+        cmds = f"module load beagle-lib\n\
+                cd {beast_loc}\n\
+                ./bin/beast -beagle -beagle_GPU -beagle_cuda {xml_config}"
+        pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, gmem=gmem, cmds=cmds, ngpus=ngpus)
+    elif multi_thread:
+        cmds = f"module load beagle-lib\n\
+                cd {beast_loc}\n\
+                ./bin/beast -beagle {xml_config}"
+        pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, gmem=gmem, cmds=cmds, ncpus=ncpus)
+    else:
+        cmds = f"module load beagle-lib\n\
+                cd {beast_loc}\n\
+                ./bin/beast {xml_config}"        
+        pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
