@@ -46,10 +46,14 @@ def create_pbs_cmd(cmdfile, alias, queue="adis", gmem=2, ncpu=1, ngpu=1, cmds=""
     o.close()
 
 
+<<<<<<< HEAD
 def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=2, cmds="", dir="", load_python=False):
+=======
+def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_python=False, queue="adis"):
+>>>>>>> e7c580e7305522d9e27dbe19bd2d4d0648bfad58
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
-        o.write("#PBS -q adis\n")
+        o.write("#PBS -q %s\n" % queue)
         o.write("#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH \n")
         o.write("#PBS -N " + alias + "\n")
         if alias in cmdfile and datetime.datetime.today().strftime('%Y-%m') in cmdfile:
@@ -68,7 +72,7 @@ def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=2, cmds="", dir="", load_pyt
         o.write("date\n")
         o.write("hostname\n")
         if load_python:
-            o.write("module load python/anaconda_python-3.6.1\n")
+            o.write("module load python/python-anaconda3.2019.7\n")
 
         o.write("\n")
         o.write(cmds)
@@ -104,7 +108,7 @@ def check_pbs(job_id):
 
 def get_cmdfile_dir(cmdfile, alias):
     username = getpass.getuser()
-    lab_users_dic = {"taliakustin":"/sternadi/home/volume1/taliakustin/temp", "daniellem1":"/sternadi/home/volume1/daniellem1/temp", "okushnir": "/sternadi/home/volume3/okushnir/running", "omertirosh": "/sternadi/home/volume3/omer/logs"}
+    lab_users_dic = {"taliakustin":"/sternadi/home/volume1/taliakustin/temp", "daniellem1":"/sternadi/home/volume1/daniellem1/temp", "okushnir": "/sternadi/home/volume3/okushnir/running", "omertirosh": "/sternadi/home/volume3/omer/logs", 'noamharel':'/sternadi/home/volume2/noam/logs'}
     if username in lab_users_dic.keys():
         tmp_dir = lab_users_dic[username]
         if not os.path.exists(tmp_dir):

@@ -100,7 +100,6 @@ def translate_file(filename, outfile = None, in_format="fasta"):
     filename = check_filename(filename)
     dataset = list(SeqIO.parse(filename, in_format))
     for seq in dataset:
-        print (seq.name, len(seq.seq))
         seq.seq = seq.seq.translate(stop_symbol="*")
     if outfile != None:
         outfile = check_filename(outfile, Truefile=False)
@@ -124,6 +123,43 @@ def translate_file_print_seq(filename, in_format="fasta"):
     for seq in dataset:
         print (">" + seq.description)
         print(seq.seq.translate(stop_symbol="*"))
+
+def check_if_fasta_translates_with_stop_codons(filename, in_format="fasta"):
+    """
+    translates nucleotide seq file to amino acid seq file
+    :param filename: input nucleotide sequence filename
+    :param outfile: output file (default: None)
+    :param in_format: input format (default: fasta)
+    :return: out file path of amino acid seq
+    """
+    res=False
+    filename = check_filename(filename)
+    dataset = list(SeqIO.parse(filename, in_format))
+    for seq in dataset:
+        aa = seq.seq.translate(stop_symbol="*")[:-1]
+        if "*" in aa:
+            res = True
+            #print(seq.description)
+            #print(aa)
+    return res
+
+
+
+def check_if_fasta_translates_with_stop_codons_print(filename, in_format="fasta"):
+    """
+    translates nucleotide seq file to amino acid seq file
+    :param filename: input nucleotide sequence filename
+    :param outfile: output file (default: None)
+    :param in_format: input format (default: fasta)
+    :return: out file path of amino acid seq
+    """
+    filename = check_filename(filename)
+    dataset = list(SeqIO.parse(filename, in_format))
+    for seq in dataset:
+        aa = seq.seq.translate(stop_symbol="*")[:-1]
+        if "*" in aa:
+            print(seq.description)
+            print(aa)
 
 
 def get_first_seq_file(filename, outfile=None, in_format="fasta"):
@@ -547,3 +583,43 @@ def count_seqs_in_fasta(file, in_format="fasta"):
     """
     file = check_filename(file)
     return(len(list(SeqIO.parse(file, in_format))))
+
+
+def remove_gaps_from_codon_aligned_file(file, output=None, in_format="fasta"):
+    file = check_filename(file)
+    if output == None:
+        output = file
+    else:
+        output = check_filename(output, Truefile=False)
+    seqs = list(SeqIO.parse(file, in_format))
+    for s in seqs:
+        s.seq = Seq(str(s.seq).replace("---",""))
+    SeqIO.write(seqs, output, "fasta")
+
+def split_fasta_file_by_char_count(file, output=None, in_format="fasta"):
+    file = check_filename(file)
+    if output == None:
+        output = file
+    else:
+        output = check_filename(output, Truefile=False)
+    seqs = list(SeqIO.parse(file, in_format))
+    file_num = 1
+    count = 0
+    new_seqs = []
+    for s in seqs:
+        if count + len(s.seq) < 200000:
+            new_seqs.append(s)
+            count+=len(s.seq)
+        else:
+            SeqIO.write(new_seqs, output + ".%i.fasta" % file_num, "fasta")
+            new_seqs = []
+            count = 0
+            file_num += 1
+
+    SeqIO.write(new_seqs, output + ".%i.fasta" % file_num, "fasta")
+
+
+def get_number_of_seqs(file, in_format="fasta"):
+    file = check_filename(file)
+    seqs = list(SeqIO.parse(file, in_format))
+    return(len(seqs))

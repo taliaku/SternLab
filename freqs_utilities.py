@@ -58,18 +58,39 @@ def merge_freqs_files(freqs_files, output):
     all.to_csv(output, index=False)
     return output, all
 
-def change_ref_to_consensus(freqs_file):
-    freqs = pd.read_csv(freqs_file, sep="\t")
-    freqs_tmp = pd.read_csv(freqs_file, sep="\t")
-    freqs_tmp = freqs_tmp.drop_duplicates("Pos") # rank 0 only
-    freqs_tmp = freqs_tmp[['Pos', 'Base']]
-    transformed_freq = freqs.set_index(freqs.Pos).join(
-        freqs_tmp.set_index(freqs_tmp.Pos), rsuffix='_r')
-    transformed_freq.Ref = transformed_freq.Base_r
-    transformed_freq = transformed_freq.loc[(transformed_freq.Pos >= 1456) & (transformed_freq.Pos <= 4488)][
-        ['Pos', 'Base', 'Freq', 'Ref', 'Read_count', 'Rank', 'Prob']]
+def change_ref_to_consensus(freqs_df):
+    consensus = freqs_df.copy()
+    consensus = consensus.drop_duplicates("Pos") # rank 0 only
+    consensus = consensus[['Pos', 'Base']]
+    ref_before_change = freqs_df.copy()
+    ref_before_change = ref_before_change.drop_duplicates("Pos") # rank 0 only
+    ref_before_change = ref_before_change[['Pos', 'Ref']]
+    diff = (consensus.Base != ref_before_change.Ref)
 
-    return transformed_freq
+    if not diff[diff == True].empty:
+        changed_ref_ratio = len(diff[diff == True]) / len(diff[diff == False])
+        print('changed_ref_ratio: {}%'.format(changed_ref_ratio*100))
+        if changed_ref_ratio > 0.1:
+            raise BaseException('too many changes')
+
+        transformed_freq = pd.merge(freqs_df, consensus, on='Pos', how='left', suffixes=('', '_r'))
+        transformed_freq.Ref = transformed_freq.Base_r
+        transformed_freq = transformed_freq.drop(columns=['Base_r'])
+        if len(freqs_df) != len(transformed_freq):
+            raise BaseException('row count should not change')
+
+        # verify ref==con
+        verification = transformed_freq[(transformed_freq.Rank == 0) & (transformed_freq.Ref != transformed_freq.Base)]
+        if len(verification) != 0 :
+            raise BaseException('some line with ref!=con')
+        # TODO- add verification to content
+
+        return transformed_freq
+    else:
+        return freqs_df
+
+
+
 
 
 
@@ -532,8 +553,9 @@ def main():
     add_mutation_to_freq_file_with_cons_as_ref(freq_file, output_freq_file)
 
 
-def add_mutation_to_freq_file_with_cons_as_ref(freq_file, output_freq_file):
-    transformed_freq = change_ref_to_consensus(freq_file)
+def add_mutation_to_freq_file_with_cons_as_ref(freq_file_no_indels, output_freq_file):
+    #TODO- change_ref_to_consensus() is sensitive to indels
+    transformed_freq = change_ref_to_consensus(freq_file_no_indels)
     add_mutation_to_freq_file(output_freq_file, freqs= transformed_freq)
 
 

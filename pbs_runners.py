@@ -7,7 +7,7 @@ from seqFileTools import convert_fasta_to_phylip, get_longest_sequence_name_in_f
 from file_utilities import set_filenames_for_pbs_runs, check_filename, check_dirname
 from beast_utilities import configure_log_path
 
-def baseml_runner(ctl, alias = "bml"):
+def baseml_runner(ctl, alias = "bml", cmdname="baseml"):
     """
     run baseml program from PAML on cluster
     :param ctl: ctl file path
@@ -15,14 +15,14 @@ def baseml_runner(ctl, alias = "bml"):
     :return: job id
     """
     ctl = check_filename(ctl)
-    cmdfile = pbs_jobs.get_cmdfile_dir("baseml_cmd.txt", alias); tnum = 1; gmem = 2
+    cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias); tnum = 1; gmem = 2
     cmds = "echo %s \n/sternadi/home/volume1/taliakustin/software/paml4.8/bin/baseml %s" %(ctl, ctl)
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
 
-def codeml_runner(ctl, alias = "cml"):
+def codeml_runner(ctl, alias = "cml", queue="adis"):
     """
     run baseml program from PAML on cluster
     :param ctl: ctl file path
@@ -33,24 +33,25 @@ def codeml_runner(ctl, alias = "cml"):
     base = os.path.split(ctl)[0]
     cmdfile = pbs_jobs.get_cmdfile_dir("codeml.txt", alias); tnum = 1; gmem = 2
     cmds = "cd %s\necho %s \n/sternadi/home/volume1/taliakustin/software/paml4.8/bin/codeml %s" %(base, ctl, ctl)
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, queue=queue)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis"):
+def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis", run_after_job=None, cmdname = "script"):
     """
     run script on cluster
     :param cmds: script running line
     :param alias: job name (default: script)
     :return: job id
     """
-    cmdfile = pbs_jobs.get_cmdfile_dir("script", alias); tnum=1; gmem=gmem
-    print(cmdfile, alias, tnum, gmem, cmds)
-    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=load_python)
+    cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias); tnum=1; gmem=gmem
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=load_python, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def array_script_runner(cmds, jnum, alias = "script", load_python=False):
+
+def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adis"):
+
     """
     run script on cluster as a pbs array
     :param cmds: script running line, should include $PBS_ARRAY_INDEX
@@ -58,9 +59,10 @@ def array_script_runner(cmds, jnum, alias = "script", load_python=False):
     :param jnum: number of jobs in the pbs array
     :return: job id
     """
-    cmdfile = pbs_jobs.get_cmdfile_dir("script", alias); gmem=1
-    print(cmdfile, alias, jnum, gmem, cmds)
-    pbs_jobs.create_array_pbs_cmd(cmdfile, jnum=jnum, alias=alias, gmem=gmem, cmds=cmds, load_python=load_python)
+
+    cmdfile = pbs_jobs.get_cmdfile_dir("script", alias); gmem=gmem
+    print(cmdfile, alias, queue, jnum, gmem, cmds)
+    pbs_jobs.create_array_pbs_cmd(cmdfile, jnum=jnum, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=load_python)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -102,13 +104,16 @@ def phyml_aa_runner(alignment, alias = "phyml", phylip=True):
     return job_id
 
 
-def fastml_runner(alignment, tree, outdir = None, alias = "fastml", additional_params=None):
+def fastml_runner(alignment, tree, outdir = None, log_file = None, alias = "fastml", get_cmdfile_dir = True,
+                  additional_params=None, optBranchLen=False,
+                  fastml_path="/sternadi/home/volume1/shared/tools/phylogenyCode/programs/fastml/fastml", queue="adis"):
     """
     run fastml from phylogenyCode on cluster
     :param alignment: alignment file path
     :param tree: tree file path
     :param alias: job name (default: fastml)
     :param outdir: output directory for results (default: None - saves in the alignment's dir)
+    :param optBranchLen: to optimize branch length? default - true
     :return: job id
     """
     alignment = check_filename(alignment)
@@ -124,13 +129,17 @@ def fastml_runner(alignment, tree, outdir = None, alias = "fastml", additional_p
     marginal_seqs = outdir + "/" + basename + ".seq.marginal.txt"
     joint_prob = outdir + "/" + basename + ".prob.joint.txt"
     marginal_prob = outdir + "/" + basename + ".prob.marginal.txt"
+    if log_file == None:
+        log_file = outdir + "/" + basename + ".fastml.log"
     cmdfile = pbs_jobs.get_cmdfile_dir("fastml.txt", alias); tnum = 1; gmem = 1
-    cmds = "/sternadi/home/volume1/shared/tools/phylogenyCode/programs/fastml/fastml -s %s -t %s -mn -x %s " \
-           "-y %s -j %s -k %s -d %s -e %s -qf" % (alignment, tree, newick_tree, ancestor_tree, joint_seqs,
-                                                 marginal_seqs, joint_prob, marginal_prob)
+    cmds = "%s -s %s -t %s -mn -x %s " \
+           "-y %s -j %s -k %s -d %s -e %s -qf -R %s" % (fastml_path, alignment, tree, newick_tree, ancestor_tree, joint_seqs,
+                                                 marginal_seqs, joint_prob, marginal_prob, log_file)
+    if not optBranchLen:
+        cmds += " -b"
     if additional_params != None:
         cmds += " %s" % additional_params
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, gmem=gmem, cmds=cmds)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, gmem=gmem, cmds=cmds, queue=queue)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -175,7 +184,7 @@ def prank_runner(sequence, alignment=None, alias = "prank"):
 
 
 
-def prank_codon_runner(sequence, alignment=None, alias = "prank", tree=None):
+def prank_codon_runner(sequence, alignment=None, alias = "prank_codon", tree=None):
     """
     run prank codon on cluster
     :param sequence: sequence file path (fasta format)
@@ -681,7 +690,7 @@ def pipeline_runner(input_dir, output_dir, ref_file, NGS_or_Cirseq, TYPE_OF_INPU
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior_file=None, summary_file=None, batch=None):
+def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior_file=None, summary_file=None, batch=None, queue="adis"):
     """
     run fits currect version on cluster
     :param inference_type: the type of inference - fitness = 0, mutation rate =1, population size=2, simulate=3,
@@ -694,7 +703,8 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
     :return: sumbit a job\ job array to the cluster
     """
 
-    dataset_file = check_filename(dataset_file)
+    if batch == None:
+        dataset_file = check_filename(dataset_file)
     param_file = check_filename(param_file)
 
     if inference_type not in [0,1,2,3]:
@@ -711,9 +721,9 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
         '{} {} {} {}'.format(param_file, dataset_file, posterior_file,summary_file)
 
         if batch == None:
-            script_runner(cmds, alias)
+            script_runner(cmds, alias, queue=queue)
         else:
-            array_script_runner(cmds,batch,alias)
+            array_script_runner(cmds,batch,alias, queue=queue)
 
     elif inference_type == 1: # mutation rate inference
         if posterior_file == None:
@@ -725,9 +735,9 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
         '{} {} {} {}'.format(param_file, dataset_file, posterior_file,summary_file)
 
         if batch == None:
-            script_runner(cmds, alias)
+            script_runner(cmds, alias, queue=queue)
         else:
-            array_script_runner(cmds,batch,alias)
+            array_script_runner(cmds,batch,alias, queue=queue)
 
     elif inference_type == 2:  # population size inference
         if posterior_file == None:
@@ -739,9 +749,9 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
                '{} {} {} {}'.format(param_file, dataset_file, posterior_file, summary_file)
 
         if batch == None:
-            script_runner(cmds, alias)
+            script_runner(cmds, alias, queue=queue)
         else:
-            array_script_runner(cmds, batch, alias)
+            array_script_runner(cmds, batch, alias, queue=queue)
 
     else:  # simulations
 
@@ -750,14 +760,14 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
                '{} {}'.format(param_file, dataset_file)
 
         if batch == None:
-            script_runner(cmds, alias)
+            script_runner(cmds, alias, queue=queue)
         else:
-            array_script_runner(cmds, batch, alias)
+            array_script_runner(cmds, batch, alias, queue=queue)
 
 
 
 def dirSel_runner(dirSel_params, dirSel_path="/sternadi/home/volume1/taliakustin/software/phylogenyCode/programs/directionalSelection/directionalSelection",
-                  alias = "dirSel"):
+                  alias = "dirSel", out_dir=None, queue="adis"):
     """
     run directional selection
     :param dirSel_params: params file
@@ -767,14 +777,50 @@ def dirSel_runner(dirSel_params, dirSel_path="/sternadi/home/volume1/taliakustin
     """
     dirSel_params = check_filename(dirSel_params)
     dirSel_path = check_filename(dirSel_path)
-
-    cmdfile = pbs_jobs.get_cmdfile_dir("dirSel_cmd.txt", alias); tnum = 1; gmem = 2
+    if out_dir != None:
+        cmdfile = pbs_jobs.get_cmdfile_dir("dirSel_cmd.txt", out_dir)
+    else:
+        cmdfile = pbs_jobs.get_cmdfile_dir("dirSel_cmd.txt", alias)
+    tnum = 1; gmem = 20
     cmd = "%s %s" % (dirSel_path, dirSel_params)
     cmds = "echo %s \n%s" %(cmd, cmd)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, queue=queue)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+def netMHCpan_runner(input, output, path = "/sternadi/home/volume1/taliakustin/software/netMHCpan-4.0/netMHCpan", alias="netMHCpan", peptide_len="", allele=""):
+    input = check_filename(input)
+    output = check_filename(output, Truefile=False)
+    cmdfile = pbs_jobs.get_cmdfile_dir("netMHCpan_cmd.txt", alias); tnum = 1; gmem = 2
+    cmd = "%s %s -t 0.2" % (path, input)
+    if allele != "":
+        cmd += " -a '%s'" % allele
+    if peptide_len != "":
+        cmd += " -l %i" % peptide_len
+    cmd += "> %s\n echo DONE" % output
+    cmds = "echo %s \n%s" % (cmd, cmd)
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
+def merge_runner(fastq_r1, fastq_r2, output, alias = "merge"):
+    """
+    run merge on cluster with repeats = 60.
+    :param fastq_r1: R1 fastq path
+    :param fastq_r2: R2 fastq path
+    :param output: output file path, will be gz or fastq according to fastq_r1 type
+    :param alias: job name (default: dirSel)
+    :return: job_id
+    """
+    fastq_r1 = check_filename(fastq_r1)
+    fastq_r2 = check_filename(fastq_r2)
+    cmdfile = pbs_jobs.get_cmdfile_dir("merge", alias); tnum = 1; gmem = 2
+    cmds = "python /sternadi/home/volume1/shared/SternLab/scripts/merge_fastq_files.py" \
+           " -f %s -e %s -o %s -r 60"\
+           % (fastq_r1, fastq_r2, output)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
 
 def threeseq_runner(alignment, alias = "3seq", identifier = None, start=0, end=-1):
     """
@@ -811,6 +857,7 @@ def threeseq_runner(alignment, alias = "3seq", identifier = None, start=0, end=-
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
+
 
 def r4s_runner_aln(tree_file, seq_file, outfile, dirname, tree_outfile=None, unormelized_outfile=None, log_outfile=None, \
                ref_seq = None, alias = "r4s"):

@@ -24,29 +24,31 @@ REFERENCE   2  (bases 1 to 9031)
 FEATURES             Location/Qualifiers
      gene            170..1684
                      /note="gag"
-     protein         173..563
-                     /note="p17"
+     protein         170..1684
+                     /note="GAG p17/p24/NCp7/p6"
      gene            1456..4488
                      /note="pol"
-     protein         1939..2629
-                     /note="RT"
-     gene            4433..5011
-                     /note="vif"
-     gene            4951..5241
-                     /note="vpr"
-     gene            5222..5350
-                     /note="tat"
-     gene            join(5360..5435,7755..8002)
-                     /note="rev"
-     gene            5459..5719
-                     /note="vpu"
+     protein         1456..4488
+                     /note="protease/RT/RNAseH/integrase"
+     protein         4433..5011
+                     /note="VIF"
+     protein         4951..5241
+                     /note="VPR"
+     protein         5222..5350
+                     /note="TAT"
+     protein         join(5360..5435,7755..8002)
+                     /note="REV"
+     protein         5459..5719
+                     /note="VPU"
      gene            5637..8192
                      /note="env"
-     misc_RNA        7145..7378
+     protein         5637..8192
+                     /note="gp160"
+     RNA_structure   7145..7378
                      /note="RRE"
-     gene            8194..8817
-                     /note="nef"
-     repeat_region   8486..>9031
+     protein         8194..8817
+                     /note="NEF"
+     RNA_structure   8486..>9031
                      /note="LTR3"
      misc_RNA        8939..8997
                      /note="TAR"
