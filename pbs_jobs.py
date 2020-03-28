@@ -6,23 +6,29 @@ from time import sleep
 import getpass
 import datetime
 
-def create_pbs_cmd(cmdfile, alias, queue="adis", gmem=2, cmds="", dir = "", load_python=True, jnum=False, run_after_job=None):
+def create_pbs_cmd(cmdfile, alias, queue="adis", gmem=2, ncpu=1, ngpu=1, cmds="", dir = "", load_python=True, jnum=False, run_after_job=None):
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
         o.write("#PBS -q %s\n" % queue)
         o.write("#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH \n")
-        o.write("#PBS -N "+ alias+"\n")
+        o.write("#PBS -N "+alias+"\n")
+
         if alias in cmdfile and datetime.datetime.today().strftime('%Y-%m') in cmdfile:
             o.write("#PBS -o %s\n" % "/".join(cmdfile.split("/")[:-1]))
-        if (gmem):
-            mem=gmem*1000
-            o.write("#PBS -l mem="+str(mem)+"mb\n")
+            o.write("#PBS -e %s\n" % "/".join(cmdfile.split("/")[:-1]))
+
+        # running on GPUs 
+        if queue == 'gpu':
+            o.write("#PBS -l select=ngpus={ngpus}\n")
+        else:    
+            o.write("#PBS -l select=ncpus={ncpus}:mem={}gb\n")
+
         if jnum:
            if jnum != 1:
                o.write("#PBS -J 1-"+str(jnum)+"\n\n")
         if run_after_job != None:
             o.write("#PBS -W depend=afterok:" + str(run_after_job)+"\n\n")
-       # #o.write("#PBS -J 3-4 \n")
+    
         if dir != "":
             o.write("ls -land %s\n" % dir)
         o.write("id\n")
@@ -40,7 +46,7 @@ def create_pbs_cmd(cmdfile, alias, queue="adis", gmem=2, cmds="", dir = "", load
     o.close()
 
 
-def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_python=False):
+def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=2, cmds="", dir="", load_python=False):
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
         o.write("#PBS -q adis\n")
