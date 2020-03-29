@@ -13,7 +13,7 @@ def configure_log_path(xmlpath, logpath, out=None):
     :param out: a path to save the new xml file
     return: saves a new xml input file with a configured log
     """
-    xmlpath = check_filename(xmlfile)
+    xmlpath = check_filename(xmlpath)
 
     if out == None:
         out=xmlpath
@@ -21,5 +21,5 @@ def configure_log_path(xmlpath, logpath, out=None):
     with open(xmlpath, 'r') as base_file, open(out, 'w') as out_file:
         text = base_file.read()
         text_2_write = re.sub(r'"([\w+/+]*.log)"',logpath, text)
-        cnt = out.write(text)
+        cnt = out_file.write(text_2_write)
     return cnt
