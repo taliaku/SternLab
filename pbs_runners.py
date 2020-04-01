@@ -919,7 +919,7 @@ def r4s_runner_aln(tree_file, seq_file, outfile, dirname, tree_outfile=None, uno
     return job_id
 
 
-def beast_runner(xml_config, logpath=None, outlogfile=None, multi_thread=True, gpu=False, alias="beast",ncpus=4, ngpus=4, gmem=2):
+def beast_runner(xml_config, logpath=None, outlogfile=None, multi_thread=True, gpu=False, alias="beast",ncpus=8, ngpus=4, gmem=2):
     """
     run beast on cluster - output as pipeline - format 6
     :param seqfile: sequence file path

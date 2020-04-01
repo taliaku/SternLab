@@ -46,11 +46,7 @@ def create_pbs_cmd(cmdfile, alias, queue="adis", gmem=2, ncpu=1, ngpu=1, cmds=""
     o.close()
 
 
-<<<<<<< HEAD
-def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=2, cmds="", dir="", load_python=False):
-=======
 def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_python=False, queue="adis"):
->>>>>>> e7c580e7305522d9e27dbe19bd2d4d0648bfad58
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
         o.write("#PBS -q %s\n" % queue)
