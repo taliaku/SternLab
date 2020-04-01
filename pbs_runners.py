@@ -919,7 +919,7 @@ def r4s_runner_aln(tree_file, seq_file, outfile, dirname, tree_outfile=None, uno
     return job_id
 
 
-def beast_runner(xml_config, logpath=None, outlogfile=None, multi_thread=True, gpu=False, alias="beast",ncpus=8, ngpus=4, gmem=2):
+def beast_runner(xml_config, logpath=None, xml_config_out=None, multi_thread=True, gpu=False, alias="beast", ncpus=8, ngpus=4, gmem=2):
     """
     run beast on cluster - output as pipeline - format 6
     :param seqfile: sequence file path
@@ -932,7 +932,9 @@ def beast_runner(xml_config, logpath=None, outlogfile=None, multi_thread=True, g
     beast_loc = "/sternadi/home/volume1/shared/tools/BEASTv1.10.4"
 
     if logpath != None:
-        configure_log_path(xml_config, logpath, outlogfile)
+        configure_log_path(xml_config, logpath, xml_config_out)
+        if xml_config_out:
+            xml_config = xml_config_out
 
     cmdfile = pbs_jobs.get_cmdfile_dir("beast_cmd", alias)
     if gpu:

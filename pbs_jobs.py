@@ -6,7 +6,7 @@ from time import sleep
 import getpass
 import datetime
 
-def create_pbs_cmd(cmdfile, alias, queue="adis", gmem=2, ncpu=1, ngpu=1, cmds="", dir = "", load_python=True, jnum=False, run_after_job=None):
+def create_pbs_cmd(cmdfile, alias, queue="adis", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "", load_python=True, jnum=False, run_after_job=None):
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
         o.write("#PBS -q %s\n" % queue)
@@ -19,9 +19,9 @@ def create_pbs_cmd(cmdfile, alias, queue="adis", gmem=2, ncpu=1, ngpu=1, cmds=""
 
         # running on GPUs 
         if queue == 'gpu':
-            o.write("#PBS -l select=ngpus={ngpus}\n")
+            o.write(f"#PBS -l select=ngpus={ngpus}\n")
         else:    
-            o.write("#PBS -l select=ncpus={ncpus}:mem={}gb\n")
+            o.write(f"#PBS -l select=ncpus={ncpus}:mem={gmem}\n")
 
         if jnum:
            if jnum != 1:

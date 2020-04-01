@@ -18,8 +18,9 @@ def configure_log_path(xml_in, logpath, xml_out=None):
     if xml_out == None:
         xml_out=xml_in
 
-    with open(xml_in, 'r') as base_file, open(xml_out, 'w') as out_file:
+    with open(xml_in, 'r') as base_file:
         text = base_file.read()
         text_2_write = re.sub(r'"([\w+/+]*.log)"',logpath, text)
+    with open(xml_out, 'w') as out_file:
         cnt = out_file.write(text_2_write)
     return cnt
