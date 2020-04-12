@@ -22,9 +22,10 @@ def analyze_sanger(input_folder, output_folder, percent_identity, reference_path
     files = [f for f in os.listdir(input_folder) if f.endswith('.fasta')]
     sangers_string = ''
     for f in files:
-        sangers_string += '>' + input_folder + '/' + f + '\n'
+        sangers_string += '>' + input_folder + '/' + f
         with open(input_folder + '/' + f) as f:
-            sangers_string += f.read()  + '\n'
+            s = f.read()
+            sangers_string += s[s.find('\n'):]  + '\n'
     with open(output_folder + '/sangers.fasta', 'w') as f:
         f.write(sangers_string)
     
@@ -34,7 +35,7 @@ def analyze_sanger(input_folder, output_folder, percent_identity, reference_path
     mutations = blast_to_mutations_list(output_folder + '/sangers.blast')
     blast_df = blast_to_df(output_folder + '/sangers.blast')
     df = pd.merge(mutations, blast_df, on='read', how='right')#.fillna(0)
-    df = df[['read', 'position', 'ref', 'base', 'start_ref', 'end_ref']]
+    df = df[['read', 'position', 'ref', 'base']]
     df = df.rename(columns={'read':'file'})
     df.to_csv(output_folder + '/sangers.blast.mutations_list.csv', index=False)
     return  'Finished'
@@ -42,7 +43,7 @@ def analyze_sanger(input_folder, output_folder, percent_identity, reference_path
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input_dir", type=str, help="input directory with .seq files",
+    parser.add_argument("-i", "--input_dir", type=str, help="input directory with .fasta files",
                         required=True)
     parser.add_argument("-o", "--output", type=str, help="a path to an output directory, optional", default=False, required=False)
     parser.add_argument("-d", "--percent_identity", type=str, help='percent identity for blast, default 85', default="85", required=False)
