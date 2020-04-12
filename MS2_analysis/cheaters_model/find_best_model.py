@@ -496,8 +496,8 @@ def cloud_graph(data, real_data, outpath):
 #cloud_graph(get_best_parameters('/sternadi/home/volume2/noam/cheater_model/abc_smc/37A_all_passages.pertubation1.txt', 5000), '/sternadi/home/volume2/noam/cheater_model/37A_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/37A_all_passages.pertubation1.cloud.png')
 
 
-cloud_graph(get_best_parameters('/sternadi/home/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37B_abc.txt', 10000), '/sternadi/home/volume2/noam/cheater_model/37B_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37B_abc.txt.cloud.png')
-cloud_graph(get_best_parameters('/sternadi/home/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37A_abc.txt', 10000), '/sternadi/home/volume2/noam/cheater_model/37A_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37A_abc.txt.cloud.png')
+#cloud_graph(get_best_parameters('/sternadi/home/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37B_abc.txt', 10000), '/sternadi/home/volume2/noam/cheater_model/37B_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37B_abc.txt.cloud.png')
+#cloud_graph(get_best_parameters('/sternadi/home/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37A_abc.txt', 10000), '/sternadi/home/volume2/noam/cheater_model/37A_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37A_abc.txt.cloud.png')
 
 
 #def cloud_graph_starting_n(data, real_data, outpath):
@@ -533,16 +533,18 @@ cloud_graph(get_best_parameters('/sternadi/home/volume2/noam/cheater_model/abc_s
 ### single cheater
 def cloud_graph_single_cheater(data, real_data, outpath):
     real_data = pd.read_csv(real_data)
+    real_data = real_data[real_data.passage <= 15]
     simulations = []
     data = pd.read_csv(data, '\t', index_col=False)
     data = data.tail(10000)
+    #data = data.tail(100)
     data = data.rename(columns={'param#0 ':'wt_with_del_p', ' param#1 ':'del_with_wt_p'})
     for row in tqdm(data.itertuples()):
         payoff_matrix={'wt':{'wt':1, 'del':row.wt_with_del_p, 'syn':0},
                              'del':{'wt':row.del_with_wt_p, 'del':0, 'syn':0}, 
                              'syn':{'wt':0, 'del':0, 'syn':0}}
         triple_payoff_matrix = {'wt':0, 'del':0, 'syn':0}
-        simulation = simulate(payoff_matrix=payoff_matrix, triple_payoff_matrix=triple_payoff_matrix, syn_initial_count=0)
+        simulation = simulate(payoff_matrix=payoff_matrix, triple_payoff_matrix=triple_payoff_matrix, syn_initial_count=0, iterations_within_passages=2)
         simulations.append(simulation)
     s = pd.concat(simulations)
     s = s[s.passage.isin(real_data.passage.tolist())]
@@ -556,7 +558,7 @@ def cloud_graph_single_cheater(data, real_data, outpath):
     #real_data.plot(x='passage', y='syn_frequency', color='#F49D09', ax=ax,  label='A1664G', linewidth=1.5)
     ax.set_xlabel('Passage', fontsize = 14)
     ax.set_ylabel('Mutation Frequency', fontsize=14)
-    ax.set_xticks([0,5,10,15,20,])
+    ax.set_xticks([0,5,10,15])
     ax.grid(which='major', alpha=0.3, linestyle='-')
     
     handles, labels = ax.get_legend_handles_labels()
@@ -567,35 +569,69 @@ def cloud_graph_single_cheater(data, real_data, outpath):
     return
 
 #cloud_graph_single_cheater('X:/volume2/noam/cheater_model/abc_smc/37B_single_cheater.txt', 'X:/volume2/noam/cheater_model/37B_realdata_until_p23_for_fit.csv', 'X:/volume2/noam/cheater_model/abc_smc/37B_single_cheater.txt.cloud.png')
-cloud_graph_single_cheater('/sternadi/home/volume2/noam/cheater_model/abc_smc/37B_single_cheater.txt', '/sternadi/home/volume2/noam/cheater_model/37B_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/37B_single_cheater.txt.cloud.png')
-cloud_graph_single_cheater('/sternadi/home/volume2/noam/cheater_model/abc_smc/37A_single_cheater.txt', '/sternadi/home/volume2/noam/cheater_model/37A_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/37A_single_cheater.txt.cloud.png')
+#cloud_graph_single_cheater('/sternadi/home/volume2/noam/cheater_model/abc_smc/37B_single_cheater.txt', '/sternadi/home/volume2/noam/cheater_model/37B_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/37B_single_cheater.txt.cloud.png')
+#cloud_graph_single_cheater('/sternadi/home/volume2/noam/cheater_model/abc_smc/37A_single_cheater.txt', '/sternadi/home/volume2/noam/cheater_model/37A_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/37A_single_cheater.txt.cloud.png')
+
+cloud_graph_single_cheater('/sternadi/home/volume2/noam/cheater_model/abc_smc/new_single_cheater_2_iterations_per_passage/37B', '/sternadi/home/volume2/noam/cheater_model/37B_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/new_single_cheater_2_iterations_per_passage/37B_cloud.png')
+cloud_graph_single_cheater('/sternadi/home/volume2/noam/cheater_model/abc_smc/new_single_cheater_2_iterations_per_passage/37A', '/sternadi/home/volume2/noam/cheater_model/37A_realdata_until_p23_for_fit.csv', '/sternadi/home/volume2/noam/cheater_model/abc_smc/new_single_cheater_2_iterations_per_passage/37A_cloud.png')
 
 
-#
-#def find_starting_n(data, real_data):
-#    real_data = pd.read_csv(real_data)
-#    simulations = []
-#    for row in tqdm(data.itertuples()):
-#        payoff_matrix={'wt':{'wt':1, 'del':row.wt_with_del_p, 'syn':row.wt_with_syn_p},
-#                             'del':{'wt':row.del_with_wt_p, 'del':0, 'syn':row.del_with_syn_p}, 
-#                             'syn':{'wt':row.syn_with_wt_p, 'del':row.syn_with_del_p, 'syn':row.syn_with_syn_p}}
-#        triple_payoff_matrix = {'wt':row.triple_wt, 'del':row.triple_del, 'syn':row.triple_syn}
-#        simulation = simulate(payoff_matrix=payoff_matrix, triple_payoff_matrix=triple_payoff_matrix, syn_initial_count=row.starting_n_syn)
-#        simulations.append(simulation)
-#        if simulation[simulation.passage == 10].syn_frequency.min() > 0.02 + simulation[simulation.passage == 13].syn_frequency.min():
-#            s = simulation
-#            s = s[s.passage.isin(real_data.passage.tolist())]
-#            fig, ax = plt.subplots(nrows=1, ncols=1)
-#            fig.set_size_inches(5,3)
-#            ax.fill_between(s.groupby('passage').min().reset_index().passage, s.groupby('passage').min().reset_index().syn_frequency, s.groupby('passage').max().reset_index().syn_frequency, color='#F49D09',alpha=0.35)   
-#            ax.fill_between(s.groupby('passage').min().reset_index().passage, s.groupby('passage').min().reset_index().del_frequency, s.groupby('passage').max().reset_index().del_frequency, color='#F50202', alpha=0.35) 
-#            real_data.plot(x='passage', y='del_frequency', color='#F50202', ax=ax, label=r'$\Delta1764  \bigtriangleup$', linewidth=1.5)
-#            real_data.plot(x='passage', y='syn_frequency', color='#F49D09', ax=ax,  label='A1664G', linewidth=1.5)
-#            ax.set_xlabel('Passage', fontsize = 14)
-#            ax.set_ylabel('Mutation Frequency', fontsize=14)
-#            ax.set_xticks([0,5,10,15,20,])
-#            ax.grid(which='major', alpha=0.2, linestyle='-')
-#            ax.legend(loc='upper left')
-#            return row
-#
-#find_starting_n(get_best_parameters('X:/volume2/noam/cheater_model/abc_smc/new_lim_only_wt_with_del/37A_abc_starting_n.txt', 10000), 'X:/volume2/noam/cheater_model/37A_realdata_until_p23_for_fit.csv')
+
+def fix_symbols(string):
+    return string.replace('\Delta1764', r'\bigtriangleup').replace('A1664G', r'\bigcirc')
+
+
+## single cheater prior posterior graph
+def prior_posterior_graph_single_cheater(astroabc_output, n, outpath):
+    data = pd.read_csv(astroabc_output, '\t', index_col=False)
+    data = data.tail(n)
+    data['wt_with_wt_p'] = 1
+    data['del_with_del_p'] = 0
+    data = data.rename(columns={
+     'param#0 ':'wt_with_del_p',
+     ' param#1 ':'del_with_wt_p',})
+    fig, axes = plt.subplots(nrows=2, ncols=2)
+    fig.set_size_inches(4,2.75)
+    fig.tight_layout()
+    axes = axes.flatten()
+    
+    temp_fig, temp_ax = plt.subplots(nrows=1, ncols=1)
+    
+    #fig.subplots_adjust(hspace=0.5)
+    for i, column in enumerate(['wt_with_wt_p', 'wt_with_del_p','del_with_wt_p', 'del_with_del_p']):
+        if column:
+            if column in ['wt_with_del_p']:
+                a,b,c = temp_ax.hist(data[column], bins=np.linspace(0, 4, 21))
+                axes[i].hist(np.linspace(0,1,max(a)/2), alpha=0.4, color='#C5C6C6', bins=1)
+            elif column in ['del_with_wt_p']:
+                a,b,c = temp_ax.hist(data[column], bins=np.linspace(0, 4, 21))
+                axes[i].hist(np.linspace(0,4,max(a)/2), alpha=0.4, color='#C5C6C6', bins=1)
+            if column not in ['del_with_del_p', 'wt_with_wt_p']:
+                axes[i].set_xticks([0,1,2,3,4])
+                axes[i].set_xlim(-0.1,4.1)
+                data[column].plot.hist(ax=axes[i], color='#267BB8', bins=np.linspace(0, 4, 21))
+                axes[i].set_xlabel(None)
+                axes[i].set_ylabel(None)
+                axes[i].set_yticks([])
+                #axes[i].axvline(data[column].median(), color='black', linestyle='dashed', linewidth=1)
+            else:    
+                axes[i].set_visible(False)
+            if 'with' in column:
+                title = 'W$_\mathrm{' + '|'.join(column.replace('_p', '').split('_with_')).replace('wt', 'WT').replace('del', '\Delta1764').replace('syn', 'A1664G') + '}$'
+                axes[i].set_title(fix_symbols(title), fontsize=12)
+            axes[i].grid(which='major', alpha=0.3, linestyle='-') 
+    prior_patch = mpatches.Patch(color='#C5C6C6', label='Prior', alpha=0.4)
+    posterior_patch = mpatches.Patch(color='#267BB8', label='Posterior')
+    axes[2].legend(handles=[posterior_patch, prior_patch], bbox_to_anchor=(1.1,-0.7), loc='upper center', borderaxespad=0., ncol=2)
+    fig.text(0.26, 0.8, fix_symbols('W$_\mathrm{WT|WT}$\nfixed at 1'), ha='center', va='center', fontsize=12)
+    fig.text(0.76, 0.3, fix_symbols('W$_\mathrm{\Delta1764|\Delta1764}$\nfixed at 0'), ha='center', va='center', fontsize=12)
+    text1 = fig.text(0.5, -0.12, 'Fitness\n', ha='center', fontsize = 14)
+    text2 = fig.text(0, 0.5, 'Frequency', va='center', rotation='vertical', fontsize = 14)
+    fig.savefig(outpath, dpi=800, bbox_inches='tight')
+    return
+
+#prior_posterior_graph_single_cheater('X:/volume2/noam/cheater_model/abc_smc/37B_single_cheater.txt', 10000, 'X:/volume2/noam/cheater_model/abc_smc/37B_single_cheater.txt.prior_posterior.png')
+#prior_posterior_graph_single_cheater('X:/volume2/noam/cheater_model/abc_smc/37A_single_cheater.txt', 10000, 'X:/volume2/noam/cheater_model/abc_smc/37A_single_cheater.txt.prior_posterior.png')
+
+prior_posterior_graph_single_cheater('X:/volume2/noam/cheater_model/abc_smc/new_single_cheater_2_iterations_per_passage/37B', 10000, 'X:/volume2/noam/cheater_model/abc_smc/new_single_cheater_2_iterations_per_passage/37B.prior_posterior.png')
+prior_posterior_graph_single_cheater('X:/volume2/noam/cheater_model/abc_smc/new_single_cheater_2_iterations_per_passage/37A', 10000, 'X:/volume2/noam/cheater_model/abc_smc/new_single_cheater_2_iterations_per_passage/37A.prior_posterior.png')
