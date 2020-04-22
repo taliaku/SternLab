@@ -37,6 +37,7 @@ def analyze_sanger(input_folder, output_folder, percent_identity, reference_path
     df = pd.merge(mutations, blast_df, on='read', how='right')#.fillna(0)
     df = df[['read', 'position', 'ref', 'base']]
     df = df.rename(columns={'read':'file'})
+    df = df.drop_duplicates()
     df.to_csv(output_folder + '/sangers.blast.mutations_list.csv', index=False)
     return  'Finished'
     
