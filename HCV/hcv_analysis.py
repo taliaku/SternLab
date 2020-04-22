@@ -797,9 +797,31 @@ get_aligned_read_ids('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_opt
 
 
 ######  phylogeny
-for f in ['Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4_individual_concensus/' + f for f in os.listdir('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4_individual_concensus')]:
+for f in ['Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4_individual_concensus_e1e2/' + f for f in os.listdir('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4_individual_concensus_e1e2')]:
     with open(f) as text:
         text = text.read()
-    text = text.replace('D90208.1 Hepatitis C virus ORF gene, complete cds', f.split('/')[-1])
-    with open(f, 'w') as new_text:
-        new_text.write(text)
+    header = text.split('\n')[0]
+    sequence = ''.join(text.split('\n')[1:])[738:2758]
+    with open(f + '.e1e2.fasta', 'w') as new_text:
+        new_text.write(header + '\n' + sequence + '\n')
+        
+        
+# edit tree node names
+with open('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4_individual_concensus_e1e2/all_e1e2_phyml_phyml/all_e1e2_phyml_phyml_tree.txt') as f:
+    tree = f.read()
+
+other_names = {'GU133617.1_Hepatitis_C_virus_subtype_1b_complete_genome':'Control 1',
+               'AF139594.2_Hepatitis_C_virus_subtype_1b_strain_HCV_N_complete_genome':'Control 2',
+               'D90208.1_Hepatitis_C_virus_ORF_gene_complete_cds':'Control 3',
+               'D90208.1_optimized4':'Source'
+               }
+
+tree = tree.replace('.fasta', '')
+for i in infection_order[['Sample', 'paper_name']].values:
+    tree = tree.replace(i[0].replace('-', '_') + ':', i[1] + ':')
+
+for i in other_names.items():
+    tree = tree.replace(i[0] + ':', i[1] + ':')
+    
+with open('Z:/volume1/noam/hcv_data/180423_TMS2-74068001_pipeline_optimized4_individual_concensus_e1e2/all_e1e2_phyml_phyml/all_e1e2_phyml_phyml_tree.new_names.txt', 'w') as f:
+    f.write(tree)

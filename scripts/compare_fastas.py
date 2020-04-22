@@ -10,24 +10,24 @@ import pandas as pd
 
 
 def analyze_sanger(input_folder, output_folder, percent_identity, reference_path):
-    if not os.path.isdir(input_folder):
-        return 'Input folder does not exist'
-    if output_folder == False:
-        if input_folder.endswith('/'):
-            input_folder = input_folder[:-1]
-        output_folder = input_folder + '_out'
-    if not os.path.exists(output_folder):
-        os.mkdir(output_folder)
-    
-    files = [f for f in os.listdir(input_folder) if f.endswith('.fasta')]
-    sangers_string = ''
-    for f in files:
-        sangers_string += '>' + input_folder + '/' + f
-        with open(input_folder + '/' + f) as f:
-            s = f.read()
-            sangers_string += s[s.find('\n'):]  + '\n'
-    with open(output_folder + '/sangers.fasta', 'w') as f:
-        f.write(sangers_string)
+#    if not os.path.isdir(input_folder):
+#        return 'Input folder does not exist'
+#    if output_folder == False:
+#        if input_folder.endswith('/'):
+#            input_folder = input_folder[:-1]
+#        output_folder = input_folder + '_out'
+#    if not os.path.exists(output_folder):
+#        os.mkdir(output_folder)
+#    
+#    files = [f for f in os.listdir(input_folder) if f.endswith('.fasta')]
+#    sangers_string = ''
+#    for f in files:
+#        sangers_string += '>' + input_folder + '/' + f
+#        with open(input_folder + '/' + f) as f:
+#            s = f.read()
+#            sangers_string += s[s.find('\n'):]  + '\n'
+#    with open(output_folder + '/sangers.fasta', 'w') as f:
+#        f.write(sangers_string)
     
     os.system('/sternadi/home/volume1/shared/tools/ncbi-blast-2.2.30+/bin/makeblastdb -in ' + output_folder + '/sangers.fasta' + ' -dbtype nucl')
     os.system('/sternadi/home/volume1/shared/tools/ncbi-blast-2.2.30+/bin/blastn -query ' + args.reference + ' -task blastn -db ' + output_folder + '/sangers.fasta' + ' -outfmt "6 sseqid qstart qend qstrand sstart send sstrand length btop" -num_alignments 1000000 -dust no -soft_masking F -perc_identity ' + str(percent_identity) + ' -evalue 1e-07 -out ' + output_folder + '/sangers.blast')
