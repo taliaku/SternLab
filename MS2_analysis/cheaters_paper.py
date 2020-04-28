@@ -40,7 +40,7 @@ def create_mutations_barplot(df, out_file):
         for p in a.patches[-4:]:
             p.set_hatch('///')
             p.set_edgecolor('#5EC0D2')
-        a.set_title(str(sample), fontsize=16)
+        a.set_title('Passage ' + str(sample), fontsize=16)
         a.set_ylim(top=1, bottom=0)
         a.set_xlabel('')
         a.set_ylabel('')
@@ -68,7 +68,7 @@ def create_mutations_barplot(df, out_file):
     plt.clf()
     
 zoom_in = pd.read_csv('X:/volume2/noam/zoom_in_passages/zoom_in_freqs.csv')
-create_mutations_barplot(zoom_in, 'X:/volume2/noam/zoom_in_passages/zoom _in_barplot.png')
+create_mutations_barplot(zoom_in, 'X:/volume2/noam/zoom_in_passages/zoom_in_barplot.png')
 
 
 
@@ -322,8 +322,8 @@ def create_mutations_graph3(df, mutations_list, output_file, moi, title=None):
                         a.plot('Time', 'Freq', data = df_line_mutation, marker='.', linestyle='-', label = m.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'), color=COLORS[m])
                     else:
                         a.plot('Time', 'Freq', data = df_line_mutation, marker='.', linestyle='-', label = m)
-                a.set_ylim(top=0.8, bottom=0)
-                a.set_yticks([0.0,0.2,0.4,0.6,0.8])
+                a.set_ylim(top=0.6, bottom=0)
+                a.set_yticks([0.0,0.2,0.4,0.6])
                 a.set_title('Line ' + sample.replace('37', ''), fontsize=16)
                 a.set_xlabel('Time (Passages)', fontsize=14, color='black')
                 a.set_ylabel('Mutation Frequency', fontsize=14, color='black')
@@ -338,10 +338,10 @@ def create_mutations_graph3(df, mutations_list, output_file, moi, title=None):
     
     patch2 = mpatches.Patch(color='#9BBD78', label='MOI ' + moi, alpha=0.7)
     patch1 = mpatches.Patch(color='#ECEBEB', label='MOI 1')
-    lgd2 = axes[0].legend(bbox_to_anchor=(1.1, -0.4), handles=[patch1, patch2], loc='lower center', borderaxespad=0, facecolor='white', edgecolor='white', ncol=2)
+    lgd2 = axes[0].legend(bbox_to_anchor=(1.1, -0.48), handles=[patch1, patch2], loc='lower center', borderaxespad=0, facecolor='white', edgecolor='white', ncol=2)
     
     a.set_ylabel('', fontsize=14)
-    fig.set_size_inches(8, 3)
+    fig.set_size_inches(8, 2.4)
     if title:
         fig.set_title(title)
     #plt.subplots_adjust(wspace=0.3, hspace=0.4)
@@ -422,20 +422,22 @@ df['Line'] = 'Line ' + df['Line'].str.replace('37', '')
 
 df['Full_mutation'] = df.Full_mutation.str.replace('T', 'U').str.replace('U1764-', '$\Delta$1764')
 
+plt.style.use('default')
 fig, axes = plt.subplots(nrows=1, ncols=2)
 for sample, a in zip(['Line A', 'Line B'], axes):
     sns.stripplot(x='Line', y='Plaque_freq', hue='Full_mutation', data=df[(df.Line==sample) & (df.Plaque_freq != 0)], jitter=0, size=7, palette={i.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'):COLORS[i] for i in COLORS}, ax=a)
     sns.stripplot(x='Line', y='Plaque_freq', hue='Full_mutation', data=df[(df.Line==sample) & (df.Plaque_freq == 0)], jitter=0.2, size=7, palette={i.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'):COLORS[i] for i in COLORS}, ax=a, alpha=0.3)
-    a.set_ylabel('Plaque Frequency')
+    a.set_ylabel('Plaque Frequency', fontsize=14)
     a.set_xlabel('')
     a.minorticks_on()
     a.grid(which='major', alpha=0.7, axis='y')
     a.get_legend().remove()
-    a.set_ylim(-0.05,0.5)
+    a.set_ylim(-0.05,0.35)
+    a.tick_params(axis='x', which='major', labelsize=12)
     #a.set_title(sample.replace('_', ' '))
 a.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0)
 a.set_ylabel('')
-fig.set_size_inches(4, 2.5)
+fig.set_size_inches(3.5, 2.5)
 fig.subplots_adjust(wspace=0.4)
 fig.savefig('X:/volume2/noam/plaques_40/37_plaques_new3.png', bbox_inches='tight', dpi=800)
 
