@@ -921,7 +921,7 @@ def r4s_runner_aln(tree_file, seq_file, outfile, dirname, tree_outfile=None, uno
 
 def beast_runner(xml_config, logpath=None, xml_config_out=None, multi_thread=True, gpu=False, alias="beast", ncpus=8, ngpus=4, gmem=2):
     """
-    run beast on cluster - output as pipeline - format 6
+    run beast on cluster - TODO - params definitions 
     :param seqfile: sequence file path
     :param dbfile: db file
     :param outfile: output file path
@@ -954,3 +954,64 @@ def beast_runner(xml_config, logpath=None, xml_config_out=None, multi_thread=Tru
         pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
+
+def phydyn_runner(xml_config, multi_thread=True, gpu=False, alias="PhyDyn", ncpus=8, ngpus=4, gmem=2, queue='adis'):
+    """
+    run beast on cluster - TODO - params definitions 
+    :param seqfile: sequence file path
+    :param dbfile: db file
+    :param outfile: output file path
+    :param alias: job name (blast)
+    :return: job id
+    """
+    xml_config = check_filename(xml_config)
+    beast_loc = "/sternadi/home/volume1/daniellem1/software/beast"
+
+    cmdfile = pbs_jobs.get_cmdfile_dir("beast_cmd", alias)
+    if gpu:
+        cmds = f"module load beagle-lib\n\
+                cd {beast_loc}\n\
+                ./bin/beast -beagle -beagle_GPU -beagle_cuda {xml_config}"
+        pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, gmem=gmem, cmds=cmds, ngpus=ngpus, queue=queue)
+    elif multi_thread:
+        cmds = f"module load beagle-lib\n\
+                cd {beast_loc}\n\
+                ./bin/beast -beagle {xml_config}"
+        pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, gmem=gmem, cmds=cmds, ncpus=ncpus, queue=queue)
+    else:
+        cmds = f"module load beagle-lib\n\
+                cd {beast_loc}\n\
+                ./bin/beast {xml_config}"        
+        pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, gmem=gmem, cmds=cmds, queue=queue)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+
+
+def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthreads=None, ncpus=2, queue='dudulight'):
+    """
+    run kraken2 on cluster -
+    :param db_location: db file path location
+    :param input_file: input file - can be .fasta, .fastq or comprassed form
+    :param output_file: output file path
+    :param alias: job name (kraken2)
+    :return: job id
+    """
+    input_file = check_filename(input_file)
+    comprassed = ''
+    threads = ''
+
+    if '.fastq.gz':
+        comprassed = '--gzip-compressed'
+    if nthreads:
+        thread = f'--threads {nthreads}'
+    cmdfile = pbs_jobs.get_cmdfile_dir("kraken_cmd", alias)
+    cmds = f"/davidb/local/software/kraken2/kraken2-2.0.8-beta/kraken2 --db {db_location} {threads} --use-names\
+     {comprassed} {input_file} --output {output_file} --report {output_file.split('.')[0] + '_report.tab'}"
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, ncpus=ncpus, cmds=cmds, queue=queue)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+
+
+
