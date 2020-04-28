@@ -119,6 +119,22 @@ fig.subplots_adjust(hspace=0.2)
 fig.set_size_inches(20,20)
 
 
+##### find problematic amplicons
+
+fig, ax = plt.subplots(nrows=2, ncols=2)
+ax = ax.flatten()
+i = 0
+for sample in df.Sample.drop_duplicates().tolist():
+    if i < 4:
+        df[(df.ref_position.isin(range(31,29866))) & (df.Sample == sample) & (df.base == df.ref_base) & (df.ref_base != '-')].plot(x='ref_position', y='coverage', ax=ax[i], kind='scatter')
+        ax[i].set_yscale('log')
+        ax[i].set_title(sample.split('_')[0])
+    i += 1
+fig
+fig.subplots_adjust(hspace=0.2)
+fig.set_size_inches(20,20)
+
+
 ###### coverage difference for qpcr genes
 # N, E, RDR, S
 genes = {'E':(26245,26472),
@@ -177,14 +193,31 @@ df = pd.concat([df, SH15, SH16])
 
 df['Sample'] = df['Sample'].str.split('_').str[0]
 df['full_mutation'] = df.ref_base + df.ref_position.astype(int).astype(str) + df.base
-mutations_to_keep = df[(df.ref_base != df.base) & (df.ref_base != '-') & (df.frequency > 0.2) & (df.coverage >= 10)][['full_mutation']].drop_duplicates()
-mutations_to_keep = pd.merge(mutations_to_keep, df, on=['full_mutation'])
+#mutations_to_keep = df[(df.ref_base != df.base) & (df.ref_base != '-') & (df['rank'] == 0) & (df.coverage >= 5)][['full_mutation']].drop_duplicates()
+mutations_to_keep = df[(df.ref_base != df.base) & (df.ref_base != '-') & (df.frequency >= 0.2) & (df.coverage >= 5)][['full_mutation']].drop_duplicates()
+mutations_to_keep = pd.merge(mutations_to_keep, df, on=['full_mutation'], how='left')
 to_pivot = mutations_to_keep.pivot_table(values='frequency', index=['full_mutation'], columns='Sample')
 to_pivot = to_pivot.dropna()
 
-clustergrid = sns.clustermap(to_pivot)
+clustergrid = sns.clustermap(to_pivot, mask=True)
 
 
 to_pivot = to_pivot[[to_pivot.columns[s] for s in clustergrid.dendrogram_col.reordered_ind]]
 to_pivot['mutation_order'] = pd.Categorical(to_pivot.index, [to_pivot.index[s] for s in clustergrid.dendrogram_row.reordered_ind])
-to_pivot.sort_values('mutation_order').to_excel('X:/volume2/noam/covid/all_samples_mutation_pivot.xlsx')
+to_pivot.sort_values('mutation_order').to_excel('Z:/volume1/noam/covid_data//all_mutations_over0.2_pivot.xlsx')
+
+
+
+
+
+##### snps in mutations
+israel_seqs = pd.read_csv('X:/volume2/noam/covid/technion1/technion1.fasta.mutations_list.csv')
+gisaid_seqs = pd.read_csv('X:/volume2/noam/covid/gisaid_cov2020_sequences.fasta.mutations_list.csv')
+
+# filter out pangolin sequences and very far sequences, filters about 1 percent
+gisaid_seq_mutation_count = gisaid_seqs[~(gisaid_seqs.file.str.contains('pangolin')) & (gisaid_seqs.base != 'N')].groupby('file').position.count().reset_index()
+gisaid_seqs = gisaid_seqs[gisaid_seqs.file.isin(gisaid_seq_mutation_count[gisaid_seq_mutation_count.position <= 30].file.tolist())]
+
+
+gisaid_seqs[gisaid_seqs.base != 'N'][['position', 'ref', 'base']].drop_duplicates().groupby(['ref', 'base']).count().to_clipboard()
+israel_seqs[israel_seqs.base != 'N'][['position', 'ref', 'base']].drop_duplicates().groupby(['ref', 'base']).count().to_clipboard()
