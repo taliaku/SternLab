@@ -40,7 +40,7 @@ def create_mutations_barplot(df, out_file):
         for p in a.patches[-4:]:
             p.set_hatch('///')
             p.set_edgecolor('#5EC0D2')
-        a.set_title(str(sample), fontsize=16)
+        a.set_title('Passage ' + str(sample), fontsize=16)
         a.set_ylim(top=1, bottom=0)
         a.set_xlabel('')
         a.set_ylabel('')
@@ -68,7 +68,7 @@ def create_mutations_barplot(df, out_file):
     plt.clf()
     
 zoom_in = pd.read_csv('X:/volume2/noam/zoom_in_passages/zoom_in_freqs.csv')
-create_mutations_barplot(zoom_in, 'X:/volume2/noam/zoom_in_passages/zoom _in_barplot.png')
+create_mutations_barplot(zoom_in, 'X:/volume2/noam/zoom_in_passages/zoom_in_barplot.png')
 
 
 
