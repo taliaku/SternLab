@@ -26,6 +26,7 @@ def main():
         df = pd.read_csv(f)
         df_rank0 = df[(df["rank"] == 0) & (df["ref_base"] != "-") & (df["base"] != "-") & (df["ref_position"] >= 55) & (
                     df["ref_position"] <= 29836)]
+        count = int(df_rank0.head(1)["ref_position"])
         loc = int(df_rank0.head(1)["ref_position"]) - 1
         con = (count) * "N"
         sample = freq.split("/")[-1].split("_")[0]
