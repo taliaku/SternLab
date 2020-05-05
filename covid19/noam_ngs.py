@@ -3,6 +3,11 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import sys
+sys.path.append('/sternadi/home/volume1/shared/SternLab')
+sys.path.append('X:/volume2/noam/SternLab')
+from blast_utilities import blast_to_df
+from freqs_utilities import estimate_insertion_freq
 
 def unite_all_freq_files(freqs_dir, out_path=None):
     """
@@ -19,7 +24,7 @@ def unite_all_freq_files(freqs_dir, out_path=None):
         print(f)
         #curr_df = pd.read_csv(f, sep='\t')
         curr_df = pd.read_csv(f)
-        sample = os.path.basename(f).split('.')[0]
+        sample = os.path.basename(f).split('.')[0].split('_')[0]
         #sample = os.path.basename(f)
         curr_df['Sample'] = sample
         freqs_df.append(curr_df)
@@ -87,6 +92,8 @@ df = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech1_20200415/python_pipelin
 # after cleaning
 df = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech1_20200415/python_pipeline_x1_c0_after_ptrimmer/freqs/all.freqs.csv')
 
+
+##########################################
 
 fig, ax = plt.subplots(nrows=6, ncols=6)
 ax = ax.flatten()
@@ -177,6 +184,8 @@ cts = pd.read_excel('X:/volume2/noam/covid/samples_and_cts.xlsx')
 cts['Sample'] = cts['Sample'].astype(str)
 summary = pd.merge(summary, cts, on='Sample')
 
+#df[df.Sample.str.split('_').str[0].isin(['2047927','990333263'])]
+
 
 
 
@@ -221,3 +230,130 @@ gisaid_seqs = gisaid_seqs[gisaid_seqs.file.isin(gisaid_seq_mutation_count[gisaid
 
 gisaid_seqs[gisaid_seqs.base != 'N'][['position', 'ref', 'base']].drop_duplicates().groupby(['ref', 'base']).count().to_clipboard()
 israel_seqs[israel_seqs.base != 'N'][['position', 'ref', 'base']].drop_duplicates().groupby(['ref', 'base']).count().to_clipboard()
+
+
+
+
+
+
+
+
+
+
+
+######### technion2
+# after cleaning
+df = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_after_ptrimmer/freqs/all.freqs.csv')
+df['Sample'] = df.Sample.astype(str)
+
+coverage_over_10 = df[(df.ref_position.isin(range(31,29866))) & (df.base == df.ref_base) & (df.ref_base != '-') & (df.coverage >= 5)].groupby('Sample').base.count().reset_index()
+average_coverage = df[(df.ref_position.isin(range(31,29866))) & (df.base == df.ref_base) & (df.ref_base != '-') & (df.coverage >= 5)].groupby('Sample').coverage.mean().reset_index()
+summary = pd.merge(coverage_over_10, average_coverage, on='Sample').rename(columns={'base':'bases_with_coverage_over_10', 'coverage':'average_coverage'})
+summary['Sample'] = summary.Sample.str.split('_').str[0]
+summary['bases_with_coverage_over_10_percent'] = 100 * (summary.bases_with_coverage_over_10 / (29866 - 31))
+
+#cts = pd.read_excel('X:/volume2/noam/covid/samples_and_cts.xlsx')
+#cts['Sample'] = cts['Sample'].astype(str)
+#summary = pd.merge(summary, cts, on='Sample')
+
+#df[df.Sample.str.split('_').str[0].isin(['2047927','990333263'])]
+
+
+
+### look at deletions
+
+df[(df.ref_base != df.base) & (df.base == '-') & (df['rank'] == 0) & (df.ref_position.isin(range(31,29866))) & (df.coverage >= 5)].to_excel('Z:/volume1/noam/covid_data/investigate_deleltions.xlsx', index=False)
+df = estimate_insertion_freq(df, ['Sample',])
+
+
+def estimate_insertion_freq(df, extra_columns=[]):
+    '''
+    This function gets a freqs file(s) dataframe, calculates the frequency of insertions by using the read count of the
+    previous base and returns a dataframe including this.
+    :param df: a dataframe of freqs file(s).
+    :param extra_columns: if df contains more than the basic freqs columns, for example a column of Sample_id etc., 
+    provide a list of the extra columns to be included.
+    :return: df with extra columns describing insertion frequency.
+    '''
+    read_counts = df[(df.ref_base != '-')][ extra_columns + ['ref_position', 'coverage']].drop_duplicates()
+    read_counts.rename(columns={'coverage':'estimated_read_count', 'ref_position':'rounded_pos'}, inplace=True)
+    insertions = df[(df.ref_base == '-')]
+    not_insertions = df[(df.ref_base != '-')]
+    insertions['rounded_pos'] = insertions.ref_position.astype(int).astype(float)
+    insertions = pd.merge(insertions, read_counts, how='left', on= extra_columns + ['rounded_pos'])
+    insertions['estimated_freq'] = insertions.frequency * insertions.coverage / insertions.estimated_read_count
+    df = pd.concat([insertions, not_insertions])
+    return df.sort_values(extra_columns + ['ref_position'])
+
+
+
+df[(df.Sample == '2089839') & (df.ref_position.isin(range(3878, 3905))) & (df['rank'] == 0)]
+df[(df.Sample == '2089852') & (df.ref_position.isin(range(3878, 3905))) & (df['rank'] == 0)]
+
+
+df[(df.Sample == '13077726') & (df.ref_position.isin(range(27385, 27405))) & (df['rank'] == 0)]
+
+
+
+######## big freqs csv 
+df = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech1_20200415/python_pipeline_x1_c0_after_ptrimmer/freqs/all.freqs.csv')
+
+df2 = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_after_ptrimmer/freqs/all.freqs.csv')
+
+SH15 = pd.read_csv('Z:/volume1/noam/covid_data/TMNcorona_20200410/TMNcorona_20200410_python_pipeline_c0/SH15/SH15_S14_merge.freqs.csv')
+SH15['Sample'] = '13075832'
+SH16 = pd.read_csv('Z:/volume1/noam/covid_data/TMNcorona_20200410/TMNcorona_20200410_python_pipeline_c0/SH16/SH16_S15_merge.freqs.csv')
+SH16['Sample'] = '13075879'
+df = pd.concat([df, SH15, SH16, df2])
+df['Sample'] = df['Sample'].astype(str)
+df['Sample'] = df['Sample'].str.split('_').str[0]
+df.to_csv('Z:/volume1/noam/covid_data/all_freqs.upto_tech2.csv', index=False)
+
+##### read all freqs
+df =  pd.read_csv('Z:/volume1/noam/covid_data/all_freqs.upto_tech2.csv')
+
+# cluster
+
+df = df[(df.ref_position.isin(range(31,29866)))]
+
+# all but none clustered
+df['full_mutation'] = df.ref_base + df.ref_position.astype(int).astype(str) + df.base
+#mutations_to_keep = df[(df.ref_base != df.base) & (df.ref_base != '-') & (df['rank'] == 0) & (df.coverage >= 5)][['full_mutation']].drop_duplicates()
+mutations_to_keep = df[(df.ref_base != df.base) & (df.ref_base != '-') & (df.frequency >= 0.2) & (df.coverage >= 5)][['full_mutation']].drop_duplicates()
+mutations_to_keep = pd.merge(mutations_to_keep, df, on=['full_mutation'], how='left')
+to_pivot = mutations_to_keep.pivot_table(values='frequency', index=['full_mutation'], columns='Sample')
+to_pivot.to_excel('Z:/volume1/noam/covid_data//all_mutations_over0.2_pivot.including_tech2.xlsx')
+
+# drop 3 samples and mutations that do not appear in all samples
+df = df[~df['Sample'].isin(['2047927', '990333263', '13077494'])]
+mutations_to_keep = df[(df.ref_base != df.base) & (df.ref_base != '-') & (df.frequency >= 0.2) & (df.coverage >= 5)][['full_mutation']].drop_duplicates()
+mutations_to_keep = pd.merge(mutations_to_keep, df, on=['full_mutation'], how='left')
+to_pivot = mutations_to_keep.pivot_table(values='frequency', index=['full_mutation'], columns='Sample')
+to_pivot = to_pivot.dropna()
+clustergrid = sns.clustermap(to_pivot, mask=True)
+to_pivot = to_pivot[[to_pivot.columns[s] for s in clustergrid.dendrogram_col.reordered_ind]]
+to_pivot['mutation_order'] = pd.Categorical(to_pivot.index, [to_pivot.index[s] for s in clustergrid.dendrogram_row.reordered_ind])
+to_pivot.sort_values('mutation_order').to_excel('Z:/volume1/noam/covid_data//all_mutations_over0.2_pivot.including_tech2.clustered.xlsx')
+
+
+
+
+
+### saved all mapped more than once
+def blast_mapped_too_much(in_blast_df, out_blast_df):
+    a = pd.read_csv(in_blast_df)
+    reads_to_keep = a.groupby('read').btop.count().reset_index()
+    a[a.read.isin(reads_to_keep[reads_to_keep['btop'] > 2].read.tolist())].to_csv(out_blast_df, index=False)
+    return 
+
+
+
+a['seq'] = a.sort_values('start_read').groupby('read').cumcount()
+b = pd.merge(a[a.seq == 0], a[a.seq == 1], on='read')
+b = b.sort_values(['start_read_x', 'end_read_x', 'start_read_y', 'end_read_y'])
+fig, ax = plt.subplots(nrows=1, ncols=1)
+sns.swarmplot(x='start_read_x', y='read', data=b, color='red', ax=ax)
+sns.swarmplot(x='end_read_x', y='read', data=b, color='red', ax=ax)
+sns.swarmplot(x='start_read_y', y='read', data=b, color='blue', ax=ax)
+sns.swarmplot(x='end_read_y', y='read', data=b, color='blue', ax=ax)
+fig.set_size_inches(12, 48)
