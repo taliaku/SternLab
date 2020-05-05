@@ -29,7 +29,7 @@ def main():
         count = int(df_rank0.head(1)["ref_position"])
         loc = int(df_rank0.head(1)["ref_position"]) - 1
         con = (count) * "N"
-        sample = freq.split("/")[-1].split("_")[0]
+        sample = f.split("/")[-1].split("_")[0]
         for index, row in df_rank0.iterrows():
             new_loc = int(row["ref_position"])
             coverage = int(row["coverage"])
@@ -43,6 +43,7 @@ def main():
                     con += base
                 else:
                     con += "N"
+                    mutations = mutations.append({"ref_position":loc, "ref_base":ref_base, "base":base, "coverage":coverage, "sample":sample}, ignore_index=True)
             else:
                 con += base
                 if ref_base != base:
