@@ -357,3 +357,40 @@ sns.swarmplot(x='end_read_x', y='read', data=b, color='red', ax=ax)
 sns.swarmplot(x='start_read_y', y='read', data=b, color='blue', ax=ax)
 sns.swarmplot(x='end_read_y', y='read', data=b, color='blue', ax=ax)
 fig.set_size_inches(12, 48)
+
+
+
+
+
+
+######## compare evalue results
+
+ev7 = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech3_20200504/python_pipeline_x1_c0_after_ptrimmer/freqs/technion3_consensus_all.fasta.mutations_list.csv')
+ev7['evalue'] = 7
+ev9 = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech3_20200504/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/technion3_consensus_all.fasta.mutations_list.csv')
+ev9['evalue'] = 9
+
+pd.merge(ev7, ev9, suffixes=['_7', '_9'], how='outer', on=['file','position', 'ref', 'base']).to_csv('Z:/volume1/noam/covid_data/coronaTech3_20200504/compare_concesus_evalues.csv', index=False)
+
+
+ev7 = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_after_ptrimmer/freqs/technion2_1e-7_consensus_all.fasta.mutations_list.csv')
+ev7['evalue'] = 7
+ev9 = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/technion2_1e-9_consensus_all.fasta.mutations_list.csv')
+ev9['evalue'] = 9
+
+pd.merge(ev7, ev9, suffixes=['_7', '_9'], how='outer', on=['file','position', 'ref', 'base']).to_csv('Z:/volume1/noam/covid_data/coronaTech2_20200427/compare_concesus_evalues.csv', index=False)
+
+
+
+
+with open('Z:/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/technion2_1e-9_consensus_all.fasta') as f:
+    e9 = f.read()
+    
+with open('Z:/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_after_ptrimmer/freqs/technion2_1e-7_consensus_all.fasta') as f:
+    e7 = f.read()
+    
+
+for i in enumerate(zip(e7, e9)):
+    if i[1][0] != i[1][1]:
+        if i[1][0] != 'N' and i[1][1] != 'N':
+            print(i)
