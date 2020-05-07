@@ -541,6 +541,27 @@ def estimate_insertion_freq(df, extra_columns=[]):
     df = pd.concat([insertions, not_insertions])
     return df.sort_values(extra_columns + ['Pos'])
 
+def estimate_insertion_freq_python_pipeline(df, extra_columns=[]):
+    '''
+    This function gets a freqs file(s) dataframe, calculates the frequency of insertions by using the read count of the
+    previous base and returns a dataframe including this.
+    :param df: a dataframe of freqs file(s).
+    :param extra_columns: if df contains more than the basic freqs columns, for example a column of Sample_id etc., 
+    provide a list of the extra columns to be included.
+    :return: df with extra columns describing insertion frequency.
+    '''
+    read_counts = df[(df.ref_base != '-')][ extra_columns + ['ref_position', 'coverage']].drop_duplicates()
+    read_counts.rename(columns={'coverage':'estimated_read_count', 'ref_position':'rounded_pos'}, inplace=True)
+    insertions = df[(df.ref_base == '-')]
+    not_insertions = df[(df.ref_base != '-')]
+    insertions['rounded_pos'] = insertions.ref_position.astype(int).astype(float)
+    insertions = pd.merge(insertions, read_counts, how='left', on= extra_columns + ['rounded_pos'])
+    insertions['estimated_freq'] = insertions.frequency * insertions.coverage / insertions.estimated_read_count
+    df = pd.concat([insertions, not_insertions])
+    return df.sort_values(extra_columns + ['ref_position'])
+
+
+
 def main():
     parser = OptionParser("usage: %prog [options]\nTry running %prog --help for more information")
     parser.add_option("-f", "--freqs", dest="freqs", help="frequency file")
