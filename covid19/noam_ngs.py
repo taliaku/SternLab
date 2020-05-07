@@ -394,3 +394,6 @@ for i in enumerate(zip(e7, e9)):
     if i[1][0] != i[1][1]:
         if i[1][0] != 'N' and i[1][1] != 'N':
             print(i)
+            
+            
+            
