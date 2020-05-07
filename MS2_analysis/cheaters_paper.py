@@ -247,6 +247,57 @@ mutations.remove('G1554.0A')
 mutations.remove('C224.0T')
 create_mutations_graph(joined, mutations, 'X:/volume2/noam/passages/201908_w_2019_passages/old_passages/mutations_over_time_p15_no11,12,14.png')
 
+### 41C 15 passages for review
+
+def create_mutations_graph(df, mutations_list, output_file, title=None):
+    """
+    This function gets a df of freq files, a list of mutations and a path to save graph to.
+    """
+    plt.style.use('ggplot')
+    fig, axes = plt.subplots(nrows=1, ncols=2)
+    axes = axes.flatten()
+    for sample, a in zip(['41A', '41B'], axes):
+                df_line = df[(df.Replica==sample[-1]) & (df.Degree==int(sample[:2]))]
+                df_line = df_line.sort_values('Time')
+                for m in mutations_list:
+                    df_line_mutation = df_line[(df_line.Pos == float(m[1:-1])) & (df_line.Base == m[-1])].sort_values('Time')
+                    if m in COLORS:
+                        a.plot('Time', 'Freq', data = df_line_mutation, linestyle='-', marker='.', label = m.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'), color=COLORS[m])
+                    else:
+                        a.plot('Time', 'Freq', data = df_line_mutation, linestyle='-', marker='.', label = m)
+                a.set_ylim(top=0.8, bottom=0)
+                a.set_yticks([0.0,0.2,0.4,0.6,0.8])
+                a.set_title('Line ' + sample.replace('37', ''), fontsize=16)
+                a.set_xlabel('Time (Passages)', fontsize=14, color='black')
+                a.set_ylabel('Mutation Frequency', fontsize=14, color='black')
+                #a.minorticks_on()
+                #a.grid(which='minor', alpha=0.2)
+                #a.grid(which='major', alpha=0.7)
+                #a.set_xticks([1,3,5,7,9,11,13,15])
+    a.set_ylabel('', fontsize=14)
+    fig.set_size_inches(8, 3)
+    if title:
+        fig.set_title(title)
+    #plt.subplots_adjust(wspace=0.3, hspace=0.4)
+    plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0, facecolor='white', edgecolor='white')
+    plt.savefig(output_file, bbox_inches='tight', dpi=800)
+    plt.show()
+    return
+
+joined = pd.read_csv('X:/volume2/noam/passages/201908_w_2019_passages/old_passages/all_freqs.csv')
+joined['Full_mutation'] = joined.Ref + joined.Pos.astype(str) + joined.Base
+#
+joined = joined[(joined.Time <= 15) & (joined.Degree == 41)]
+joined = joined[~joined.Time.isin([11, 12, 14])]
+
+mutations = joined[(joined.Base != joined.Ref) & (joined.Ref != '-') & ~(joined.Pos.isin(n)) & (joined.Freq >= 0.1)].sort_values('Freq', ascending=False).Full_mutation.unique().tolist()
+mutations.remove('C3299.0T')
+mutations.remove('G1554.0A')
+mutations.remove('C224.0T')
+create_mutations_graph(joined, mutations, 'X:/volume2/noam/passages/201908_w_2019_passages/old_passages/mutations_over_time_41C_p15_no11,12,14.png')
+
+
+
 # new passages
 def create_mutations_graph2(df, mutations_list, output_file, title=None):
     """
