@@ -444,6 +444,90 @@ mutations.remove('C224.0T')
 mutations.remove('C3299.0T')
 create_mutations_graph3(moi_001_16, mutations, 'X:/volume2/noam/passages/201908_w_2019_passages/diverging_mois/p16_moi_0.01_no11,12,14.png', '0.01')
 
+
+
+
+
+############## diverging mois additional for reivew
+
+def create_mutations_graph4(df, mutations_list, output_file, moi, title=None):
+    """
+    This function gets a df of freq files, a list of mutations and a path to save graph to.
+    """
+    plt.style.use('ggplot')
+    fig, axes = plt.subplots(nrows=1, ncols=2)
+    axes = axes.flatten()
+    for sample, a in zip(['A', 'B'], axes):
+                df_line = df[(df.Replica==sample)]
+                df_line = df_line.sort_values('Time')
+                for m in mutations_list:
+                    df_line_mutation = df_line[(df_line.Pos == float(m[1:-1])) & (df_line.Base == m[-1])].sort_values('Time')
+                    if m in COLORS:
+                        a.plot('Time', 'Freq', data = df_line_mutation, marker='.', linestyle='-', label = m.replace('.0', '').replace('T', 'U').replace('U1764-', '$\Delta$1764'), color=COLORS[m])
+                    else:
+                        a.plot('Time', 'Freq', data = df_line_mutation, marker='.', linestyle='-', label = m)
+                a.set_ylim(top=0.6, bottom=0)
+                a.set_yticks([0.0,0.2,0.4,0.6])
+                a.set_title('Line ' + sample.replace('37', ''), fontsize=16)
+                a.set_xlabel('Time (Passages)', fontsize=14, color='black')
+                a.set_ylabel('Mutation Frequency', fontsize=14, color='black')
+                #a.minorticks_on()
+                #a.grid(which='minor', alpha=0.2)
+                #a.grid(which='major', alpha=0.7)
+                a.set_xticks([5,10,15,16,17,18])
+                a.xaxis.set_tick_params(rotation=45)
+                a.axvspan(15, 19, facecolor='#B5DF8B', alpha=0.5)
+                a.set_xlim(0,19)
+                
+    
+    patch2 = mpatches.Patch(color='#9BBD78', label='MOI ' + moi, alpha=0.7)
+    patch1 = mpatches.Patch(color='#ECEBEB', label='MOI 1')
+    lgd2 = axes[0].legend(bbox_to_anchor=(1.1, -0.48), handles=[patch1, patch2], loc='lower center', borderaxespad=0, facecolor='white', edgecolor='white', ncol=2)
+    
+    a.set_ylabel('', fontsize=14)
+    fig.set_size_inches(8, 2.4)
+    if title:
+        fig.set_title(title)
+    #plt.subplots_adjust(wspace=0.3, hspace=0.4)
+    lgd = plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0, facecolor='white', edgecolor='white')
+    plt.savefig(output_file, bbox_inches='tight', dpi=800)#, bbox_extra_artists=[lgd,lgd2])
+    plt.show()
+    return
+
+joined = pd.read_csv('X:/volume2/noam/passages/201908_w_2019_passages/new_2019/all_freqs.csv')
+joined[(joined.Degree == 37)]
+joined = joined[~(joined.Time.isin([11, 12, 14])) & (joined.Time <= 15)]
+joined['Full_mutation'] = joined.Ref + joined.Pos.astype(str) + joined.Base
+
+moi_01_16_37A = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p16A01/p16A01_S29_merge.freqs.csv')
+moi_01_16_37B = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p16B01/p16B01_S30_merge.freqs.csv')
+moi_01_16_37A['Replica'] = 'A'
+moi_01_16_37B['Replica'] = 'B'
+moi_01_16_37A['Time'] = 16
+moi_01_16_37B['Time'] = 16
+moi_01_17_37A = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p17A01/p17A01_S31_merge.freqs.csv')
+moi_01_17_37B = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p17B01/p17B01_S32_merge.freqs.csv')
+moi_01_17_37A['Replica'] = 'A'
+moi_01_17_37B['Replica'] = 'B'
+moi_01_17_37A['Time'] = 17
+moi_01_17_37B['Time'] = 17
+moi_01_18_37A = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p18A01/p18A01_S33_merge.freqs.csv')
+moi_01_18_37B = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p18B01/p18B01_S34_merge.freqs.csv')
+moi_01_18_37A['Replica'] = 'A'
+moi_01_18_37B['Replica'] = 'B'
+moi_01_18_37A['Time'] = 18
+moi_01_18_37B['Time'] = 18
+
+
+moi_01_16 = pd.concat([moi_01_16_37A, moi_01_16_37B, moi_01_17_37A, moi_01_17_37B, moi_01_18_37A, moi_01_18_37B])
+moi_01_16 = moi_01_16.rename(columns={'base':'Base', 'ref_base':'Ref', 'ref_position':'Pos', 'frequency':'Freq'})
+moi_01_16['Full_mutation'] = moi_01_16.Ref + moi_01_16.Pos.astype(str) + moi_01_16.Base
+moi_01_16 = pd.concat([moi_01_16, joined])
+mutations = ['T1764.0-', 'A1664.0G']
+create_mutations_graph4(moi_01_16, mutations, 'X:/volume2/noam/passages/201908_w_2019_passages/diverging_mois/continued_moi0.1_for_review.png', '0.1')
+
+
+
 ############# 20 plaques
 # get original mutations
 joined = pd.read_csv('X:/volume2/noam/passages/201908_w_2019_passages/old_passages/all_freqs.csv')
