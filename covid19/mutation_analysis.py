@@ -84,6 +84,7 @@ metadata = pd.read_excel('X:/volume2/noam/covid/mutation_type/all_sequening_run_
 metadata['sample'] = metadata['sample'].astype(str)
 snps_per_date = pd.merge(snps_per_sample, metadata[['date', 'sample']], on='sample', how='left').sort_values('date')
 snps_per_date['date'] = pd.to_datetime(snps_per_date.date)
+snps_per_date.to_csv('Z:/volume1/noam/covid_data/snps_per_sample_date.csv', index=False)
 
 fig, ax = plt.subplots(nrows=1, ncols=1)
 ax.scatter(x=snps_per_date.date, y=snps_per_date.snps)
@@ -135,6 +136,13 @@ mutation_type = pd.read_csv('X:/volume2/noam/covid/mutation_type/mutation_type.s
 mutation_type = mutation_type.rename(columns={'Base':'base', 'Ref':'ref_base', 'Pos':'ref_position'})
 df = pd.merge(df, mutation_type, on=['ref_position', 'ref_base', 'base'], how='left')
 
+# non sysn
+print(len(df[(df.base != '-') & (df.ref_base != '-') & ~(df.mutation_type.astype(str) == '[]') & (df.mutation_type.isna() == False)].groupby('ref_position').count()))
+# synonymous
+print(len(df[(df.base != '-') & (df.ref_base != '-') & (df.mutation_type.astype(str) == '[]')].groupby('ref_position').count()))
+   # non oding
+print(len(df[(df.base != '-') & (df.ref_base != '-') & (df.mutation_type.isna() == True)].groupby('ref_position').count()))
+
 fig, ax = plt.subplots(nrows=1, ncols=1)
 df[(df.base != '-') & (df.ref_base != '-') & ~(df.mutation_type.astype(str) == '[]') & (df.mutation_type.isna() == False)].groupby('ref_position').ref_base.count().reset_index().plot(x='ref_position', y='ref_base', kind='scatter', color='red', ax=ax, label='non-synonymous')
 df[(df.base != '-') & (df.ref_base != '-') & (df.mutation_type.astype(str) == '[]')].groupby('ref_position').ref_base.count().reset_index().plot(x='ref_position', y='ref_base', kind='scatter', color='#22DA05', ax=ax, label='synonymous')
@@ -160,7 +168,10 @@ colors={'orf1ab polyprotein':'blue',
 for i in mutation_type[['start', 'end', 'protein']].drop_duplicates().itertuples():
     ax.axvspan(i[1], i[2], facecolor=colors[i[3]], alpha=0.2)
     if i[3] != 'orf1ab polyprotein':
-        ax.text(((((i[2] - i[1])/2)+i[1])/29892), 1.06, i[3], transform=ax.transAxes, fontsize=14, rotation=90, horizontalalignment='center')
+        if i[3] == 'surface glycoprotein':
+            ax.text(((((i[2] - i[1])/2)+i[1])/29892), 1.06, i[3] + '\n(spike)', transform=ax.transAxes, fontsize=14, rotation=90, horizontalalignment='center')
+        else:
+            ax.text(((((i[2] - i[1])/2)+i[1])/29892), 1.06, i[3], transform=ax.transAxes, fontsize=14, rotation=90, horizontalalignment='center')
     else:
         ax.text(10000/29892, 1.06, i[3], transform=ax.transAxes, fontsize=14, rotation=90, horizontalalignment='center')
 plt.savefig('Z:/volume1/noam/covid_data/cumulative_syn_nonsyn.png' , bbox_inches='tight', dpi=1600)
@@ -173,8 +184,12 @@ count_mutations = df.groupby(['full_mutation', 'ref_base', 'ref_position', 'base
 mutation_type = pd.read_csv('X:/volume2/noam/covid/mutation_type/mutation_type.short.csv')
 mutation_type = mutation_type.rename(columns={'Base':'base', 'Ref':'ref_base', 'Pos':'ref_position'})
 count_mutations = pd.merge(count_mutations, mutation_type, on=['ref_position', 'ref_base', 'base'], how='left')
-count_mutations[count_mutations.count_of_samples > 50].to_clipboard()
+count_mutations.to_csv('Z:/volume1/noam/covid_data/mutations_counted_details.csv', index=False)
 
+# how many unique per type
+len(count_mutations[(count_mutations.base != '-') & (count_mutations.ref_base != '-') & ~(count_mutations.mutation_type.astype(str) == '[]') & (count_mutations.mutation_type.isna() == False)])
+len(count_mutations[(count_mutations.base != '-') & (count_mutations.ref_base != '-') & (count_mutations.mutation_type.astype(str) == '[]')])
+len(count_mutations[(count_mutations.base != '-') & (count_mutations.ref_base != '-') & (count_mutations.mutation_type.isna() == True)])
 
 
 #### heatmap
@@ -191,3 +206,39 @@ clustergrid = sns.clustermap(to_pivot, mask=True)
 to_pivot = to_pivot[[to_pivot.columns[s] for s in clustergrid.dendrogram_col.reordered_ind]]
 to_pivot['mutation_order'] = pd.Categorical(to_pivot.index, [to_pivot.index[s] for s in clustergrid.dendrogram_row.reordered_ind])
 to_pivot.sort_values('mutation_order').to_excel('Z:/volume1/noam/covid_data/pivot_mutations_cons.xlsx')
+
+
+
+
+####### fasta differences
+def compare_fastas_to_ref(fastas, ref_fasta, output_excel):
+    with open(fastas) as f:
+        f = f.read()
+    f = f.split('>')
+    #f = [i for i in f[1:] if i.split('/')[1] in ['2089839', '2089852', '13077726', '2086033', ]]
+    f = {i.split('\n')[0]:''.join(i.split('\n')[1:]) for i in f}
+
+    with open(ref_fasta) as g:
+        g = g.read()
+    g = ['reference', ''.join(g.replace('>', '').split('\n')[1:])]
+    f[g[0]] = g[1]
+
+    diffs = []
+    for i in range(len(f['reference'])):
+        for sample in f:
+            if sample != 'reference':
+                try:
+                    if f[sample][i+1] != f['reference'][i]:
+                        diffs.append((i+1, sample, f['reference'][i], f[sample][i+1]))
+                except:
+                    pass
+    return pd.DataFrame(diffs, columns=['position', 'sample', 'ref_base', 'base']).to_excel(output_excel, index=False)
+
+compare_fastas_to_ref('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.fasta', '/Volumes/STERNADILABHOME$/volume2/noam/covid/MN908947.fasta', '/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.all_diffs.xlsx')
+
+df = pd.read_excel('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.all_diffs.xlsx')
+all = df.groupby(['position', 'ref_base', 'base']).sample.count().sort_values()
+clade = df[df['sample'].str.split('/').str[1].isin(['2089839', '2089852', '13077726', '2086033', ])].groupby(['position', 'ref_base', 'base']).sample.count().sort_values()
+counted = pd.merge(all, clade, on=['position', 'ref_base', 'base'], how='outer', suffixes=['_all', '_clade']).fillna(0)
+counted['all_freq'] = counted.sample_all / 213
+counted['clade_freq'] = counted.sample_clade / 4

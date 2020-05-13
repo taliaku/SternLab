@@ -6,6 +6,7 @@ import seaborn as sns
 import sys
 sys.path.append('/sternadi/home/volume1/shared/SternLab')
 sys.path.append('X:/volume2/noam/SternLab')
+sys.path.append('/Volumes/STERNADILABHOME\$/volume2/noam/SternLab/')
 from blast_utilities import blast_to_df
 from freqs_utilities import estimate_insertion_freq
 
@@ -19,7 +20,7 @@ def unite_all_freq_files(freqs_dir, out_path=None):
     """
     freqs_df = []
     # read all freq files and add the sample name to the data frame
-    files = [os.path.join(freqs_dir, f) for f in os.listdir(freqs_dir) if not f.startswith('all')]
+    files = [os.path.join(freqs_dir, f) for f in os.listdir(freqs_dir) if not f.startswith('all') and f.endswith('.freqs.csv')]
     for f in files:
         print(f)
         #curr_df = pd.read_csv(f, sep='\t')
@@ -295,22 +296,24 @@ df[(df.Sample == '13077726') & (df.ref_position.isin(range(27385, 27405))) & (df
 
 
 
-######## big freqs csv 
-df = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech1_20200415/python_pipeline_x1_c0_after_ptrimmer/freqs/all.freqs.csv')
+######## big freqs csv
+unite_all_freq_files('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/coronaTech1_20200415/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/', '/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/coronaTech1_20200415/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/all.freqs.csv')
+unite_all_freq_files('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/', '/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/all.freqs.csv')
+unite_all_freq_files('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/coronaTech3_20200504/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/', '/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/coronaTech3_20200504/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/all.freqs.csv')
 
-df2 = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_after_ptrimmer/freqs/all.freqs.csv')
+df1 = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/coronaTech1_20200415/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/all.freqs.csv')
+df2 = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/all.freqs.csv')
+df3 = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/coronaTech3_20200504/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/all.freqs.csv')
+df = pd.concat([df1, df2, df3])
+df['Sample'] = df['Sample'].astype(str).str.split('_').str[0]
 
-SH15 = pd.read_csv('Z:/volume1/noam/covid_data/TMNcorona_20200410/TMNcorona_20200410_python_pipeline_c0/SH15/SH15_S14_merge.freqs.csv')
-SH15['Sample'] = '13075832'
-SH16 = pd.read_csv('Z:/volume1/noam/covid_data/TMNcorona_20200410/TMNcorona_20200410_python_pipeline_c0/SH16/SH16_S15_merge.freqs.csv')
+SH16 = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/TMNcorona_20200410/TMNcorona_20200410_python_pipeline_c0/SH16/SH16_S15_merge.freqs.csv')
 SH16['Sample'] = '13075879'
-df = pd.concat([df, SH15, SH16, df2])
-df['Sample'] = df['Sample'].astype(str)
-df['Sample'] = df['Sample'].str.split('_').str[0]
-df.to_csv('Z:/volume1/noam/covid_data/all_freqs.upto_tech2.csv', index=False)
+df = pd.concat([df, SH16])
+df.to_csv('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_freqs.upto_tech3.csv', index=False)
 
 ##### read all freqs
-df =  pd.read_csv('Z:/volume1/noam/covid_data/all_freqs.upto_tech2.csv')
+df = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_freqs.upto_tech3.csv')
 
 # cluster
 
