@@ -335,14 +335,28 @@ def create_mutations_graph2(df, mutations_list, output_file, title=None):
     plt.show()
     return
 
-df = pd.read_csv('X:/volume2/noam/passages/201909/all_freqs.csv')
-df = df[~(df.Time.isin([11,12,14]))]
+#df = pd.read_csv('X:/volume2/noam/passages/201909/all_freqs.csv')
+df = pd.read_csv('/Volumes/STERNADILABHOME$/volume2/noam/passages/201909/all_freqs.csv')
 
+df = df[~(df.Time.isin([11,12,14]))]
 mutations = df[(df.Base != df.Ref) & (df.Ref != '-') & ~(df.Pos.isin(n)) & (df.Freq >= 0.1)].sort_values('Freq', ascending=False).Full_mutation.unique().tolist()
+# add mutations that appear at about 10% so dont appear in new...
+joined = pd.read_csv('/Volumes/STERNADILABHOME$/volume2/noam/passages/201908_w_2019_passages/old_passages/all_freqs.csv')
+#joined = pd.read_csv('X:/volume2/noam/passages/201908_w_2019_passages/old_passages/all_freqs.csv')
+joined['Full_mutation'] = joined.Ref + joined.Pos.astype(str) + joined.Base
+joined = joined[(joined.Time <= 15) & (joined.Degree == 37)]
+joined = joined[~joined.Time.isin([11, 12, 14])]
+mutations2 = joined[(joined.Base != joined.Ref) & (joined.Ref != '-') & ~(joined.Pos.isin(n)) & (joined.Freq >= 0.1)].sort_values('Freq', ascending=False).Full_mutation.unique().tolist()
+for m in mutations2:
+    if m not in mutations:
+        mutations.append(m)
+
 mutations.remove('G1554.0A')
 mutations.remove('C224.0T')
 mutations.remove('C3299.0T')
-create_mutations_graph2(df, mutations, 'X:/volume2/noam/passages/201909/mutation_over_time.png')
+#create_mutations_graph2(df, mutations, 'X:/volume2/noam/passages/201909/mutation_over_time.png')
+create_mutations_graph2(df, mutations, '/Volumes/STERNADILABHOME$/volume2/noam/passages/201909/mutation_over_time.png')
+
 
 # only original mutations
 joined = pd.read_csv('X:/volume2/noam/passages/201908_w_2019_passages/old_passages/all_freqs.csv')
@@ -490,29 +504,29 @@ def create_mutations_graph4(df, mutations_list, output_file, moi, title=None):
         fig.set_title(title)
     #plt.subplots_adjust(wspace=0.3, hspace=0.4)
     lgd = plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left", borderaxespad=0, facecolor='white', edgecolor='white')
-    plt.savefig(output_file, bbox_inches='tight', dpi=800)#, bbox_extra_artists=[lgd,lgd2])
+    #plt.savefig(output_file, bbox_inches='tight', dpi=800)#, bbox_extra_artists=[lgd,lgd2])
     plt.show()
     return
 
-joined = pd.read_csv('X:/volume2/noam/passages/201908_w_2019_passages/new_2019/all_freqs.csv')
+joined = pd.read_csv('/Volumes/STERNADILABHOME$/volume2/noam/passages/201908_w_2019_passages/new_2019/all_freqs.csv')
 joined[(joined.Degree == 37)]
 joined = joined[~(joined.Time.isin([11, 12, 14])) & (joined.Time <= 15)]
 joined['Full_mutation'] = joined.Ref + joined.Pos.astype(str) + joined.Base
 
-moi_01_16_37A = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p16A01/p16A01_S29_merge.freqs.csv')
-moi_01_16_37B = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p16B01/p16B01_S30_merge.freqs.csv')
+moi_01_16_37A = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/ms2_data/MY06052020/p16A01/p16A01_S29_merge.freqs.csv')
+moi_01_16_37B = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/ms2_data/MY06052020/p16B01/p16B01_S30_merge.freqs.csv')
 moi_01_16_37A['Replica'] = 'A'
 moi_01_16_37B['Replica'] = 'B'
 moi_01_16_37A['Time'] = 16
 moi_01_16_37B['Time'] = 16
-moi_01_17_37A = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p17A01/p17A01_S31_merge.freqs.csv')
-moi_01_17_37B = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p17B01/p17B01_S32_merge.freqs.csv')
+moi_01_17_37A = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/ms2_data/MY06052020/p17A01/p17A01_S31_merge.freqs.csv')
+moi_01_17_37B = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/ms2_data/MY06052020/p17B01/p17B01_S32_merge.freqs.csv')
 moi_01_17_37A['Replica'] = 'A'
 moi_01_17_37B['Replica'] = 'B'
 moi_01_17_37A['Time'] = 17
 moi_01_17_37B['Time'] = 17
-moi_01_18_37A = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p18A01/p18A01_S33_merge.freqs.csv')
-moi_01_18_37B = pd.read_csv('Z:/volume1/noam/ms2_data/MY06052020/p18B01/p18B01_S34_merge.freqs.csv')
+moi_01_18_37A = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/ms2_data/MY06052020/p18A01/p18A01_S33_merge.freqs.csv')
+moi_01_18_37B = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/ms2_data/MY06052020/p18B01/p18B01_S34_merge.freqs.csv')
 moi_01_18_37A['Replica'] = 'A'
 moi_01_18_37B['Replica'] = 'B'
 moi_01_18_37A['Time'] = 18
@@ -524,6 +538,7 @@ moi_01_16 = moi_01_16.rename(columns={'base':'Base', 'ref_base':'Ref', 'ref_posi
 moi_01_16['Full_mutation'] = moi_01_16.Ref + moi_01_16.Pos.astype(str) + moi_01_16.Base
 moi_01_16 = pd.concat([moi_01_16, joined])
 mutations = ['T1764.0-', 'A1664.0G']
+mutations = moi_01_16[(moi_01_16.Base != moi_01_16.Ref) & (moi_01_16.Ref != '-') & ~(moi_01_16.Pos.isin(n)) & (moi_01_16.Freq >= 0.1) & (moi_01_16.Pos.isin(range(1200,2200)))].Full_mutation.drop_duplicates()
 create_mutations_graph4(moi_01_16, mutations, 'X:/volume2/noam/passages/201908_w_2019_passages/diverging_mois/continued_moi0.1_for_review.png', '0.1')
 
 
