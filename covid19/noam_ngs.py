@@ -398,5 +398,7 @@ for i in enumerate(zip(e7, e9)):
         if i[1][0] != 'N' and i[1][1] != 'N':
             print(i)
             
-            
-            
+
+
+##### read all freqs
+df = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_freqs.upto_tech3.csv')

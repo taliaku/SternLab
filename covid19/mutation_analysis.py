@@ -32,13 +32,13 @@ def flatten_json(nested_json):
     return out
 
 
-with open('Z:/volume1/covid/ncov_concensus_ISR/auspice/ncov.json', 'r') as o:
+with open('/Volumes/STERNADILABTEMP$/volume1/covid/ncov_concensus_ISR/auspice/ncov.json', 'r') as o:
     data = json.load(o)
     
 data = flatten_json(data)
 
 
-with open('X:/volume2/noam/covid/mutation_type/tmp_json.txt', 'w') as outfile:
+with open('/Volumes/STERNADILABHOME$/volume2/noam/covid/mutation_type/tmp_json.txt', 'w') as outfile:
     json.dump(data, outfile)
     
     
@@ -63,7 +63,7 @@ df.to_csv('Z:/volume1/noam/covid_data/all_mutations_in_included_cons.csv', index
 
 # read data
 df = pd.read_csv('Z:/volume1/noam/covid_data/all_mutations_in_included_cons.csv')
-
+df = pd.read_csv('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_mutations_in_included_cons.csv')
 
 
 ## snps pre sample graph
@@ -242,3 +242,22 @@ clade = df[df['sample'].str.split('/').str[1].isin(['2089839', '2089852', '13077
 counted = pd.merge(all, clade, on=['position', 'ref_base', 'base'], how='outer', suffixes=['_all', '_clade']).fillna(0)
 counted['all_freq'] = counted.sample_all / 213
 counted['clade_freq'] = counted.sample_clade / 4
+
+
+
+
+
+######## find deletions in all sequences
+with open('/Volumes/STERNADILABHOME$/volume3/COVID19/data/gisaid_hcov-19_2020_05_05_11.fasta') as f:
+    f = f.read()
+
+f = f.split('>')
+f = {i.split('\n')[0]:''.join(i.split('\n')[1:]) for i in f}
+
+f_with_20755 = {}
+for i in f:
+    if 'AAAATTATGGTGATCGTGCAACATTA' in f[i]:
+        f_with_20755[i] = f[i]
+
+with open('/Volumes/STERNADILABHOME$/volume2/noam/covid/deletions_outside_israel/fastas_with_20755.fasta', 'w') as w:
+    w.write(''.join(['>' + i + '\n' + f_with_20755[i] + '\n' for i in f_with_20755]))
