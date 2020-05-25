@@ -3,6 +3,8 @@ import pandas as pd
 import json
 import seaborn as sns
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+import math
 
 
 #### organize mutations types - syn and non-syn
@@ -211,7 +213,7 @@ to_pivot.sort_values('mutation_order').to_excel('Z:/volume1/noam/covid_data/pivo
 
 
 ####### fasta differences
-def compare_fastas_to_ref(fastas, ref_fasta, output_excel):
+def compare_fastas_to_ref_unaligned(fastas, ref_fasta, output_excel):
     with open(fastas) as f:
         f = f.read()
     f = f.split('>')
@@ -234,7 +236,7 @@ def compare_fastas_to_ref(fastas, ref_fasta, output_excel):
                     pass
     return pd.DataFrame(diffs, columns=['position', 'sample', 'ref_base', 'base']).to_excel(output_excel, index=False)
 
-compare_fastas_to_ref('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.fasta', '/Volumes/STERNADILABHOME$/volume2/noam/covid/MN908947.fasta', '/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.all_diffs.xlsx')
+compare_fastas_to_ref_unaligned('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.fasta', '/Volumes/STERNADILABHOME$/volume2/noam/covid/MN908947.fasta', '/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.all_diffs.xlsx')
 
 df = pd.read_excel('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.all_diffs.xlsx')
 all = df.groupby(['position', 'ref_base', 'base']).sample.count().sort_values()
@@ -248,6 +250,7 @@ counted['clade_freq'] = counted.sample_clade / 4
 
 
 ######## find deletions in all sequences
+
 with open('/Volumes/STERNADILABHOME$/volume3/COVID19/data/gisaid_hcov-19_2020_05_05_11.fasta') as f:
     f = f.read()
 
@@ -261,3 +264,29 @@ for i in f:
 
 with open('/Volumes/STERNADILABHOME$/volume2/noam/covid/deletions_outside_israel/fastas_with_20755.fasta', 'w') as w:
     w.write(''.join(['>' + i + '\n' + f_with_20755[i] + '\n' for i in f_with_20755]))
+
+
+###############################
+
+def compare_fastas_to_ref(fastas, ref_seq_name, output_excel):
+    # fasta needs to be aligned
+    with open(fastas) as f:
+        f = f.read()
+    f = f.split('>')
+    f = {i.split('\n')[0]:''.join(i.split('\n')[1:]) for i in f if i != ''}
+    diffs = []
+    ref_pos = 0
+    for i in tqdm(range(len(f[ref_seq_name]))):
+        if f[ref_seq_name][i] != '-':
+            ref_pos = math.floor(ref_pos) + 1
+            for sample in f:
+                if f[sample][i] != f[ref_seq_name][i]:
+                    diffs.append((ref_pos, sample, f[ref_seq_name][i], f[sample][i]))
+        else:
+            ref_pos += 0.001
+            for sample in f:
+                if f[sample][i] != f[ref_seq_name][i]:
+                    diffs.append((ref_pos, sample, f[ref_seq_name][i], f[sample][i]))
+    return pd.DataFrame(diffs, columns=['position', 'sample', 'ref_base', 'base']).to_csv(output_excel, index=False)
+
+compare_fastas_to_ref('/Volumes/STERNADILABHOME$/volume2/noam/covid/database_research/msa_0520/msa_0520.fasta', 'hCoV-19/Wuhan-Hu-1/2019|EPI_ISL_402125|2019-12-31|Asia', '/Volumes/STERNADILABHOME$/volume2/noam/covid/database_research/msa_0520/msa_0520.compare.csv')
