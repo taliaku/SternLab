@@ -579,6 +579,23 @@ def add_mutation_to_freq_file_with_cons_as_ref(freq_file_no_indels, output_freq_
     transformed_freq = change_ref_to_consensus(freq_file_no_indels)
     add_mutation_to_freq_file(output_freq_file, freqs= transformed_freq)
 
+def unite_all_freq_files(freqs_dir, out_path=None):
+    """
+    unites all frequency file into one file, with 'File' field added
+    """
+    freqs_df = []
+    # read all freq files and add the sample name to the data frame
+    files = [os.path.join(freqs_dir, f) for f in os.listdir(freqs_dir) if not f.startswith('all') and f.endswith('.freqs.csv')]
+    for f in files:
+        print(f)
+        curr_df = pd.read_csv(f)
+        sample = os.path.basename(f).split('_')[0]
+        curr_df['File'] = sample
+        freqs_df.append(curr_df)
+    df = pd.concat(freqs_df)
+    if out_path != None:
+        df.to_csv(out_path, index=False)
+    return df
 
 if __name__ == "__main__":
     main()
