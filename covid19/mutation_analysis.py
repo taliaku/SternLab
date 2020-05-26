@@ -3,48 +3,12 @@ import pandas as pd
 import json
 import seaborn as sns
 import matplotlib.pyplot as plt
+import scipy.stats
 from tqdm import tqdm
+import numpy as np
 import math
 
-
-#### organize mutations types - syn and non-syn
-
-
-def flatten_json(nested_json):
-    """
-        Flatten json object with nested keys into a single level.
-        Args:
-            nested_json: A nested json object.
-        Returns:
-            The flattened json object if successful, None otherwise.
-    """
-    out = {}
-    def flatten(x, name=''):
-        if type(x) is dict:
-            for a in x:
-                flatten(x[a], name + a + '_')
-        elif type(x) is list:
-            i = 0
-            for a in x:
-                flatten(a, name + str(i) + '_')
-                i += 1
-        else:
-            out[name[:-1]] = x
-    flatten(nested_json)
-    return out
-
-
-with open('/Volumes/STERNADILABTEMP$/volume1/covid/ncov_concensus_ISR/auspice/ncov.json', 'r') as o:
-    data = json.load(o)
-    
-data = flatten_json(data)
-
-
-with open('/Volumes/STERNADILABHOME$/volume2/noam/covid/mutation_type/tmp_json.txt', 'w') as outfile:
-    json.dump(data, outfile)
-    
-    
-
+#
 ##########
 df1 = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech1_20200415/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/technion1_1e-9_mutations_all.csv')
 df2 = pd.read_csv('Z:/volume1/noam/covid_data/coronaTech2_20200427/python_pipeline_x1_c0_v10-9_after_ptrimmer/freqs/technion2_1e-9_mutations_all.csv')
@@ -132,9 +96,9 @@ pd.merge(metadata, n_count, on='sample', how='outer').to_excel('Z:/volume1/noam/
 
 
 ##### syn, non-synonymous
-df = pd.read_csv('Z:/volume1/noam/covid_data/all_mutations_in_included_cons.csv')
+df = pd.read_csv('/Volumes/STERNADILABTEMP$//volume1/noam/covid_data/all_mutations_in_included_cons.csv')
 
-mutation_type = pd.read_csv('X:/volume2/noam/covid/mutation_type/mutation_type.short.csv')
+mutation_type = pd.read_csv('/Volumes/STERNADILABHOME$/volume2/noam/covid/mutation_type/mutation_type.short.csv')
 mutation_type = mutation_type.rename(columns={'Base':'base', 'Ref':'ref_base', 'Pos':'ref_position'})
 df = pd.merge(df, mutation_type, on=['ref_position', 'ref_base', 'base'], how='left')
 
@@ -176,7 +140,10 @@ for i in mutation_type[['start', 'end', 'protein']].drop_duplicates().itertuples
             ax.text(((((i[2] - i[1])/2)+i[1])/29892), 1.06, i[3], transform=ax.transAxes, fontsize=14, rotation=90, horizontalalignment='center')
     else:
         ax.text(10000/29892, 1.06, i[3], transform=ax.transAxes, fontsize=14, rotation=90, horizontalalignment='center')
-plt.savefig('Z:/volume1/noam/covid_data/cumulative_syn_nonsyn.png' , bbox_inches='tight', dpi=1600)
+plt.ylim(bottom=0.8)
+#plt.savefig('Z:/volume1/noam/covid_data/cumulative_syn_nonsyn.png' , bbox_inches='tight', dpi=1600)
+plt.savefig('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/cumulative_syn_nonsyn.pdf' , bbox_inches='tight', dpi=1600)
+
 
 
 ## df top mutations chart
@@ -211,82 +178,19 @@ to_pivot.sort_values('mutation_order').to_excel('Z:/volume1/noam/covid_data/pivo
 
 
 
+############
 
-####### fasta differences
-def compare_fastas_to_ref_unaligned(fastas, ref_fasta, output_excel):
-    with open(fastas) as f:
-        f = f.read()
-    f = f.split('>')
-    #f = [i for i in f[1:] if i.split('/')[1] in ['2089839', '2089852', '13077726', '2086033', ]]
-    f = {i.split('\n')[0]:''.join(i.split('\n')[1:]) for i in f}
+df = pd.read_csv('/Volumes/STERNADILABHOME$/volume2/noam/covid/database_research/msa_0520/msa_0520.compare.remove_edges.csv')
 
-    with open(ref_fasta) as g:
-        g = g.read()
-    g = ['reference', ''.join(g.replace('>', '').split('\n')[1:])]
-    f[g[0]] = g[1]
-
-    diffs = []
-    for i in range(len(f['reference'])):
-        for sample in f:
-            if sample != 'reference':
-                try:
-                    if f[sample][i+1] != f['reference'][i]:
-                        diffs.append((i+1, sample, f['reference'][i], f[sample][i+1]))
-                except:
-                    pass
-    return pd.DataFrame(diffs, columns=['position', 'sample', 'ref_base', 'base']).to_excel(output_excel, index=False)
-
-compare_fastas_to_ref_unaligned('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.fasta', '/Volumes/STERNADILABHOME$/volume2/noam/covid/MN908947.fasta', '/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.all_diffs.xlsx')
-
-df = pd.read_excel('/Volumes/STERNADILABTEMP$/volume1/noam/covid_data/all_israel_concensuses.all_diffs.xlsx')
-all = df.groupby(['position', 'ref_base', 'base']).sample.count().sort_values()
-clade = df[df['sample'].str.split('/').str[1].isin(['2089839', '2089852', '13077726', '2086033', ])].groupby(['position', 'ref_base', 'base']).sample.count().sort_values()
-counted = pd.merge(all, clade, on=['position', 'ref_base', 'base'], how='outer', suffixes=['_all', '_clade']).fillna(0)
-counted['all_freq'] = counted.sample_all / 213
-counted['clade_freq'] = counted.sample_clade / 4
-
-
-
-
-
-######## find deletions in all sequences
-
-with open('/Volumes/STERNADILABHOME$/volume3/COVID19/data/gisaid_hcov-19_2020_05_05_11.fasta') as f:
-    f = f.read()
-
-f = f.split('>')
-f = {i.split('\n')[0]:''.join(i.split('\n')[1:]) for i in f}
-
-f_with_20755 = {}
-for i in f:
-    if 'AAAATTATGGTGATCGTGCAACATTA' in f[i]:
-        f_with_20755[i] = f[i]
-
-with open('/Volumes/STERNADILABHOME$/volume2/noam/covid/deletions_outside_israel/fastas_with_20755.fasta', 'w') as w:
-    w.write(''.join(['>' + i + '\n' + f_with_20755[i] + '\n' for i in f_with_20755]))
-
-
-###############################
-
-def compare_fastas_to_ref(fastas, ref_seq_name, output_excel):
-    # fasta needs to be aligned
-    with open(fastas) as f:
-        f = f.read()
-    f = f.split('>')
-    f = {i.split('\n')[0]:''.join(i.split('\n')[1:]) for i in f if i != ''}
-    diffs = []
-    ref_pos = 0
-    for i in tqdm(range(len(f[ref_seq_name]))):
-        if f[ref_seq_name][i] != '-':
-            ref_pos = math.floor(ref_pos) + 1
-            for sample in f:
-                if f[sample][i] != f[ref_seq_name][i]:
-                    diffs.append((ref_pos, sample, f[ref_seq_name][i], f[sample][i]))
-        else:
-            ref_pos += 0.001
-            for sample in f:
-                if f[sample][i] != f[ref_seq_name][i]:
-                    diffs.append((ref_pos, sample, f[ref_seq_name][i], f[sample][i]))
-    return pd.DataFrame(diffs, columns=['position', 'sample', 'ref_base', 'base']).to_csv(output_excel, index=False)
-
-compare_fastas_to_ref('/Volumes/STERNADILABHOME$/volume2/noam/covid/database_research/msa_0520/msa_0520.fasta', 'hCoV-19/Wuhan-Hu-1/2019|EPI_ISL_402125|2019-12-31|Asia', '/Volumes/STERNADILABHOME$/volume2/noam/covid/database_research/msa_0520/msa_0520.compare.csv')
+# check if deletions are associated with mutation
+chi2_data = []
+#samples_with_del = df[(df.base == '-')]['sample'].drop_duplicates().tolist()
+for snp in tqdm(df[(df.base != 'N')][['position']].drop_duplicates().position.tolist()[:13]):
+    temp_matrix = pd.DataFrame(np.zeros(shape=(2,2)), columns=['snp',0], index=['del',0])
+    temp_matrix.at['del','snp'] = len(df[(df['sample'].isin(samples_with_del)) & (df.position == snp) & (df.base != 'N')][['sample']].drop_duplicates())
+    temp_matrix.at['del',0] = len(df[(df['sample'].isin(samples_with_del))][['sample']].drop_duplicates()) - len(df[(df['sample'].isin(samples_with_del)) & (df.position == snp) & (df.base != 'N')][['sample']].drop_duplicates())
+    temp_matrix.at[0,'snp'] = len(df[~(df['sample'].isin(samples_with_del)) & (df.position == snp) & (df.base != 'N')][['sample']].drop_duplicates())
+    temp_matrix.at[0,0] = len(df[~(df['sample'].isin(samples_with_del))][['sample']].drop_duplicates()) - len(df[~(df['sample'].isin(samples_with_del)) & (df.position == snp) & (df.base != 'N')][['sample']].drop_duplicates())
+    chi2, pvalue, dof, expected = scipy.stats.chi2_contingency(temp_matrix)
+    chi2_data.append(('del',snp,pvalue,chi2))
+chi2_data = pd.DataFrame(chi2_data, columns=['pos1', 'pos2', 'pvalue', 'chi2'])
