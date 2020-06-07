@@ -95,9 +95,9 @@ Or name the log files by the ID of the job, and have them created in your design
 The best solution is to add your username to 'get_cmdfile_dir' under 'pbs_jobs.py'. This way you can create a folder in which all job outputs are
 saved by date and job alias. 
 
-**How to run a PBS job ARRAY:**
+**How to run a PBS job ARRAY:**<br/>
 PBS jobs array is simply a way of sumbitting a batch of jobs together. The adventage of using a batch array is mostly in queueing time due to faster scheduling of the PBS queue system. <br\>
-in order to run an array you need to link the index of the array to your scripts\software etc. this is done in the following way:
+in order to run an array you need to link the index of the array to your scripts\software etc. this is done in the following way:<br/>
 * add J option with the range of the array (starting with 1 and not 0 !!!).
 ```
 #PBS -J START-END
@@ -146,7 +146,7 @@ Also, If you press the arrow down key stroke, you may tell whether you are on a 
 
 **To check which modules are available:** `modules avail`. use `module load <module_name>` to load your module.
 
-**How to contact HPC team?**
+**How to contact HPC team?**<br/>
 
 https://helpdesk.tau.ac.il/Login.jsp
 
