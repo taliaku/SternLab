@@ -63,9 +63,148 @@ def create_context_mutation_dic():
                 context_mutation_dic[i + j + h] = create_mutation_dic(j)
     return context_dic, context_mutation_dic
 
-
-
 def run_on_basename(basename, df, cutoff = 0.7):
+    prob_marginal = basename + ".prob.marginal.txt"
+    seq_marginal = basename + ".seq.marginal.txt"
+    tree_ancestor = basename + ".tree.ancestor.txt"
+
+    try:
+        prob_marginal = check_filename(prob_marginal)
+        seq_marginal = check_filename(seq_marginal)
+        tree_ancestor = check_filename(tree_ancestor)
+    except:
+        return
+
+    # remove position which have low probabilities
+    positions_to_remove = []
+    pm = open(prob_marginal, "r").read()
+    poss = pm.split("\n\nmarginal probabilities at ")[1:]
+    p = re.compile(": p\([GATC]\)=([01].\d*)") #gets probabilities under 0.7
+    for pos in poss:
+        r = p.findall(pos)
+        r = [float(i) for i in r]
+        pos_num = pos.split("\n")[0].split("position: ")[1]
+        if min(r) < cutoff:
+            positions_to_remove.append(int(pos_num)-1)
+
+
+    alignment_len = int(pos_num) -1
+    if float(len(positions_to_remove)) / alignment_len >= 0.3:
+        print("warning - more than 30% of positions are removed")
+    #print("removed %i positions (out of %i)" % (len(positions_to_remove), alignment_len))
+
+    #create ancestor info - for each son - who is the father
+    pattern = re.compile(r'\s+')
+    ancestors =  open(tree_ancestor, "r").read().split("\n")[2:-2]
+    ancestor_info = {}
+    for line in ancestors:
+        line = re.sub(pattern, '$', line)
+        line = line.split("$")
+        son = line[0]
+        father = line[1]
+        ancestor_info[son] = father
+
+    #create seq dictionary - name and sequance
+    seqs = open(seq_marginal, "r").read()
+    seqs = seqs.split("\n>")[1:]
+    seqs = {seq.split("\n")[0]:seq.split("\n")[1] for seq in seqs}
+
+
+
+
+    #CB - close branches
+    #FB - far branches
+    #AB - all branches
+    mutation_count_AB = create_mutation_dic()
+    mutation_count_CB = create_mutation_dic()
+    mutation_count_FB = create_mutation_dic()
+    context_count_AB, context_mutation_count_AB = create_context_mutation_dic()
+    context_count_CB, context_mutation_count_CB = create_context_mutation_dic()
+    context_count_FB, context_mutation_count_FB = create_context_mutation_dic()
+
+
+    GA_VS_NOT = pd.DataFrame([[0, 0], [0,0]], index=["GA", "other"], columns=["Apobec_context", "not_apobec_context"])
+    GA_external_internal = pd.DataFrame([[0, 0], [0,0]], index=["external_branch", "internal_branch"], columns=["Apobec_context", "not_apobec_context"])
+    GA_that_happand_vs_didnt_happen = pd.DataFrame([[0, 0], [0,0]], index=["Happand", "Didnt_Happen"], columns=["Apobec_context", "not_apobec_context"])
+
+
+    for son in ancestor_info:
+        father = ancestor_info[son]
+        if father == "root!":
+            continue
+        son_seq = seqs[son]
+        father_seq = seqs[father]
+        pattern = re.compile("^N\d*") #checks if the node is an internal node
+        if pattern.findall(son) == []:
+            node_type = "external"
+        else:
+            node_type = "internal"
+
+
+        different_positions = [i for i in range(len(son_seq)) if son_seq[i] != father_seq[i]]
+        for diff_pos in different_positions:
+            if diff_pos in positions_to_remove:
+                continue  # position that are supposed to be removed - didn't infer their ancestry well enough
+            if alignment_len - diff_pos == 0 or diff_pos == 0:
+                continue  # position at the beginning or end of the sequence
+            if son_seq[diff_pos] == "-":
+                continue  # positions that are gapped in the son sequence - non relevant mutations
+            mutation = father_seq[diff_pos] + son_seq[diff_pos]
+            context = father_seq[diff_pos - 1] + father_seq[diff_pos] + father_seq[
+                diff_pos + 1]  # from ancestral sequence
+            if mutation not in mutation_count_AB.keys():
+                continue  # mutation is not one of the twelve
+            if context not in context_count_AB.keys():
+                continue  # context is not one of the 16
+            mutation_count_AB[mutation] += 1
+            context_mutation_count_AB[context][mutation] += 1
+            if node_type == "external":  # if the node is external  - goes to close branches - CB
+                mutation_count_CB[mutation] += 1
+                context_mutation_count_CB[context][mutation] += 1
+            else:  # if hte node is internal - goes to far branches - FB
+                mutation_count_FB[mutation] += 1
+                context_mutation_count_FB[context][mutation] += 1
+            if mutation == "GA":
+                if father_seq[diff_pos + 1] in ["G", "A"]:
+                    GA_VS_NOT.Apobec_context.GA += 1
+                    if node_type == "external":
+                        GA_external_internal.Apobec_context.external_branch += 1
+                    else:
+                        GA_external_internal.Apobec_context.internal_branch += 1
+                else:
+                    GA_VS_NOT.not_apobec_context.GA += 1
+                    if node_type == "external":
+                        GA_external_internal.not_apobec_context.external_branch += 1
+                    else:
+                        GA_external_internal.not_apobec_context.internal_branch += 1
+            else:
+                if father_seq[diff_pos + 1] in ["G", "A"]:
+                    GA_VS_NOT.Apobec_context.other += 1
+                else:
+                    GA_VS_NOT.not_apobec_context.other += 1
+
+    ddsratio, pvalueisher_exact = fisher_exact(GA_VS_NOT)
+    percentage = GA_VS_NOT.groupby(level=0).apply(lambda x:100 * x / float(x.sum(axis=1)))
+
+
+    print(basename, pvalueisher_exact)
+    print(percentage)
+
+    print(GA_VS_NOT)
+
+    ddsratio, pvalueisher_exact = fisher_exact(GA_external_internal)
+    percentage = GA_external_internal.groupby(level=0).apply(lambda x: 100 * x / float(x.sum(axis=1)))
+
+    print(basename, pvalueisher_exact)
+    print(percentage)
+    print(GA_external_internal)
+
+    return GA_VS_NOT
+
+
+
+
+def run_on_basename_old(basename, df, cutoff = 0.7):
     prob_marginal = basename + ".prob.marginal.txt"
     seq_marginal = basename + ".seq.marginal.txt"
     tree_ancestor = basename + ".tree.ancestor.txt"
@@ -163,7 +302,7 @@ def run_on_basename(basename, df, cutoff = 0.7):
                     GA_that_happand_vs_didnt_happen.Apobec_context.Didnt_Happen += 1
                 else:
                     GA_that_happand_vs_didnt_happen.not_apobec_context.Didnt_Happen += 1
-            else:
+            elif son_seq[i] == "A":
                 if father_seq[i+1] in ["G", "A"]:
                     GA_that_happand_vs_didnt_happen.Apobec_context.Happand += 1
                 else:
@@ -181,7 +320,21 @@ def run_on_basename(basename, df, cutoff = 0.7):
     else:
         print(basename, pvalueisher_exact)
         print(percentage)
-        """
+
+
+    for son in ancestor_info:
+        father = ancestor_info[son]
+        if father == "root!":
+            continue
+        son_seq = seqs[son]
+        father_seq = seqs[father]
+        pattern = re.compile("^N\d*") #checks if the node is an internal node
+        if pattern.findall(son) == []:
+            node_type = "external"
+        else:
+            node_type = "internal"
+
+
         different_positions = [i for i in range(len(son_seq)) if son_seq[i] != father_seq[i]]
         for diff_pos in different_positions:
             if diff_pos in positions_to_remove:
@@ -204,7 +357,6 @@ def run_on_basename(basename, df, cutoff = 0.7):
             else: # if hte node is internal - goes to far branches - FB
                 mutation_count_FB[mutation] += 1
                 context_mutation_count_FB[context][mutation] += 1
-
             if mutation == "GA":
                 if father_seq[diff_pos+1] in ["G", "A"]:
                     GA_VS_NOT.Apobec_context.GA += 1
@@ -221,12 +373,14 @@ def run_on_basename(basename, df, cutoff = 0.7):
     oddsratio, pvalueisher_exact = fisher_exact(GA_VS_NOT)
     percentage = GA_VS_NOT.groupby(level=0).apply(lambda x:
                                                    100 * x / float(x.sum(axis=1)))
+
+    print(GA_VS_NOT)
     if pvalueisher_exact <= 0.05:
         print(basename, pvalueisher_exact)
         print(percentage)
     else:
         print(basename)
-    """
+
 
     df = pd.DataFrame(columns=["Close_branches", "Far_branches"])
 
@@ -247,6 +401,7 @@ def run_on_basename(basename, df, cutoff = 0.7):
                     'Far_branches':[mutation_count_in_context_FB],},
                    index = [c])
                 df = pd.concat([df,temp_df])
+    return df
 
 
 
