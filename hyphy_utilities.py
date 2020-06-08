@@ -5,6 +5,7 @@ import glob
 from file_utilities import check_dirname, check_filename
 import pandas as pd
 import re
+from phyVirus.phyVirus_utilities import  get_baltimore_classifiaction
 
 HYPHY_PROGRAM = "/Users/taliakustin/Software/hyphy-2.3.13/bin/HYPHYMP"
 HYPHY_BF = "/Users/taliakustin/Software/hyphy-2.3.13/res/TemplateBatchFiles/AnalyzeDiNucData_talia.bf"
@@ -34,19 +35,21 @@ cols= ['R_TGTT', 'R_TCTT', 'R_AAAC', 'R_TCTG', 'R_CTTT',
 
 
 def extract_hyphy_results(files=[]):
-    df = pd.DataFrame(columns=cols)
+    df = pd.DataFrame()
     if files==[]:
         print("no files!!")
     for f in files:
          with open(f, "r") as file:
+             print(f)
              family = f.split("/")[-1].split("_")[0]
              protein = f.split("/")[-1].split(family + "_")[1].split(".")[0]
              group = f.split("/")[-1].split(family + "_")[1].split(".hyphy.txt")[0]
+             baltimore = get_baltimore_classifiaction(family)
              res = {}
              res["filename"] = f
              res["protein"] = protein
-             res["group"] = group
              res["family"] = family
+             res["baltimore"] = baltimore
              data = file.readlines()
              for l in data:
                      if "AIC" in l:
@@ -59,7 +62,10 @@ def extract_hyphy_results(files=[]):
                          rate_Normalizer = float(l.split("=")[-1].strip().split("\n")[0])
                          res["rate_Normalizer"] = rate_Normalizer
                      elif "R_" in l:
+                         if "Node" in l:
+                             continue
                          name = l.split("=")[0]
                          value = float(l.split("=")[-1].strip().split("\n")[0])
                          res[name] = value
              df = df.append(res, ignore_index=True)
+    return(df)
