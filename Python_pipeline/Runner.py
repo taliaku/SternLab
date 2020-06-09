@@ -6,6 +6,8 @@ import datetime
 import os
 import glob
 
+#TODO?: relative path support for input files
+
 ''' 
 Pipeline generating frequency files from raw sequencing data files, either fastq.gz or fastq.
 0.	Merge files. Receiving a full path to a sample with pattern (dir1/dir2/sample1_) and a directory, where merged file will be created.
