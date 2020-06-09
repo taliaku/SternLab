@@ -9,6 +9,8 @@ import argparse
 import os
 import subprocess
 
+PROBABILITY_LIMIT = 0.85
+
 def FindFilesInDir(dir_path, file_type):
 	file_path = dir_path + "/*" + file_type
 	list_of_files = sorted(glob.glob(file_path))
@@ -21,7 +23,8 @@ def FindFilesInDir(dir_path, file_type):
        
 	return list_of_files
 
-def summarize_stats (dir_path, sample_basename_pattern):
+def summarize_stats (dir_path, sample_basename_pattern, freqs_file_path, Coverage):
+	print("Summarize Stats!!!!!!")
 	os.chdir(dir_path)
 	pipeline_summary = dir_path + "/Summary.txt"
 	with open(pipeline_summary, "a") as o:
@@ -59,6 +62,11 @@ def summarize_stats (dir_path, sample_basename_pattern):
 					num_contributing_reads_by_repeat = subprocess.getoutput("grep '" + repeat + " repeats, ' *.stats | awk -F \" \" '{sum+=$3}; END {print sum}'")
 					num_contributing_bases_by_repeat = subprocess.getoutput("grep '" + repeat + " repeats, ' *.stats | awk -F \" \" '{sum+=$7}; END {print sum}'")
 					o.write("{} repeats contributing {} reads and {} bases to frequency count\n".format(repeat, int(num_contributing_reads_by_repeat), int(num_contributing_bases_by_repeat)))
+				print(freqs_file_path)
+				freqs_data = pd.read_csv(freqs_file_path, sep=',')
+				mutation_data = freqs_data[(freqs_data["rank"] != 0) & (freqs_data["coverage"] > Coverage) & (freqs_data["probability"] >= PROBABILITY_LIMIT)]
+				print(f"Sum of Mutations: {len(mutation_data)}")
+				o.write(f"Sum of Mutations: {len(mutation_data)}")
 			except:
 				print("\nWarning. Unable to summarize pipeline statistics, or cannot open or write to file " + pipeline_summary + "\n")
 		else:
@@ -105,13 +113,13 @@ def count_coverage_positions (dir_path, freqs_file_path, Coverage, ref_FilePath)
 		except:
 			print("\nWarning. Unable to count positions with " + Coverage + " coverage, or cannot open or write to file " + pipeline_summary + "\n")
 
-def create_mutation_rate_csv(dir_path, freqs_file_path, Coverage, sample_basename_pattern, probability_limit):
+def create_mutation_rate_csv(dir_path, freqs_file_path, Coverage, sample_basename_pattern, PROBABILITY_LIMIT):
 	mutation_rates = dir_path + "/" + sample_basename_pattern + 'mutations_frequencies.csv'
 	with open(mutation_rates, "w") as mutations_file:
 		try:
 			data = pd.read_csv(freqs_file_path, sep=',')
 			data["mutation"] = data["ref_base"] + ">" + data["base"]
-			data = pd.DataFrame.groupby(data[(data["rank"] != 0) & (data["coverage"] > Coverage) & (data["probability"] >= probability_limit)], by=["mutation"]).sum()  # & (data["base"] != "-") to also remove deletions
+			data = pd.DataFrame.groupby(data[(data["rank"] != 0) & (data["coverage"] > Coverage) & (data["probability"] >= PROBABILITY_LIMIT)], by=["mutation"]).sum()  # & (data["base"] != "-") to also remove deletions
 			data["mutation_frequency"] = round(data["base_counter"] / data["coverage"], 6)
 			data.drop(columns=["ref_position", "base_counter", "coverage", "frequency", "probability", "rank"], inplace=True)
 			mutations_file.write(data.to_csv())
@@ -120,7 +128,7 @@ def create_mutation_rate_csv(dir_path, freqs_file_path, Coverage, sample_basenam
 			with open(pipeline_summary, "a") as o:
 				o.write("\nUnable to create mutation rate csv file. No mutations were found in positions with >=" + str(Coverage) + " coverage answering the requested number of repeats and q-score\n")
 
-def pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path, Coverage, probability_limit, lower_ylim=10**-5, upper_ylim=10**-1):
+def pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path, Coverage, PROBABILITY_LIMIT, lower_ylim=10**-5, upper_ylim=10**-1):
 	try:
 		os.chdir(dir_path)
 
@@ -154,19 +162,20 @@ def pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path
 
 		data = pd.read_csv(freqs_file_path, sep=',')
 		data["mutation"] = data["ref_base"] + ">" + data["base"]
-		sns.boxplot("mutation", "frequency", data=data[(data["rank"] != 0) & (data["coverage"] > Coverage) & (data["probability"] >= probability_limit)], ax=axes[1][0])
+		mutation_data = data[(data["rank"] != 0) & (data["coverage"] > Coverage) & (data["probability"] >= PROBABILITY_LIMIT)]
+		sns.boxplot("mutation", "frequency", data=mutation_data, ax=axes[1][0])
 		axes[1][0].set_yscale("log")
 		axes[1][0].set_ylim(lower_ylim, upper_ylim)
 		axes[1][0].set_xlabel("Mutation")
 		axes[1][0].set_ylabel("Frequency")
 		axes[1][0].title.set_text("Mutations frequencies by group")
 
-		sns.scatterplot(x="ref_position", y="frequency", data=data[(data["rank"] != 0) & (data["coverage"] > Coverage) & (data["probability"] >= probability_limit)], ax=axes[1][1])
+		sns.scatterplot(x="ref_position", y="frequency", data=mutation_data, ax=axes[1][1])
 		axes[1][1].set_yscale("log")
 		axes[1][1].set_ylim(lower_ylim, upper_ylim)
 		axes[1][1].set_xlabel("Ref position")
 		axes[1][1].set_ylabel("Frequency")
-		axes[1][1].title.set_text("Mutations frequencies by position")
+		axes[1][1].title.set_text(f"Mutations frequencies by position (sum of mutations: {len(mutation_data)})")
 
 		data = data.drop_duplicates("ref_position")
 		InsertionIndex = data[data['ref_base'] == "-"].index
@@ -209,8 +218,11 @@ def main(args):
 	stats_files = FindFilesInDir(dir_path, file_type)
 	file_type = ".fasta"
 	fasta_files = FindFilesInDir(dir_path, file_type)
+	file_type = "merge.freqs.csv"
+	freqs_file_path = FindFilesInDir(dir_path, file_type)
+	print(f"freqs_file_path: {freqs_file_path}")
 	if len(stats_files) > 0 or len(fasta_files) > 0:
-		summarize_stats(dir_path, sample_basename_pattern)
+		summarize_stats(dir_path, sample_basename_pattern, freqs_file_path[0], Coverage)
 	else:
 		print("Warning. stats files or fasta files are missing in directory " + dir_path + ". Cannot perform summary analysis\n")
 
@@ -218,12 +230,9 @@ def main(args):
 	if not (os.path.isfile(ref_FilePath) and os.path.splitext(ref_FilePath)[1] == '.fasta'):
 		raise Exception("Unexpected error, " + ref_FilePath + " does not exist, is not a file or is not a fasta file\n")
 
-	probability_limit = 0.85
-
-	file_type = "merge.freqs.csv"
-	freqs_file_path = FindFilesInDir(dir_path, file_type)
+	
 	if len(freqs_file_path) == 1:
-		create_mutation_rate_csv(dir_path, freqs_file_path[0], Coverage, sample_basename_pattern, probability_limit)
+		create_mutation_rate_csv(dir_path, freqs_file_path[0], Coverage, sample_basename_pattern, PROBABILITY_LIMIT)
 		count_coverage_positions(dir_path, freqs_file_path[0], Coverage, ref_FilePath)
 	else:
 		print("Warning. number of merge.freqs.csv file in directory " + dir_path + " is different than 1. Cannot perform summary analysis of coverage and mutation rates\n")
@@ -231,7 +240,7 @@ def main(args):
 	file_type = ".blast"
 	blast_files = FindFilesInDir(dir_path, file_type)
 	if len(blast_files) > 0 and len(freqs_file_path) == 1:
-		pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path[0], Coverage, probability_limit)
+		pipeline_statistics_plots(dir_path, sample_basename_pattern, freqs_file_path[0], Coverage, PROBABILITY_LIMIT)
 	else:
 		print("Warning. blast files or freqs file are missing in directory " + dir_path + ". Cannot create summary pipeline plots\n")
 
