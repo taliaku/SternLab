@@ -18,7 +18,8 @@ import tqdm
 
 
 
-def write_params_file(param_file, input_aln, input_tree, output_res, output_log, output_tree, gtr_output=None, fixed_beta=0, fixed_s = 0, fixed_ProbS = 1, init_probS = 0.01):
+def write_params_file(param_file, input_aln, input_tree, output_res, output_log, output_tree, gtr_output=None,
+                      fixed_beta=0, fixed_s = 0, fixed_ProbS = 1, init_probS = 0.01, fixed_tau=1, init_beta=0,  fixed_kappa=1, bblOpt=0, optimizeLineSearch=0):
 
     param_file = check_filename(param_file, Truefile=False)
     input_aln = check_filename(input_aln)
@@ -67,15 +68,16 @@ def write_params_file(param_file, input_aln, input_tree, output_res, output_log,
     params.write("_fixedProbS %i\n" % fixed_ProbS)
     params.write("_initProbS %f\n" % init_probS)
     params.write("_initKappa %f\n" % kappa)
-    params.write("_fixedKappa 1\n")
+    params.write("_fixedKappa %i\n" % fixed_kappa)
     params.write("_initAlpha 1\n")
     params.write("_fixedAlpha 0\n")
     params.write("_initBeta 0\n")
     params.write("_fixedBeta %i\n" % fixed_beta)
     params.write("_initTau 1\n")
-    params.write("_fixedTau 1\n")
-    params.write("_bblOpt 0\n")
+    params.write("_fixedTau %i\n" % fixed_tau)
+    params.write("_bblOpt %i\n" % bblOpt)
     params.write("_doMutationMapping 0\n")
+    params.write("_optimizeLineSearch %i\n" % optimizeLineSearch)
     params.write("#_threshold 0.75\n")
 
     params.close()
@@ -149,16 +151,41 @@ def analyze_dirSel_mutation_map(file, ratios_output=None, overwrite = False):
     ratios.to_csv(ratios_output)
 
 
-def extract_dirSel_parameters(files, output, overwrite=False, model=None):
-    output = check_filename(output, Truefile=False)
+def extract_dirSel_parameters_single_file(f):
+    with open(f, "r") as handle:
+        data = handle.readlines()
+        line = 3  # start from line 3
+        params = {}
+        while not "#Rate categories are" in data[line]:
+            if ":" in data[line]:
+                name = data[line].split(":")[0].split("#")[1].strip()
+                value = float(data[line].split(":")[1].strip())
+            else:
+                name = data[line].split("=")[0].split("#")[1].strip()
+                value = float(data[line].split("=")[1].strip())
+            params[name] = value
+            line += 1
+
+    return params
+
+def extract_dirSel_parameters(files, output=None, overwrite=False, model=None, to_return=False):
+    sig_files = pd.read_csv(
+        "/sternadi/home/volume3/taliakustin/phyVirus_analysis/significant_incomplete_purifying_datasets.csv")
+    if output != None:
+        output = check_filename(output, Truefile=False)
     df = pd.DataFrame()
     for f in files:
+        if "Reo" in f or "check" in f:
+            continue
         base = f.split("/")[-1].split(".dirSel")[0]
+        if sig_files.loc[sig_files.base == base].empty:
+            continue
         family = base.split("_")[0]
         baltimore = get_baltimore_classifiaction(family)
         with open(f, "r") as handle:
-            data =  handle.readlines()
-            line = 3 #start from line 3
+            data =  handle.read()
+            data = data.split("Parameters are:\n")[1].split("\n")
+            line = 0 #start from line 3
             params = {}
             while not "#Rate categories are" in data[line]:
                 if ":" in data[line]:
@@ -170,14 +197,18 @@ def extract_dirSel_parameters(files, output, overwrite=False, model=None):
                 params[name] = value
                 line += 1
         df = df.append({"baltimore":baltimore, "family":family, "basename":base, "model":model, **params}, ignore_index=True)
+    if to_return:
+        return(df)
     df.to_csv(output)
 
-def merge_alternative_and_null_dfs(alternative, null, output, degrees_of_freedom=1):
-    alternative = check_filename(alternative)
-    null = check_filename(null)
-    output = check_filename(output, Truefile=False)
-    alter = pd.read_csv(alternative)
-    null = pd.read_csv(null)
+def merge_alternative_and_null_dfs(alter, null, output=None, degrees_of_freedom=1, files=True, to_return=False):
+    if files:
+        alter = check_filename(alter)
+        null = check_filename(null)
+        alter = pd.read_csv(alter)
+        null = pd.read_csv(null)
+    if output !=None:
+        output = check_filename(output, Truefile=False)
     merged = pd.merge(alter, null, on=['basename', "family", "baltimore"], suffixes=["_alter", "_null"])
     merged["diff"] = merged["Log-likelihood_alter"] - merged["Log-likelihood_null"]
     merged["diff2"] = 2 * merged["diff"]
@@ -185,6 +216,8 @@ def merge_alternative_and_null_dfs(alternative, null, output, degrees_of_freedom
     merged["p_value"] = multipletests(merged["p_value_not_corrected"], method="fdr_bh")[1]
     merged["sig_by_chi2"] = np.where(merged["p_value"] <= 0.05, True, False)
     merged["sig_by_diff"] = np.where(merged["diff2"] >= 100, True, False)
+    if to_return:
+        return(merged)
     merged.to_csv(output)
 
 
@@ -649,3 +682,69 @@ def calculate_relative_ratio_for_nodes(df):
                  "nuc": nuc, "rate": to_nuc_rate / potential, "to_nuc_rate":to_nuc_rate}, ignore_index=True)
 
     return(relative_ratios)
+
+
+def write_params_file_PQR(param_file, input_aln, input_tree, output_res, output_log, output_tree, gtr_output=None, fixed_beta=0,
+                          fixed_s = 0, fixed_ProbS = 1, init_probS = 0.01, fixed_tau=1, fixed_kappa=1, bblOpt=0):
+
+    param_file = check_filename(param_file, Truefile=False)
+    input_aln = check_filename(input_aln)
+    input_tree = check_filename(input_tree)
+    output_res = check_filename(output_res, Truefile=False)
+    output_log = check_filename(output_log, Truefile=False)
+    output_tree =  check_filename(output_tree, Truefile=False)
+
+    kappa = 2.0
+    if gtr_output != None:
+        gtr_output = check_filename(gtr_output)
+        kappa_from_gtr = retrive_kappa_from_paml_output(gtr_output)
+        if kappa_from_gtr != None:
+            kappa = kappa_from_gtr
+
+    with open(input_aln, "r") as aln_handle:
+        aln_data = aln_handle.readline()
+        first_seq = aln_data.split(">")[1].strip()
+
+    fixed_beta = int(fixed_beta)
+    if not fixed_beta in [0, 1]:
+        raise Exception("fixed beta must be 0 or 1")
+
+    fixed_s = int(fixed_s)
+    if not fixed_s in [0, 1]:
+        raise Exception("fixed_s must be 0 or 1")
+
+
+    params = open(param_file, "w")
+    params.write("# input\n")
+    params.write("_inSeqFile %s\n" % input_aln)
+    params.write("_inTreeFile %s\n" % input_tree)
+    params.write("_inQuerySeq %s\n" % first_seq)
+    params.write("_rootAt %s\n" % first_seq)
+    params.write("_useQueryFreqsAtRoot 0\n")
+    params.write("\n")
+    params.write("# output\n")
+    params.write("_outResFile %s\n" % output_res)
+    params.write("_logFile %s\n" % output_log)
+    params.write("_outTreeFile %s\n" % output_tree)
+    params.write("\n")
+    params.write("# advanced: remove # to enable advanced parameter. Parameters are described in the ParaSel manual at https://www.sternadi.com/parasel\n")
+    params.write("# _modelName hky\n")
+    params.write("_fixedS %i\n" % fixed_s)
+    params.write("_initS 1.0\n")
+    params.write("_fixedProbS %i\n" % fixed_ProbS)
+    params.write("_initProbS %f\n" % init_probS)
+    params.write("_initKappa %f\n" % kappa)
+    params.write("_fixedKappa %i\n" % fixed_kappa)
+    params.write("_initAlpha 1\n")
+    params.write("_fixedAlpha 0\n")
+    params.write("_initBeta 0\n")
+    params.write("_fixedBeta %i\n" % fixed_beta)
+    params.write("_initTau 1\n")
+    params.write("_fixedTau %i\n" % fixed_tau)
+    params.write("_bblOpt %i\n" % bblOpt)
+    params.write("_doMutationMapping 0\n")
+    params.write("#_threshold 0.75\n")
+    params.write("_optimizeLineSearch 0\n")
+
+    params.close()
+    return params

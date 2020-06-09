@@ -248,6 +248,8 @@ def label_trees_by_cutoff(tree_file, cutoff, output_dir):
         out = open(output, "w")
         out.write(tree)
         out.close()
+        return(output)
+    return(False)
 
 
 def get_number_of_nodes(tree_file):

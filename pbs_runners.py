@@ -22,7 +22,7 @@ def baseml_runner(ctl, alias = "bml", cmdname="baseml"):
     return job_id
 
 
-def codeml_runner(ctl, alias = "cml", queue="adis"):
+def codeml_runner(ctl, alias = "cml", queue="adis", cmdname="codeml.txt"):
     """
     run baseml program from PAML on cluster
     :param ctl: ctl file path
@@ -31,13 +31,13 @@ def codeml_runner(ctl, alias = "cml", queue="adis"):
     """
     ctl = check_filename(ctl)
     base = os.path.split(ctl)[0]
-    cmdfile = pbs_jobs.get_cmdfile_dir("codeml.txt", alias); tnum = 1; gmem = 2
+    cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias); tnum = 1; gmem = 2
     cmds = "cd %s\necho %s \n/sternadi/home/volume1/taliakustin/software/paml4.8/bin/codeml %s" %(base, ctl, ctl)
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, queue=queue)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis", run_after_job=None, cmdname = "script"):
+def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis", run_after_job=None, cmdname = "script", toRun = True):
     """
     run script on cluster
     :param cmds: script running line
@@ -46,11 +46,12 @@ def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis
     """
     cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias); tnum=1; gmem=gmem
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=load_python, run_after_job=run_after_job)
-    job_id = pbs_jobs.submit(cmdfile)
-    return job_id
+    if toRun:
+        job_id = pbs_jobs.submit(cmdfile)
+        return job_id
 
 
-def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adis"):
+def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adis", toRun=False):
 
     """
     run script on cluster as a pbs array
@@ -63,8 +64,9 @@ def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1,
     cmdfile = pbs_jobs.get_cmdfile_dir("script", alias); gmem=gmem
     print(cmdfile, alias, queue, jnum, gmem, cmds)
     pbs_jobs.create_array_pbs_cmd(cmdfile, jnum=jnum, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=load_python)
-    job_id = pbs_jobs.submit(cmdfile)
-    return job_id
+    if toRun:
+        job_id = pbs_jobs.submit(cmdfile)
+        return job_id
 
 
 
@@ -767,7 +769,7 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
 
 
 def dirSel_runner(dirSel_params, dirSel_path="/sternadi/home/volume1/taliakustin/software/phylogenyCode/programs/directionalSelection/directionalSelection",
-                  alias = "dirSel", out_dir=None, queue="adis"):
+                  alias = "dirSel", out_dir=None, queue="adis", cmdname="dirSel_cmd.txt"):
     """
     run directional selection
     :param dirSel_params: params file
@@ -778,9 +780,9 @@ def dirSel_runner(dirSel_params, dirSel_path="/sternadi/home/volume1/taliakustin
     dirSel_params = check_filename(dirSel_params)
     dirSel_path = check_filename(dirSel_path)
     if out_dir != None:
-        cmdfile = pbs_jobs.get_cmdfile_dir("dirSel_cmd.txt", out_dir)
+        cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, out_dir)
     else:
-        cmdfile = pbs_jobs.get_cmdfile_dir("dirSel_cmd.txt", alias)
+        cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias)
     tnum = 1; gmem = 20
     cmd = "%s %s" % (dirSel_path, dirSel_params)
     cmds = "echo %s \n%s" %(cmd, cmd)
@@ -1012,6 +1014,12 @@ def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthrea
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-
-
+def grep_runner(input, text, output, alias = "grep",queue="adis", cmdname = "grep"):
+    input = check_filename(input)
+    output = check_filename(output, Truefile=False)
+    cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias); tnum = 1; gmem = 1;
+    cmds = f"grep {text} {input} > {output}"
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
 

@@ -17,7 +17,7 @@ def main():
     
     out_file = basename + ".fastml_analysis_output.csv"
     if os.path.exists(out_file):
-        print "file already exists"
+        print("file already exists")
         
     
     

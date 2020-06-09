@@ -10,8 +10,9 @@ from pbs_runners import baseml_runner
 from scipy.stats.distributions import chi2
 from statsmodels.stats.multitest import multipletests
 import numpy as np
-from phyVirus.phyVirus_utilities import get_basename, get_baltimore_classifiaction
+from phyVirus.phyVirus_utilities import *
 from Bio.Seq import Seq
+import tqdm
 
 
 def write_ctl_file(ctl, seq, tree, out, model, fix_alpha="1", alpha="0"):
@@ -591,7 +592,7 @@ def write_ctl_codeml_deleterious_load_file(ctl, seq, tree, out, model):
     return ctl
 
 
-def retrive_codeml_delitirious_restults(files, output="./codeml_1-2ratio_results.csv"):
+def retrive_codeml_delitirious_restults(files, c_alt="2", output="./codeml_1-2ratio_results.csv"):
     """
 
     :param files: list of fasta / phy files.
@@ -599,6 +600,7 @@ def retrive_codeml_delitirious_restults(files, output="./codeml_1-2ratio_results
     :param output: output file. default ./codeml_1-2ratio_results.csv
     :return: dataframe with results
     """
+    print(c_alt)
     files = [check_filename(f) for f in files]
     output = check_filename(output, Truefile=False)
     dir = os.path.dirname(files[0]).split("codon_aln")[0]
@@ -611,14 +613,16 @@ def retrive_codeml_delitirious_restults(files, output="./codeml_1-2ratio_results
 
     codeml_results = pd.DataFrame()
     # go over files
-    for f in files:
+    for f in tqdm(files):
         if "unaligned" in f:
             continue
         basename = f.split("/")[-1].split(".fasta")[0].split(".phy")[0].split(".aln")[0].split("codon")[0].split(".")[0]
         family = basename.split("_")[0]
         baltimore = get_baltimore_classifiaction(family)
-        mlc_1ratio = glob.glob("%s/c1/%s*mlc" % (dir, basename))
-        mlc_2ratio = glob.glob("%s/c2/%s*mlc" % (dir, basename))
+        mlc_1ratio = glob.glob("%s/c1/%s.*mlc" % (dir, basename))
+        mlc_2ratio = glob.glob(f"%s/c{c_alt}/%s.*mlc" % (dir, basename))
+        # print(mlc_1ratio)
+        # print(mlc_2ratio)
         if mlc_1ratio == [] or mlc_2ratio == []:
             continue
         mlc_1ratio = mlc_1ratio[0]
