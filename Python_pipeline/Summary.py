@@ -24,7 +24,6 @@ def FindFilesInDir(dir_path, file_type):
 	return list_of_files
 
 def summarize_stats (dir_path, sample_basename_pattern, freqs_file_path, Coverage):
-	print("Summarize Stats!!!!!!")
 	os.chdir(dir_path)
 	pipeline_summary = dir_path + "/Summary.txt"
 	with open(pipeline_summary, "a") as o:
