@@ -1023,3 +1023,12 @@ def grep_runner(input, text, output, alias = "grep",queue="adis", cmdname = "gre
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
+def make_blastDB(input, dbtype, alias="makeBlastDB", queue="adis", cmdname = "makeBlastDB"):
+    input = check_filename(input)
+    cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias);
+    tnum = 1;
+    gmem = 1;
+    cmds = f"makeblastdb -in {input} -dbtype {dbtype}"
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
