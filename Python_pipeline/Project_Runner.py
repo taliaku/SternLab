@@ -1,9 +1,11 @@
 #! python/python-anaconda3.2019.7
-
 import argparse
 import time
 import glob
 import os
+from runner_utils import check_queue
+
+# TODO: remove code duplication!!!
 
 def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True):
     with open(cmdfile, 'w') as o:
@@ -254,9 +256,7 @@ def main(args):
             raise Exception("Unexpected error, blast mode has to be either ReftoSeq, RS, rs or SeqtoRef, SR, sr\n")
 
     queue = args.queue.strip()
-    if queue != None:
-        if queue not in ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long"]:
-            raise Exception("Unexpected error, queue has to be either 'inf', 'hugemem', 'pup-interactive', 'parallel', 'adis', 'adis-long'\n")
+    check_queue(queue)
 
     min_num_repeats = args.repeats
     if min_num_repeats != None:
@@ -316,7 +316,7 @@ if __name__ == "__main__":
     parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=2", required=False, default=2)
     parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default=10000", required=False, default=10000)
-    parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='adis'", required=False, default="adis")
+    parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='tzachi@power9'", required=False, default="tzachi@power9")
     parser.add_argument("-p", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'",
                         required=False, default="linear")
     parser.add_argument("-w", "--overwrite", type=str, help="overwrite? Y/N, default='N'", required=False, default="N")
