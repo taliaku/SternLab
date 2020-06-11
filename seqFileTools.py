@@ -514,7 +514,7 @@ def get_longest_sequence_name_in_fasta(aln_file, in_format="fasta"):
     :param in_format: input format (default = fasta)
     :return: name of the longest sequence in the alignment
     """
-    aln = check_filename(aln)
+    aln_file = check_filename(aln_file)
     aln = AlignIO.read(aln_file, in_format, alphabet=Alphabet.Gapped(IUPAC.unambiguous_dna))
     longest = 0
     longest_name = ""
