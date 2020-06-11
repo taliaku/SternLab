@@ -405,7 +405,7 @@ def umerge_runner(forward_fastq, output, alias = "umerge"):
     return job_id
 
 
-def blast_runner(seqfile, dbfile="/sternadi/home/volume1/shared/data/nt/nt", outfile=None, alias="blast", hitlist_size=50000):
+def blast_runner(seqfile, dbfile="/sternadi/home/volume1/shared/data/nt/nt", outfile=None, alias="blast", outfmt=6, task="megablast", max_target_seqs=50000):
     """
     run blast on cluster
     :param seqfile: sequence file path
@@ -420,14 +420,14 @@ def blast_runner(seqfile, dbfile="/sternadi/home/volume1/shared/data/nt/nt", out
     else:
         outfile = path.split(seqfile)[0] + "/blast_results.txt"
     cmdfile = pbs_jobs.get_cmdfile_dir("blast_cmd", alias); tnum = 1; gmem = 2
-    cmds = "/sternadi/home/volume1/shared/tools/ncbi-blast-2.2.30+/bin/blastn"\
-                + " -query %s -out %s -db %s -outfmt 5 -max_target_seqs %i" % (seqfile, outfile, dbfile, hitlist_size)
+    cmds = f"/sternadi/home/volume1/shared/tools/ncbi-blast-2.2.30+/bin/blastn " \
+           f"-query {seqfile} -out {outfile} -db {dbfile} -outfmt  {outfmt} -task {task} -max_target_seqs {max_target_seqs}"
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
 
-def blast_output6_runner(seqfile, dbfile, outfile, alias = "blast"):
+def blast_output6_runner(seqfile, dbfile, outfile, alias = "blast", task="megablast"):
     """
     run blast on cluster - output as pipeline - format 6
     :param seqfile: sequence file path
@@ -441,7 +441,7 @@ def blast_output6_runner(seqfile, dbfile, outfile, alias = "blast"):
         outfile = check_filename(outfile, Truefile=False)
     cmdfile = pbs_jobs.get_cmdfile_dir("blast_cmd", alias); tnum = 1; gmem = 2
     cmds = "/sternadi/home/volume1/shared/tools/ncbi-blast-2.2.30+/bin/blastn"\
-                + " -query %s -task megablast -out %s -db %s -outfmt '6 sseqid qseqid qstart qend qstrand sstart send sstrand length btop' " \
+                + " -query %s -task {task} -out %s -db %s -outfmt '6 sseqid qseqid qstart qend qstrand sstart send sstrand length btop' " \
                   "-num_alignments 100 -dust no -soft_masking F -perc_identity 85 -evalue 1e-7"\
                   % (seqfile, outfile, dbfile)
 
