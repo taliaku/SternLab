@@ -1,85 +1,9 @@
 #! python/python-anaconda3.2019.7
-
 import argparse
 import time
 import glob
 import os
-
-def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True):
-    with open(cmdfile, 'w') as o:
-        o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
-        o.write("#PBS -q %s\n" % queue)
-        o.write("#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH \n")
-        o.write("#PBS -N " + alias + "\n")
-        o.write("#PBS -o %s\n" % "/".join(cmdfile.split("/")[:-1]))
-        o.write("#PBS -e %s\n" % "/".join(cmdfile.split("/")[:-1]))
-        if gmem:
-            mem = gmem * 1000
-            o.write("#PBS -l mem=" + str(mem) + "mb\n")
-        if jnum:
-            if jnum != 1:
-                o.write("#PBS -J 1-" + str(jnum) + "\n\n")
-        o.write("id\n")
-        o.write("date\n")
-        o.write("hostname\n")
-        if load_python:
-            o.write("module load python/python-anaconda3.2019.7\n")
-        o.write("\n")
-        o.write(cmds)
-        o.write("\n")
-        o.write("date\n")
-    o.close()
-
-def submit(cmdfile):
-    cmd = "/opt/pbs/bin/qsub " + cmdfile
-    result = os.popen(cmd).read()
-    if 'power' in result:
-        return result.split(".")[0]
-    else:
-        print("cmd file was not submitted")
-
-def Sleep(alias, job_id, sleep_max=1200000, sleep_quantum=10):
-    i = 0
-    process = os.popen("qstat -t " + job_id + " | wc -l").read()
-    try:
-        process = int(process)
-    except:
-        process = 0
-
-    while process > 0 and i <= sleep_max:
-        time.sleep(sleep_quantum)
-        i += sleep_quantum
-        print("Running...")
-        process = os.popen("qstat -t " + job_id + " | wc -l").read()  # check
-        try:
-            process = int(process)
-        except:
-            process = 0
-
-    if process > 0:
-        raise Exception(alias + " stage was not completed. Max sleep time reached\n")
-
-def FindFilesInDir(dir_path, file_type):
-    file_path = dir_path + "/*" + file_type
-    list_of_files = sorted(glob.glob(file_path))
-    num_of_files = len(list_of_files)
-    if num_of_files > 0:
-        for file in list_of_files:
-            size = os.path.getsize(file)
-            if size == 0:
-                raise Exception("Unexpected error, some of the " + file_type + " files in " + dir_path + " are empty\n")
-
-    return list_of_files
-
-def create_array(files_list):
-    array = '('
-    for i in range(len(files_list)):
-        array += files_list[i]
-        if i != len(files_list) - 1:
-            array += " "
-    array += ')'
-
-    return array
+from runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array	
 
 def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id,
                 e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern):
@@ -254,9 +178,7 @@ def main(args):
             raise Exception("Unexpected error, blast mode has to be either ReftoSeq, RS, rs or SeqtoRef, SR, sr\n")
 
     queue = args.queue.strip()
-    if queue != None:
-        if queue not in ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long"]:
-            raise Exception("Unexpected error, queue has to be either 'inf', 'hugemem', 'pup-interactive', 'parallel', 'adis', 'adis-long'\n")
+    check_queue(queue)
 
     min_num_repeats = args.repeats
     if min_num_repeats != None:
@@ -316,7 +238,7 @@ if __name__ == "__main__":
     parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=2", required=False, default=2)
     parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default=10000", required=False, default=10000)
-    parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='adis'", required=False, default="adis")
+    parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='tzachi@power9'", required=False, default="tzachi@power9")
     parser.add_argument("-p", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'",
                         required=False, default="linear")
     parser.add_argument("-w", "--overwrite", type=str, help="overwrite? Y/N, default='N'", required=False, default="N")
