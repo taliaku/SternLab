@@ -23,7 +23,7 @@ def compare_fastas_to_ref(fastas, ref_seq_name, output_csv, remove_edges=True):
                 if f[sample][i] != f[ref_seq_name][i]:
                     diffs.append((ref_pos, sample, f[ref_seq_name][i], f[sample][i]))
     df = pd.DataFrame(diffs, columns=['position', 'sample', 'ref_base', 'base'])
-    if remove_edges:
+    if remove_edges == 'y':
         edges = []
         for sample in tqdm(df['sample'].drop_duplicates()):
             a = df[df['sample'] == sample]
@@ -43,7 +43,7 @@ if __name__ == "__main__":
                         required=True)
     parser.add_argument("-r", "--reference", type=str, help='reference sequence name, one of the sequences in the aligned fasta', required=False)
     parser.add_argument("-o", "--output", type=str, help='output csv', required=False)
-    parser.add_argument("-e", '--remove_edges', type=bool, help='remove the ends with dels and Ns?', default=True, required=False)
+    parser.add_argument("-e", '--remove_edges', type=str, help='remove the ends with dels and Ns? y or n', default='y', required=False)
     args = parser.parse_args()
     if not vars(args):
         parser.print_help()
