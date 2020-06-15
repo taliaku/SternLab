@@ -9,6 +9,13 @@ def compare_fastas_to_ref(fastas, ref_seq_name, output_csv, remove_edges=True):
         f = f.read()
     f = f.split('>')
     f = {i.split('\n')[0]:''.join(i.split('\n')[1:]) for i in f if i != ''}
+    # remove read that somehow is shorter after msa...
+    good_length = len(f[ref_seq_name])
+    bad_seqs = [i for i in f if len(f[i]) != good_length]
+    for i in bad_seqs:
+        print('dropping seq ', i)
+        f.pop(i)
+
     diffs = []
     ref_pos = 0
     for i in tqdm(range(len(f[ref_seq_name]))):
