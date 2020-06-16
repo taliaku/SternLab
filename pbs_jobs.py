@@ -6,7 +6,7 @@ from time import sleep
 import getpass
 import datetime
 
-def create_pbs_cmd(cmdfile, alias, queue="adis", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "", load_python=True, jnum=False, run_after_job=None):
+def create_pbs_cmd(cmdfile, alias, queue="adistzachi", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "", load_python=True, jnum=False, run_after_job=None):
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
         o.write("#PBS -q %s\n" % queue)
@@ -78,7 +78,7 @@ def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_pyt
 
 
 def submit(cmdfile):
-    cmd = "/opt/pbs/bin/qsub -q tzachi@power9 " + cmdfile
+    cmd = "/opt/pbs/bin/qsub" + cmdfile
     result = os.popen(cmd).read()
     return result.split(".")[0]
 
