@@ -3,6 +3,9 @@
 import os
 import glob
 import time
+from logger import pipeline_logger
+
+log = pipeline_logger()
 
 def check_queue(queue):
     allowed_queues = ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long", "tzachi@power9"] 
@@ -40,7 +43,7 @@ def submit(cmdfile):
 	if 'power' in result:
 		return result.split(".")[0]
 	else:
-		print(cmdfile + " was not submitted")	
+		log.error(f"{cmdfile} was not submitted")	
 
 def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@power9'):
     i = 0
@@ -56,7 +59,7 @@ def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@pow
     while process > 0 and i <= sleep_max: 
         time.sleep(sleep_quantum)
         i += sleep_quantum
-        print ("Running...")
+        log.info("Running...")
         process = os.popen(qstat_command).read()
         try:
             process = int(process)
