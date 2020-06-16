@@ -75,7 +75,7 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 	cmdfile = dir_path + "/merge_files.cmd"	
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_expected_merged_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	print(job_id)
+	log.info(f"Job id: {job_id}")
 	Sleep(alias, job_id)
 	
 	time.sleep(10)
@@ -107,7 +107,7 @@ def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, que
 	cmdfile = dir_path + "/FastaAndSplit.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	print(job_id)
+	log.info(job_id)
 	Sleep(alias, job_id)
 	
 	time.sleep(10)
@@ -157,7 +157,7 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue):
 	cmdfile = dir_path + "/Blast.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	print(job_id)
+	log.info(job_id)
 	Sleep(alias, job_id)
 	
 	time.sleep(10)
@@ -191,7 +191,7 @@ def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode,
 	cmdfile = dir_path + "/BaseCalling.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	print(job_id)
+	log.info(job_id)
 	Sleep(alias, job_id)
 	
 	time.sleep(30)	
@@ -213,7 +213,7 @@ def Join (pipeline_dir, dir_path, ref_genome, Coverage, queue):
 	cmds = "python " + script_path + " -o " + dir_path + " -r " + ref_genome + " -c " + str(Coverage)
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	print(job_id) 
+	log.info(job_id) 
 	Sleep(alias, job_id)
 	
 	time.sleep(10)
@@ -245,7 +245,7 @@ def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue):
 	cmds = "python " + script_path + " -o " + dir_path + " -c " + str(Coverage) + " -r " + ref_genome
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	print(job_id)    
+	log.info(job_id)    
 	Sleep(alias, job_id)
 	
 	time.sleep(10)
@@ -314,7 +314,7 @@ def main(args):
 	number_of_N = args.num_of_N
 	if start_stage == 0 and number_of_N != None:
 		if number_of_N < 60:
-			print("\nWarning. Running merge reads with number_of_N smaller than 60\n")
+			log.warning("Running merge reads with number_of_N smaller than 60")
 
 	ref_genome = args.ref.strip()
 	if not (os.path.isfile(ref_genome) and os.path.splitext(ref_genome)[1] == '.fasta'):
@@ -325,19 +325,19 @@ def main(args):
 		if q_score < 0 or q_score > 40:
 			raise Exception("Unexpected error, q-score value " + str(q_score) + " is not valid, should be an integer value between 0-40\n")
 		if q_score < 16:
-			print("Warning, running pipeline with q-score value of " + str(q_score) + "\n")
+			log.warning("Running pipeline with q-score value of " + str(q_score))
 	
 	blast_id = args.blast_id
 	if blast_id != None:
 		if blast_id < 85:
-			print("\nWarning, running pipeline with blast id value of " + str(blast_id) + "\n")
+			log.warning("Running pipeline with blast id value of " + str(blast_id))
 		if blast_id < 0 or blast_id > 100:
 			raise Exception("Unexpected error, identity % for blast is not a valid value: " + str(blast_id) + " \n")
 	
 	e_value = args.evalue
 	if e_value != None:
 		if e_value > 1e-7:
-			print("\nWarning, running pipeline with e_value > " + str(e_value) + "\n")
+			log.warning("Running pipeline with e_value > " + str(e_value) + "\n")
 	
 	task = args.blast_task.strip()
 	if task != None:
@@ -357,24 +357,24 @@ def main(args):
 		if min_num_repeats < 1:
 			raise Exception ("Unexpected error, min number of repeats is less than 1\n")
 		if min_num_repeats < 2:  
-			print("\nWarning. Running pipeline with min number of repeats less than 2\n")
+			log.warning("Running pipeline with min number of repeats less than 2")
 		if min_num_repeats > 2:  
-			print("\nWarning. Running pipeline with min number of repeats bigger than 2\n")
+			log.warning("Running pipeline with min number of repeats bigger than 2")
 			
 	Min_Num_reads_per_file = 10000
 	Max_Num_reads_per_file = 40000
 	Num_reads_per_file = args.num_reads
 	if Num_reads_per_file != None:	
 		if Num_reads_per_file < Min_Num_reads_per_file:
-			print("\nWarning. Running pipeline with less than " + str(Min_Num_reads_per_file) + " reads per split file\n")
+			log.warning("Running pipeline with less than " + str(Min_Num_reads_per_file) + " reads per split file")
 		if Num_reads_per_file > Max_Num_reads_per_file:
-			print("\nWarning. Running pipeline with more than " + str(Max_Num_reads_per_file) + " reads per split file\n")
+			log.warning("Running pipeline with more than " + str(Max_Num_reads_per_file) + " reads per split file")
 
 	Min_Coverage = 1000
 	Coverage = args.coverage
 	if Coverage != None:
 		if Coverage < Min_Coverage:
-			print("\nWarning. Running pipeline with coverage smaller than " + str(Min_Coverage) + "\n")
+			log.warning("Running pipeline with coverage smaller than " + str(Min_Coverage))
 			
 	Protocol = args.protocol.strip()
 	if Protocol not in ["L", "l", "linear", "C", "c", "circular"]:
@@ -386,7 +386,7 @@ def main(args):
 	
 	cmd = "python {} -i {} -o {} -r {} -m {} -t {} -s {} -e {} -q {} -d {} -v {} -x {} -n {} -c {} -p {} -u {} -w {}".format(pipeline_path, sample_path, dir_path, ref_genome, mode, task,
                                                             start_stage, end_stage, q_score, blast_id, e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite)
-	print(cmd)
+	log.info(cmd)
 		
 	pipeline_summary = dir_path + "/Summary.txt"
 	try:
@@ -425,10 +425,10 @@ def main(args):
 			merged_files = FindFilesInDir(dir_path, file_type)
 			if start_stage == 1 and len(paired_samples) == 0:	#for single-end reads use sample_dir_path to get files for split
 				file_type = ".fastq*"
-				print("Single-end read, fetching files from {}\n".format(sample_dir_path))
+				log.info("Single-end read, fetching files from {}\n".format(sample_dir_path))
 				sample_files = FindFilesInDir(sample_dir_path, file_type)
 			elif len(merged_files) > 0:		#for paired-end reads use dir_path to get merged files for split
-				print("Paired-end read, fetching files from {}\n".format(dir_path))
+				log.info("Paired-end read, fetching files from {}\n".format(dir_path))
 				sample_files = FindFilesInDir(dir_path, file_type)
 			else:
 				raise Exception("Unable to detect sample files with base name pattern " + sample_basename_pattern + " in directory\n")
@@ -487,7 +487,7 @@ def main(args):
 			os.system("zip " + dir_path + "/OutputFiles.zip " + dir_path + "/*.part* " + dir_path + "/*.OU")
 			os.system("rm -rf " + dir_path + "/*.part* " + dir_path + "/*.OU")
 			
-	print("END OF PIPELINE RUN")		
+	log.info("END OF PIPELINE RUN")		
     
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
