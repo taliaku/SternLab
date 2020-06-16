@@ -78,7 +78,7 @@ def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_pyt
 
 
 def submit(cmdfile):
-    cmd = "/opt/pbs/bin/qsub" + cmdfile
+    cmd = "/opt/pbs/bin/qsub " + cmdfile
     result = os.popen(cmd).read()
     return result.split(".")[0]
 
