@@ -3,7 +3,7 @@
 import os
 import glob
 import time
-from logger import pipeline_logger
+from utils.logger import pipeline_logger
 
 log = pipeline_logger()
 
