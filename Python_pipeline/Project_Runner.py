@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array	
 from utils.logger import pipeline_logger
 
-log = pipline_logger()	
+log = pipeline_logger()	
 
 def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id,
                 e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern):
