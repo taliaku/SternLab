@@ -22,7 +22,7 @@ def baseml_runner(ctl, alias = "bml", cmdname="baseml"):
     return job_id
 
 
-def codeml_runner(ctl, alias = "cml", queue="adis", cmdname="codeml.txt"):
+def codeml_runner(ctl, alias = "cml", queue="adistzachi", cmdname="codeml.txt"):
     """
     run baseml program from PAML on cluster
     :param ctl: ctl file path
@@ -37,7 +37,7 @@ def codeml_runner(ctl, alias = "cml", queue="adis", cmdname="codeml.txt"):
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis", run_after_job=None, cmdname = "script", toRun = True):
+def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adistzachi", run_after_job=None, cmdname = "script", toRun = True):
     """
     run script on cluster
     :param cmds: script running line
@@ -51,7 +51,7 @@ def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis
         return job_id
 
 
-def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adis", toRun=False):
+def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adistzachi", toRun=False):
 
     """
     run script on cluster as a pbs array
@@ -108,7 +108,7 @@ def phyml_aa_runner(alignment, alias = "phyml", phylip=True):
 
 def fastml_runner(alignment, tree, outdir = None, log_file = None, alias = "fastml", get_cmdfile_dir = True,
                   additional_params=None, optBranchLen=False,
-                  fastml_path="/sternadi/home/volume1/shared/tools/phylogenyCode/programs/fastml/fastml", queue="adis"):
+                  fastml_path="/sternadi/home/volume1/shared/tools/phylogenyCode/programs/fastml/fastml", queue="adistzachi"):
     """
     run fastml from phylogenyCode on cluster
     :param alignment: alignment file path
@@ -282,7 +282,7 @@ def sampling_runner(alignment, amount, sampled_file=None, alias = "sampling", al
     """
     alignment = check_filename(alignment)
     if sampled_file == None:
-        sampled_file = alignment.split(".")[0] + "_sampled_%s.aln" % str(amount)
+        sampled_file = alignment.split(".aln")[0] + "_sampled_%s.aln" % str(amount)
     if alphabet not in ["an", "aa", "ac"]:
         alphabet = "an"
         print("alphabet type is wrong - changed to default - nucleotides - an")
@@ -585,7 +585,7 @@ def r4s_runner(tree_file, seq_file, outfile, dirname, tree_outfile=None, unormel
                                                             + " -l " + log_outfile\
                                                             + " -Mh -k " + n_categories
 
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, queue="adis")# added change
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, queue="adistzachi")# added change
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -692,7 +692,7 @@ def pipeline_runner(input_dir, output_dir, ref_file, NGS_or_Cirseq, TYPE_OF_INPU
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior_file=None, summary_file=None, batch=None, queue="adis"):
+def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior_file=None, summary_file=None, batch=None, queue="adistzachi"):
     """
     run fits currect version on cluster
     :param inference_type: the type of inference - fitness = 0, mutation rate =1, population size=2, simulate=3,
@@ -769,7 +769,7 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
 
 
 def dirSel_runner(dirSel_params, dirSel_path="/sternadi/home/volume1/taliakustin/software/phylogenyCode/programs/directionalSelection/directionalSelection",
-                  alias = "dirSel", out_dir=None, queue="adis", cmdname="dirSel_cmd.txt"):
+                  alias = "dirSel", out_dir=None, queue="adistzachi", cmdname="dirSel_cmd.txt"):
     """
     run directional selection
     :param dirSel_params: params file
@@ -1014,7 +1014,7 @@ def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthrea
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def grep_runner(input, text, output, alias = "grep",queue="adis", cmdname = "grep"):
+def grep_runner(input, text, output, alias = "grep",queue="adistzachi", cmdname = "grep"):
     input = check_filename(input)
     output = check_filename(output, Truefile=False)
     cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias); tnum = 1; gmem = 1;
@@ -1023,7 +1023,7 @@ def grep_runner(input, text, output, alias = "grep",queue="adis", cmdname = "gre
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def make_blastDB(input, dbtype, alias="makeBlastDB", queue="adis", cmdname = "makeBlastDB"):
+def make_blastDB(input, dbtype, alias="makeBlastDB", queue="adistzachi", cmdname = "makeBlastDB"):
     input = check_filename(input)
     cmdfile = pbs_jobs.get_cmdfile_dir(cmdname, alias);
     tnum = 1;
