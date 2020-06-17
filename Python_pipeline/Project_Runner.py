@@ -1,4 +1,5 @@
 #! python/python-anaconda3.2019.7
+
 import argparse
 import time
 import glob
@@ -91,13 +92,14 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
         gmem = 7
 
     array = create_array(samples_list)
+    pipeline_dir = pipeline_path[0:pipeline_path.rfind('/')]
     cmd1 = 'declare -a SAMPLENAMES\n'
     cmd2 = 'SAMPLENAMES=' + array + "\n\n"
     cmd3 = "python " + pipeline_path + " -i ${SAMPLENAMES[" + p + "]} -o ${SAMPLENAMES[" + o + "]} -r " + ref_genome + " -m " + mode + " -t " + task + " -s " + str(start_stage) + \
            " -e " + str(end_stage) + " -q " + str(q_score) + " -d " + str(blast_id) + " -v " + str(e_value) + " -x " + str(min_num_repeats) + " -n " + str(Num_reads_per_file) + \
            " -c " + str(Coverage) + " -p " + Protocol + " -u " + queue + " -w " + overwrite + "\n"
-    cmds = cmd1 + cmd2 + cmd3
-
+    cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {dir_path}/AggregatedSummary.csv"
+    cmds = cmd1 + cmd2 + cmd3 + cmd4
     cmdfile = dir_path + "/pipeline_project_runner.cmd"
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
     job_id = submit(cmdfile)
