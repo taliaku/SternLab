@@ -107,6 +107,7 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
     job_id = submit(cmdfile)
 <<<<<<< HEAD
+<<<<<<< HEAD
     Sleep(alias, job_id)
     cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {dir_path}/AggregatedSummary.csv"
     cmdfile = dir_path + "/pipeline_project_runner_aggregateSummaries.cmd"
@@ -115,6 +116,8 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 =======
     log.info(f"Starting job: {job_id}")
 >>>>>>> Project_Runner: change prints into logs
+=======
+>>>>>>> pipeline_logger: logger refactor + fancy time elapsed stdout
     Sleep(alias, job_id)
 
 def main(args):
@@ -232,8 +235,6 @@ def main(args):
 
     run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id, e_value,
                 min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern)
-
-    log.info("END OF RUN PROJECT")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
