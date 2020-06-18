@@ -1,16 +1,15 @@
 #! python/python-anaconda3.2019.7
 
 import os
+import sys
 import glob
 import time
 from utils.logger import pipeline_logger
 
-log = pipeline_logger()
-
 def check_queue(queue):
-    allowed_queues = ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long", "tzachi@power9"] 
-    if queue not in allowed_queues:
-        raise Exception(f"Sorry but queue must be one of {allowed_queues}, not '{queue}'")
+	allowed_queues = ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long", "tzachi@power9"] 
+	if queue not in allowed_queues:
+		raise Exception(f"Sorry but queue must be one of {allowed_queues}, not '{queue}'")
 
 def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True):
 	with open(cmdfile, 'w') as o:
@@ -38,6 +37,7 @@ def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True):
 	o.close()
 
 def submit(cmdfile):
+	log = pipeline_logger()
 	cmd = "/opt/pbs/bin/qsub " + cmdfile
 	result = os.popen(cmd).read()
 	if 'power' in result:
@@ -46,31 +46,36 @@ def submit(cmdfile):
 		log.error(f"{cmdfile} was not submitted")	
 
 def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@power9'):
-    log.info(f"Starting {alias} job with job id: {job_id}")
+	#TODO: connect to pbs directly and not through bash so we don't get qstat error.
+	log = pipeline_logger()
+	log.info(f"Starting {alias} with job id: {job_id}")
+	start_time = time.time()
 	i = 0
-    if queue == 'tzachi@power9':
-        qstat_command = f"qstat -t '{job_id}'.power9.tau.ac.il@power9 | wc -l"
-    else:
-    	qstat_command = "qstat -t " + job_id + " | wc -l"
-    process = os.popen(qstat_command).read()
-	print(process)
-    try:
-        process = int(process)
-    except:
-        process = 0
-    while process > 0 and i <= sleep_max: 
-        time.sleep(sleep_quantum)
-        i += sleep_quantum
-		sys.stdout.write("\r")
-		sys.stdout.write(f"seconds passed: {i}") 
-		sys.stdout.flush()
-        process = os.popen(qstat_command).read()
-        try:
-            process = int(process)
-        except:
-            process = 0
-    if process > 0: 
-        raise Exception(alias + " stage was not completed. Max sleep time reached\n")
+	if queue == 'tzachi@power9':
+		qstat_command = f"qstat -t '{job_id}'.power9.tau.ac.il@power9 | wc -l"
+	else:
+		qstat_command = "qstat -t " + job_id + " | wc -l"
+	process = os.popen(qstat_command).read()
+	try:
+		process = int(process)
+	except:
+		process = 0
+	while process > 0 and i <= sleep_max: 
+		for second in range(0, sleep_quantum):
+			sys.stdout.write("\r")
+			elapsed_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
+			sys.stdout.write(f'Elapsed time: {elapsed_time}')
+			sys.stdout.flush()
+			time.sleep(1)
+		i += sleep_quantum
+		process = os.popen(qstat_command).read()
+		try:
+			process = int(process)
+		except:
+			process = 0
+	if process > 0: 
+		raise Exception(alias + " stage was not completed. Max sleep time reached\n")
+	log.info(f"{alias} Done.")
 
 def FindFilesInDir(dir_path, file_type):
 	file_path = dir_path + "/*" + file_type
@@ -84,7 +89,7 @@ def FindFilesInDir(dir_path, file_type):
 				size = os.path.getsize(file)
 			if size == 0:
 				raise Exception("Unexpected error, some of the " + file_type + " files in " + dir_path + " are empty\n")
-       
+	
 	return list_of_files
 	
 def create_array(files_list):

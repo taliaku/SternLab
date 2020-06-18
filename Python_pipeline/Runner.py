@@ -10,8 +10,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array	
 from utils.logger import pipeline_logger
 
-log = pipeline_logger()
-
 #TODO?: relative path support for input files
 
 ''' 
@@ -75,7 +73,6 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 	cmdfile = dir_path + "/merge_files.cmd"	
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_expected_merged_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	log.info(f"Job id: {job_id}")
 	Sleep(alias, job_id)
 	
 	time.sleep(10)
@@ -107,7 +104,6 @@ def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, que
 	cmdfile = dir_path + "/FastaAndSplit.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	log.info(job_id)
 	Sleep(alias, job_id)
 	
 	time.sleep(10)
@@ -157,7 +153,6 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue):
 	cmdfile = dir_path + "/Blast.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	log.info(job_id)
 	Sleep(alias, job_id)
 	
 	time.sleep(10)
@@ -191,7 +186,6 @@ def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode,
 	cmdfile = dir_path + "/BaseCalling.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	log.info(job_id)
 	Sleep(alias, job_id)
 	
 	time.sleep(30)	
@@ -213,7 +207,6 @@ def Join (pipeline_dir, dir_path, ref_genome, Coverage, queue):
 	cmds = "python " + script_path + " -o " + dir_path + " -r " + ref_genome + " -c " + str(Coverage)
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	log.info(job_id) 
 	Sleep(alias, job_id)
 	
 	time.sleep(10)
@@ -245,7 +238,6 @@ def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue):
 	cmds = "python " + script_path + " -o " + dir_path + " -c " + str(Coverage) + " -r " + ref_genome
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, queue=queue, load_python=True)
 	job_id = submit(cmdfile)
-	log.info(job_id)    
 	Sleep(alias, job_id)
 	
 	time.sleep(10)
@@ -255,6 +247,9 @@ def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue):
 		raise Exception("Unexpected error, number of Summary.txt file in directory" + dir_path + " is different than 1\n")
 		
 def main(args):
+	log_file = os.path.join(args.output_dir,'.log')
+	log = pipeline_logger(log_file)
+	
 	pipeline_dir = os.path.dirname(os.path.abspath(__file__).strip())
 	pipeline_path = pipeline_dir + "/Runner.py"
 
