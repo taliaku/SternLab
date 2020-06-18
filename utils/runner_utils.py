@@ -46,12 +46,14 @@ def submit(cmdfile):
 		log.error(f"{cmdfile} was not submitted")	
 
 def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@power9'):
-    i = 0
+    log.info(f"Starting {alias} job with job id: {job_id}")
+	i = 0
     if queue == 'tzachi@power9':
         qstat_command = f"qstat -t '{job_id}'.power9.tau.ac.il@power9 | wc -l"
     else:
     	qstat_command = "qstat -t " + job_id + " | wc -l"
     process = os.popen(qstat_command).read()
+	print(process)
     try:
         process = int(process)
     except:
@@ -59,7 +61,9 @@ def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@pow
     while process > 0 and i <= sleep_max: 
         time.sleep(sleep_quantum)
         i += sleep_quantum
-        log.info("Running...")
+		sys.stdout.write("\r")
+		sys.stdout.write(f"seconds passed: {i}") 
+		sys.stdout.flush()
         process = os.popen(qstat_command).read()
         try:
             process = int(process)
