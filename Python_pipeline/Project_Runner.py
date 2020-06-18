@@ -241,8 +241,6 @@ def main(args):
     run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id, e_value,
                 min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern)
 
-    log.info("END OF RUN PROJECT")
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-N", "--num_of_N", type=int, help="number of N's to add for merge of R1 and R2 pair-end reads", required=False, default=60)
