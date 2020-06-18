@@ -48,7 +48,7 @@ def submit(cmdfile):
 		log.error(f"{cmdfile} was not submitted")	
 
 def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@power9'):
-	#TODO: connect to pbs directly and not through bash so we don't get qstat error.
+	#TODO: connect to pbs directly and not through bash so we don't get qstat error / qstat all jobs and check for job id internally.
 	log = pipeline_logger()
 	log.info(f"Starting {alias} with job id: {job_id}")
 	start_time = time.time()
@@ -64,8 +64,8 @@ def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@pow
 		process = 0
 	while process > 0 and i <= sleep_max: 
 		for second in range(0, sleep_quantum):
-			sys.stdout.write("\r")
 			elapsed_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
+			sys.stdout.write("\r")
 			sys.stdout.write(f'Elapsed time: {elapsed_time}')
 			sys.stdout.flush()
 			time.sleep(1)
