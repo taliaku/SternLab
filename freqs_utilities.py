@@ -510,18 +510,19 @@ def compare_positions_between_freqs(dict_of_freqs, out_path=False, positions_to_
     '''
     dfs = []
     for i in dict_of_freqs:
-        df = pd.read_csv(dict_of_freqs[i], sep='\t')
-        df = df[['Ref', 'Pos', 'Base', 'Freq', 'Read_count']]
-        df.rename(columns={'Read_count':'Read_count_' + i, 'Freq':'Freq_' + i}, inplace=True)
+        df = pd.read_csv(dict_of_freqs[i])
+        df = compatibilty_old_to_new(df)
+        df = df[['ref_base', 'ref_position', 'base', 'frequency', 'coverage']]
+        df.rename(columns={'coverage':'coverage_' + i, 'frequency':'frequency_' + i}, inplace=True)
         dfs.append(df)
-    df_final = reduce(lambda left,right: pd.merge(left,right,on=['Ref', 'Pos', 'Base']), dfs)
+    df_final = reduce(lambda left,right: pd.merge(left,right,on=['ref_base', 'ref_position', 'base']), dfs)
     if positions_to_compare:
-        df_final = df_final[(df_final.Pos.isin(positions_to_compare))]
+        df_final = df_final[(df_final.ref_position.isin(positions_to_compare))]
     if out_path:
         df_final.to_csv(out_path, index=False)
     return df_final
 
-    
+
 def estimate_insertion_freq(df, extra_columns=[]):
     '''
     This function gets a freqs file(s) dataframe, calculates the frequency of insertions by using the read count of the
@@ -531,25 +532,7 @@ def estimate_insertion_freq(df, extra_columns=[]):
     provide a list of the extra columns to be included.
     :return: df with extra columns describing insertion frequency.
     '''
-    read_counts = df[(df.Ref != '-')][ extra_columns + ['Pos', 'Read_count']].drop_duplicates()
-    read_counts.rename(columns={'Read_count':'estimated_read_count', 'Pos':'rounded_pos'}, inplace=True)
-    insertions = df[(df.Ref == '-')]
-    not_insertions = df[(df.Ref != '-')]
-    insertions['rounded_pos'] = insertions.Pos.astype(int).astype(float)
-    insertions = pd.merge(insertions, read_counts, how='left', on= extra_columns + ['rounded_pos'])
-    insertions['estimated_freq'] = insertions.Freq * insertions.Read_count / insertions.estimated_read_count
-    df = pd.concat([insertions, not_insertions])
-    return df.sort_values(extra_columns + ['Pos'])
-
-def estimate_insertion_freq_python_pipeline(df, extra_columns=[]):
-    '''
-    This function gets a freqs file(s) dataframe, calculates the frequency of insertions by using the read count of the
-    previous base and returns a dataframe including this.
-    :param df: a dataframe of freqs file(s).
-    :param extra_columns: if df contains more than the basic freqs columns, for example a column of Sample_id etc., 
-    provide a list of the extra columns to be included.
-    :return: df with extra columns describing insertion frequency.
-    '''
+    df = compatibilty_old_to_new(df)
     read_counts = df[(df.ref_base != '-')][ extra_columns + ['ref_position', 'coverage']].drop_duplicates()
     read_counts.rename(columns={'coverage':'estimated_read_count', 'ref_position':'rounded_pos'}, inplace=True)
     insertions = df[(df.ref_base == '-')]
@@ -595,6 +578,12 @@ def unite_all_freq_files(freqs_dir, out_path=None):
     df = pd.concat(freqs_df)
     if out_path != None:
         df.to_csv(out_path, index=False)
+    return df
+
+
+def compatibilty_old_to_new(df):
+    if not 'frequency' in df.columns: # if old version:
+        df = df.rename(columns={'Pos':'ref_position', 'Base':'base', 'Ref':'ref_base', 'Freq':'frequency', 'Read_count':'coverage', 'Rank':'rank', 'Prob':'probability'})
     return df
 
 if __name__ == "__main__":
