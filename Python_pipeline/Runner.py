@@ -4,7 +4,13 @@ import argparse
 import time
 import datetime
 import os
-from runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array	
+import sys
+#append parent directory to path so that we can import from there:
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
+from utils.runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array	
+from utils.logger import pipeline_logger
+
+log = pipline_logger()
 
 #TODO?: relative path support for input files
 
