@@ -128,7 +128,18 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 def main(args):
     pipeline_dir = os.path.dirname(os.path.abspath(__file__).strip())
     pipeline_path = pipeline_dir + "/Runner.py"
-    log = pipeline_logger(args.output_dir)
+    
+    dir_path = args.output_dir.strip()
+    if not os.path.isdir(dir_path):
+        try:
+            os.system("mkdir -p " + dir_path)
+        except:
+            raise Exception("failed to create input directory " + dir_path + "\n")
+        if not os.path.isdir(dir_path):
+            raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
+
+    log = pipeline_logger(dir_path)
+
     if not (os.path.isfile(pipeline_path) and os.path.splitext(pipeline_path)[1] == '.py'):
         raise Exception("Unexpected error, pipeline path " + pipeline_path + " does not exist or not a .py file\n")
 
@@ -157,14 +168,7 @@ def main(args):
         if number_of_N < 60:
             log.warning("Running merge reads with number_of_N smaller than 60\n")
 
-    dir_path = args.output_dir.strip()
-    if not os.path.isdir(dir_path):
-        try:
-            os.system("mkdir -p " + dir_path)
-        except:
-            raise Exception("failed to create input directory " + dir_path + "\n")
-        if not os.path.isdir(dir_path):
-            raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
+    
 
     ref_genome = args.ref.strip()
     if not (os.path.isfile(ref_genome) and os.path.splitext(ref_genome)[1] == '.fasta'):
