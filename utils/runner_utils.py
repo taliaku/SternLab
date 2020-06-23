@@ -20,7 +20,7 @@ def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True, ru
 		o.write("#PBS -o %s\n" % "/".join(cmdfile.split("/")[:-1]))
 		o.write("#PBS -e %s\n" % "/".join(cmdfile.split("/")[:-1]))
 		if run_after_job != None:
-			o.write(f"#PBS -W depend=afterok: {run_after_job}\n\n")
+			o.write(f"#PBS -W depend=afterok:{run_after_job}\n\n")
 		if gmem:
 			mem=gmem*1000
 			o.write("#PBS -l mem="+str(mem)+"mb\n")

@@ -12,7 +12,7 @@ from utils.logger import pipeline_logger
 def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id,
                 e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern):
     alias = "RunProject"
-
+    log = pipeline_logger(dir_path)
     file_type = sample_basename_pattern + "*"
     project_samples = FindFilesInDir(input_dir, file_type)
     if len(project_samples) == 0:
@@ -103,8 +103,8 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
     cmds = cmd1 + cmd2 + cmd3 
     cmdfile = dir_path + "/pipeline_project_runner.cmd"
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
-    log.info(f"Starting job: {job_id}")
     job_id = submit(cmdfile)
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
     Sleep(alias, job_id)
@@ -117,12 +117,17 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 >>>>>>> Project_Runner: change prints into logs
 =======
 >>>>>>> pipeline_logger: logger refactor + fancy time elapsed stdout
+=======
+    log.info(f"Starting job: {job_id}")
+>>>>>>> Project_Runner: minor bug fix
     Sleep(alias, job_id)
+    alias = 'AggregateSummaries'
     cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {dir_path}/AggregatedSummary.csv"
     cmdfile = dir_path + "/pipeline_project_runner_aggregateSummaries.cmd"
-    create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True, run_after=job_id)
-    log.info(f"Starting job: {job_id}")
+    #TODO: why doesn't this create an output!?
+    create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmd4, queue=queue, load_python=True, run_after_job=job_id)
     job_id = submit(cmdfile)
+    log.info(f"Starting job: {job_id}")
     Sleep(alias, job_id)
 
 def main(args):
@@ -137,9 +142,7 @@ def main(args):
             raise Exception("failed to create input directory " + dir_path + "\n")
         if not os.path.isdir(dir_path):
             raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
-
     log = pipeline_logger(dir_path)
-
     if not (os.path.isfile(pipeline_path) and os.path.splitext(pipeline_path)[1] == '.py'):
         raise Exception("Unexpected error, pipeline path " + pipeline_path + " does not exist or not a .py file\n")
 

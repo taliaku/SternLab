@@ -247,8 +247,7 @@ def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue):
 		raise Exception("Unexpected error, number of Summary.txt file in directory" + dir_path + " is different than 1\n")
 		
 def main(args):
-	log_file = os.path.join(args.output_dir,'.log')
-	log = pipeline_logger(log_file)
+	
 	
 	pipeline_dir = os.path.dirname(os.path.abspath(__file__).strip())
 	pipeline_path = pipeline_dir + "/Runner.py"
@@ -277,7 +276,7 @@ def main(args):
 				raise Exception("failed to create directory " + dir_path + "\n")
 	if not os.path.isdir(dir_path):
 		raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
-
+	log = pipeline_logger(dir_path)
 	if start_stage == None or start_stage in [0,1]:
 		if not os.path.isdir(sample_dir_path):
 			raise Exception("Directory of sample to merge/split " + sample_dir_path + " does not exist or is not a valid directory path\n")
