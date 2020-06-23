@@ -4,6 +4,7 @@ import argparse
 import time
 import glob
 import os
+import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 from utils.runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array		
 
@@ -98,12 +99,15 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
     cmd3 = "python " + pipeline_path + " -i ${SAMPLENAMES[" + p + "]} -o ${SAMPLENAMES[" + o + "]} -r " + ref_genome + " -m " + mode + " -t " + task + " -s " + str(start_stage) + \
            " -e " + str(end_stage) + " -q " + str(q_score) + " -d " + str(blast_id) + " -v " + str(e_value) + " -x " + str(min_num_repeats) + " -n " + str(Num_reads_per_file) + \
            " -c " + str(Coverage) + " -p " + Protocol + " -u " + queue + " -w " + overwrite + "\n"
-    cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {dir_path}/AggregatedSummary.csv"
-    cmds = cmd1 + cmd2 + cmd3 + cmd4
+    cmds = cmd1 + cmd2 + cmd3 
     cmdfile = dir_path + "/pipeline_project_runner.cmd"
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
     job_id = submit(cmdfile)
-    print(job_id)
+    Sleep(alias, job_id)
+    cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {dir_path}/AggregatedSummary.csv"
+    cmdfile = dir_path + "/pipeline_project_runner_aggregateSummaries.cmd"
+    create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True, run_after=job_id)
+    job_id = submit(cmdfile)
     Sleep(alias, job_id)
 
 def main(args):
