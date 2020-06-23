@@ -9,8 +9,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array	
 from utils.logger import pipeline_logger
 
-log = pipeline_logger()	
-
 def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id,
                 e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern):
     alias = "RunProject"
@@ -123,7 +121,7 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 def main(args):
     pipeline_dir = os.path.dirname(os.path.abspath(__file__).strip())
     pipeline_path = pipeline_dir + "/Runner.py"
-
+    log = pipeline_logger(args.output_dir)
     if not (os.path.isfile(pipeline_path) and os.path.splitext(pipeline_path)[1] == '.py'):
         raise Exception("Unexpected error, pipeline path " + pipeline_path + " does not exist or not a .py file\n")
 
