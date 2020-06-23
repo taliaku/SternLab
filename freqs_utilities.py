@@ -582,7 +582,7 @@ def unite_all_freq_files(freqs_dir, out_path=None):
 
 
 def compatibilty_old_to_new(df):
-    if not 'frequency' in df.columns: # if old version:
+    if 'Freq' in df.columns: # if old version:
         df = df.rename(columns={'Pos':'ref_position', 'Base':'base', 'Ref':'ref_base', 'Freq':'frequency', 'Read_count':'coverage', 'Rank':'rank', 'Prob':'probability'})
     return df
 
