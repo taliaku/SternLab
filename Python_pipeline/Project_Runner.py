@@ -117,6 +117,11 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 =======
 >>>>>>> pipeline_logger: logger refactor + fancy time elapsed stdout
     Sleep(alias, job_id)
+    cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {dir_path}/AggregatedSummary.csv"
+    cmdfile = dir_path + "/pipeline_project_runner_aggregateSummaries.cmd"
+    create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True, run_after=job_id)
+    job_id = submit(cmdfile)
+    Sleep(alias, job_id)
 
 def main(args):
     pipeline_dir = os.path.dirname(os.path.abspath(__file__).strip())
