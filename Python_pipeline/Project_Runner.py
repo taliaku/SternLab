@@ -1,9 +1,10 @@
-#! python/python-anaconda3.2019.7
+#! /powerapps/share/python-anaconda-3.6/bin/python
 
 import argparse
 import time
 import glob
 import os
+import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
 from utils.runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array		
 
@@ -80,7 +81,6 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
 
     if start_stage > end_stage:
         raise Exception("Unexpected error, start stage " + str(start_stage) + " is larger than end stage " + str(end_stage) + "\n")
-
     num_of_samples = int(len(samples_list)/2)
     if num_of_samples == 1:
         p = '0'
