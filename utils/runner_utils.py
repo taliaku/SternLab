@@ -20,7 +20,7 @@ def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True, ru
 		o.write("#PBS -o %s\n" % "/".join(cmdfile.split("/")[:-1]))
 		o.write("#PBS -e %s\n" % "/".join(cmdfile.split("/")[:-1]))
 		if run_after_job != None:
-			o.write(f"#PBS -W depend=afterok:{run_after_job}\n\n")
+			o.write(f"#PBS -W depend=afterok: {run_after_job}\n\n")
 		if gmem:
 			mem=gmem*1000
 			o.write("#PBS -l mem="+str(mem)+"mb\n")
@@ -48,11 +48,7 @@ def submit(cmdfile):
 		log.error(f"{cmdfile} was not submitted")	
 
 def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@power9'):
-<<<<<<< HEAD
 	#TODO: connect to pbs directly and not through bash so we don't get qstat error / qstat all jobs and check for job id internally.
-=======
-	#TODO: connect to pbs directly and not through bash so we don't get qstat error.
->>>>>>> pipeline_logger: logger refactor + fancy time elapsed stdout
 	log = pipeline_logger()
 	log.info(f"Starting {alias} with job id: {job_id}")
 	start_time = time.time()
@@ -68,13 +64,8 @@ def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@pow
 		process = 0
 	while process > 0 and i <= sleep_max: 
 		for second in range(0, sleep_quantum):
-<<<<<<< HEAD
 			elapsed_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
 			sys.stdout.write("\r")
-=======
-			sys.stdout.write("\r")
-			elapsed_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
->>>>>>> pipeline_logger: logger refactor + fancy time elapsed stdout
 			sys.stdout.write(f'Elapsed time: {elapsed_time}')
 			sys.stdout.flush()
 			time.sleep(1)
