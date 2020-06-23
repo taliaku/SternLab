@@ -11,7 +11,7 @@ def check_queue(queue):
 	if queue not in allowed_queues:
 		raise Exception(f"Sorry but queue must be one of {allowed_queues}, not '{queue}'")
 
-def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True, run_after_job=None):
+def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True):
 	with open(cmdfile, 'w') as o:
 		o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
 		o.write("#PBS -q %s\n" % queue)
@@ -19,8 +19,6 @@ def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True, ru
 		o.write("#PBS -N "+ alias+"\n")
 		o.write("#PBS -o %s\n" % "/".join(cmdfile.split("/")[:-1]))
 		o.write("#PBS -e %s\n" % "/".join(cmdfile.split("/")[:-1]))
-		if run_after_job != None:
-			o.write(f"#PBS -W depend=afterok: {run_after_job}\n\n")
 		if gmem:
 			mem=gmem*1000
 			o.write("#PBS -l mem="+str(mem)+"mb\n")
