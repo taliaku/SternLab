@@ -101,7 +101,7 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
            " -e " + str(end_stage) + " -q " + str(q_score) + " -d " + str(blast_id) + " -v " + str(e_value) + " -x " + str(min_num_repeats) + " -n " + str(Num_reads_per_file) + \
            " -c " + str(Coverage) + " -p " + Protocol + " -u " + queue + " -w " + overwrite + "\n"
     cmds = cmd1 + cmd2 + cmd3 
-    cmdfile = dir_path + "/pipeline_project_runner.cmd"
+    cmdfile = os.path.join(dir_path,"pipeline_project_runner.cmd")
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
     job_id = submit(cmdfile)
     log.info(f"Started job: {job_id}")

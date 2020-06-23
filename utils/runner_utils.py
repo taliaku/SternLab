@@ -7,7 +7,7 @@ import time
 from utils.logger import pipeline_logger
 
 def check_queue(queue):
-	allowed_queues = ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long", "tzachi@power9"] 
+	allowed_queues = ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long", "tzachi@power9", 'adistzachi'] 
 	if queue not in allowed_queues:
 		raise Exception(f"Sorry but queue must be one of {allowed_queues}, not '{queue}'")
 
@@ -47,22 +47,16 @@ def submit(cmdfile):
 	else:
 		log.error(f"{cmdfile} was not submitted")	
 
-def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@power9'):
-	#TODO: connect to pbs directly and not through bash so we don't get qstat error / qstat all jobs and check for job id internally.
+def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='adistzachi'):
 	log = pipeline_logger()
 	log.info(f"Starting {alias} with job id: {job_id}")
 	start_time = time.time()
 	i = 0
-	if queue == 'tzachi@power9':
-		qstat_command = f"qstat -t '{job_id}'.power9.tau.ac.il@power9 | wc -l"
-	else:
-		qstat_command = "qstat -t " + job_id + " | wc -l"
-	process = os.popen(qstat_command).read()
-	try:
-		process = int(process)
-	except:
-		process = 0
-	while process > 0 and i <= sleep_max: 
+	if job_id[-2:]=='[]': # grep doesn't like these..
+		job_id = job_id[:-2]
+	qstat_command = f"qstat @power9 | grep {job_id}" #TODO: do we really need to specify power9?
+	qstat_result = os.popen(qstat_command).read()
+	while len(qstat_result) > 0 and i <= sleep_max: 
 		for second in range(0, sleep_quantum):
 			elapsed_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time))
 			sys.stdout.write("\r")
@@ -70,13 +64,10 @@ def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='tzachi@pow
 			sys.stdout.flush()
 			time.sleep(1)
 		i += sleep_quantum
-		process = os.popen(qstat_command).read()
-		try:
-			process = int(process)
-		except:
-			process = 0
-	if process > 0: 
+		qstat_result = os.popen(qstat_command).read()
+	if len(qstat_result) > 0: 
 		raise Exception(alias + " stage was not completed. Max sleep time reached\n")
+	sys.stdout.write("\n")
 	log.info(f"{alias} Done.")
 
 def FindFilesInDir(dir_path, file_type):
