@@ -1,7 +1,10 @@
 import os
-import logging
 import argparse
 import pandas as pd
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
+from utils.logger import pipeline_logger
+
 
 def _get_last_end_value_location(string, substring, substring_end_loc, end_values):
     end_value_locations = []
@@ -66,6 +69,8 @@ def aggregate_summaries(project_dir_path, output_file):
     """
     Returns: a dataframe aggregating all the summaries in a project.
     """
+    log = pipeline_logger(project_dir_path)
+    log.debug("Started AggregateSummaries")
     sub_dir_list = [name for name in os.listdir(project_dir_path) if os.path.isdir(os.path.join(project_dir_path,name))]
     data_categories_with_spaces = ['mode', 'task', '%id for blast', 'e-value', 'number of repeats used', 'q-score', 'protocol']
     data_categories_with_colon = ['Total number of reads', 'Number of reads mapped to reference', "% of mapped reads", 
@@ -90,6 +95,6 @@ def aggregate_summaries(project_dir_path, output_file):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input_directory", type=str, help="path to project directory", required=True)
-    parser.add_argument("-o", "--output_file", type=str, help="path to project directory", required=True)
+    parser.add_argument("-o", "--output_file", type=str, help="path to output file", required=True)
     args = parser.parse_args()
     aggregate_summaries(args.input_directory, args.output_file)

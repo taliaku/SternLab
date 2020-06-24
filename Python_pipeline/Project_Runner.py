@@ -6,12 +6,13 @@ import glob
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-from utils.runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array		
+from utils.runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array	
+from utils.logger import pipeline_logger
 
 def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id,
                 e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern):
     alias = "RunProject"
-
+    log = pipeline_logger(dir_path)
     file_type = sample_basename_pattern + "*"
     project_samples = FindFilesInDir(input_dir, file_type)
     if len(project_samples) == 0:
@@ -92,24 +93,40 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
         gmem = 7
 
     array = create_array(samples_list)
-    pipeline_dir = pipeline_path[0:pipeline_path.rfind('/')]
     cmd1 = 'declare -a SAMPLENAMES\n'
     cmd2 = 'SAMPLENAMES=' + array + "\n\n"
     cmd3 = "python " + pipeline_path + " -i ${SAMPLENAMES[" + p + "]} -o ${SAMPLENAMES[" + o + "]} -r " + ref_genome + " -m " + mode + " -t " + task + " -s " + str(start_stage) + \
            " -e " + str(end_stage) + " -q " + str(q_score) + " -d " + str(blast_id) + " -v " + str(e_value) + " -x " + str(min_num_repeats) + " -n " + str(Num_reads_per_file) + \
            " -c " + str(Coverage) + " -p " + Protocol + " -u " + queue + " -w " + overwrite + "\n"
-    cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {dir_path}/AggregatedSummary.csv"
-    cmds = cmd1 + cmd2 + cmd3 + cmd4
-    cmdfile = dir_path + "/pipeline_project_runner.cmd"
+    cmds = cmd1 + cmd2 + cmd3 
+    cmdfile = os.path.join(dir_path,"pipeline_project_runner.cmd")
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
     job_id = submit(cmdfile)
-    print(job_id)
+    log.info(f"Started job: {job_id}")
+    Sleep(alias, job_id)
+    alias = 'AggregateSummaries'
+    pipeline_dir = pipeline_path[0:pipeline_path.rfind('/')]
+    cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {dir_path}AggregatedSummary.csv"
+    cmdfile = dir_path + "pipeline_project_runner_aggregateSummaries.cmd"
+    create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmd4, queue=queue, load_python=True)
+    #TODO: why figure out why job is presented to the queue but doesn't seem to actually happen..!
+    job_id = submit(f'-W depend=afterok:{job_id} {cmdfile}') # start when the last job finishes successfully.
+    log.info(f"Started job: {job_id}")  
     Sleep(alias, job_id)
 
 def main(args):
     pipeline_dir = os.path.dirname(os.path.abspath(__file__).strip())
     pipeline_path = pipeline_dir + "/Runner.py"
-
+    
+    dir_path = args.output_dir.strip()
+    if not os.path.isdir(dir_path):
+        try:
+            os.system("mkdir -p " + dir_path)
+        except:
+            raise Exception("failed to create input directory " + dir_path + "\n")
+        if not os.path.isdir(dir_path):
+            raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
+    log = pipeline_logger(dir_path)
     if not (os.path.isfile(pipeline_path) and os.path.splitext(pipeline_path)[1] == '.py'):
         raise Exception("Unexpected error, pipeline path " + pipeline_path + " does not exist or not a .py file\n")
 
@@ -136,16 +153,9 @@ def main(args):
     number_of_N = args.num_of_N
     if number_of_N != None:
         if number_of_N < 60:
-            print("\nWarning. Running merge reads with number_of_N smaller than 60\n")
+            log.warning("Running merge reads with number_of_N smaller than 60\n")
 
-    dir_path = args.output_dir.strip()
-    if not os.path.isdir(dir_path):
-        try:
-            os.system("mkdir -p " + dir_path)
-        except:
-            raise Exception("failed to create input directory " + dir_path + "\n")
-        if not os.path.isdir(dir_path):
-            raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
+    
 
     ref_genome = args.ref.strip()
     if not (os.path.isfile(ref_genome) and os.path.splitext(ref_genome)[1] == '.fasta'):
@@ -156,19 +166,19 @@ def main(args):
         if q_score < 0 or q_score > 40:
             raise Exception("Unexpected error, q-score value " + str(q_score) + " is not valid, should be an integer value between 0-40\n")
         if q_score < 16:
-            print("\nWarning, running pipeline with q-score value of " + str(q_score) + "\n")
+            log.warning("Running pipeline with q-score value of " + str(q_score) + "\n")
 
     blast_id = args.blast_id
     if blast_id != None:
         if blast_id < 85:
-            print("\nWarning, running pipeline with blast id value of " + str(blast_id) + "\n")
+            log.warning("Running pipeline with blast id value of " + str(blast_id) + "\n")
         if blast_id < 0 or blast_id > 100:
             raise Exception("Unexpected error, identity % for blast is not a valid value: " + str(blast_id) + " \n")
 
     e_value = args.evalue
     if e_value != None:
         if e_value > 1e-7:
-            print("\nWarning, running pipeline with e_value > " + str(e_value) + "\n")
+            log.warning("Running pipeline with e_value > " + str(e_value) + "\n")
 
     task = args.blast_task.strip()
     if task != None:
@@ -188,24 +198,24 @@ def main(args):
         if min_num_repeats < 1:
             raise Exception("Unexpected error, min number of repeats is less than 1\n")
         if min_num_repeats < 2:
-            print("\nWarning. Running pipeline with min number of repeats less than 2\n")
+            log.warning("Running pipeline with min number of repeats less than 2\n")
         if min_num_repeats > 2:
-            print("\nWarning. Running pipeline with min number of repeats bigger than 2\n")
+            log.warning("Running pipeline with min number of repeats bigger than 2\n")
 
     Min_Num_reads_per_file = 10000
     Max_Num_reads_per_file = 40000
     Num_reads_per_file = args.num_reads
     if Num_reads_per_file != None:
         if Num_reads_per_file < Min_Num_reads_per_file:
-            print("\nWarning. Running pipeline with less than " + str(Min_Num_reads_per_file) + " reads per split file\n")
+            log.warning("Running pipeline with less than " + str(Min_Num_reads_per_file) + " reads per split file\n")
         if Num_reads_per_file > Max_Num_reads_per_file:
-            print("\nWarning. Running pipeline with more than " + str(Max_Num_reads_per_file) + " reads per split file\n")
+            log.warning("Running pipeline with more than " + str(Max_Num_reads_per_file) + " reads per split file\n")
 
     Min_Coverage = 1000
     Coverage = args.coverage
     if Coverage != None:
         if Coverage < Min_Coverage:
-            print("\nWarning. Running pipeline with coverage smaller than " + str(Min_Coverage) + "\n")
+            log.warning("Running pipeline with coverage smaller than " + str(Min_Coverage) + "\n")
 
     Protocol = args.protocol.strip()
     if Protocol not in ["L", "l", "linear", "C", "c", "circular"]:
@@ -217,12 +227,10 @@ def main(args):
 
     cmd = "python {} -i {} -o {} -r {} -m {} -t {} -s {} -e {} -q {} -d {} -v {} -x {} -n {} -c {} -p {} -u {} -w {}".format(
         pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id, e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite)
-    print(cmd)
+    log.info(f"Executing command: {cmd}")
 
     run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id, e_value,
                 min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern)
-
-    print("END OF RUN PROJECT")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
