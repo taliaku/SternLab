@@ -104,13 +104,12 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
     job_id = submit(cmdfile)
     Sleep(alias, job_id)
-    alias = 'AggregateSummaries'
+    # After we are done with the project we run AggregateSummaries:
     pipeline_dir = pipeline_path[0:pipeline_path.rfind('/')]
     cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {dir_path}AggregatedSummary.csv"
     cmdfile = dir_path + "pipeline_project_runner_aggregateSummaries.cmd"
-    create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmd4, queue=queue, load_python=True)
-    #TODO: why figure out why job is presented to the queue but doesn't seem to actually happen..!
-    job_id = submit(f'-W depend=afterok:{job_id} {cmdfile}') # start when the last job finishes successfully.
+    create_pbs_cmd(cmdfile=cmdfile, alias='AggregateSummaries', jnum=1, gmem=2, cmds=cmd4, queue=queue, load_python=True)
+    job_id = submit(cmdfile)
     Sleep(alias, job_id)
 
 def main(args):
