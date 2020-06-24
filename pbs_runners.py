@@ -1,6 +1,6 @@
 #! /usr/local/python_anaconda/bin/python3.4
 
-import pbs_jobs
+from utils import pbs_jobs
 import os
 from os import path
 from seqFileTools import convert_fasta_to_phylip, get_longest_sequence_name_in_fasta
@@ -523,7 +523,7 @@ def tophat2_runner(output_dir, bowtie_reference, fastq, alias="tophat2"):
     cmdfile = pbs_jobs.get_cmdfile_dir("tophat2", alias); tnum = 1; gmem = 2
     cmds = "/sternadi/home/volume1/taliakustin/software/tophat-2.1.1.Linux_x86_64/tophat2"\
            + " -o %s %s %s" % (output_dir, bowtie_reference, fastq)
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds,load_python=False)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, load_python=False)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
