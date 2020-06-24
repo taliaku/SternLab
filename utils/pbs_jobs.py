@@ -35,7 +35,7 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi", gmem=2, ncpus=1, ngpus=1,
         o.write("date\n")
         o.write("hostname\n")
         if load_python:
-            o.write("module load python/anaconda_python-3.6.1\n")
+            o.write("module load python/python-anaconda3.2019.10\n")
         
         o.write("\n")
         o.write('echo "%s"' % cmds)
