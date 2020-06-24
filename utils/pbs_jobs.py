@@ -102,7 +102,7 @@ def check_pbs(job_id):
     return status
 
 
-def get_cmdfile_dir(cmdfile, alias):
+def assign_cmdfile_path(cmdname, alias):
     username = getpass.getuser()
     lab_users_dic = {"taliakustin":"/sternadi/home/volume1/taliakustin/temp", 
                      "daniellem1":"/sternadi/home/volume1/daniellem1/temp", 
@@ -121,5 +121,5 @@ def get_cmdfile_dir(cmdfile, alias):
         tmp_dir = tmp_dir + "/%s" % alias
         if not os.path.exists(tmp_dir):
             os.system("mkdir %s" % tmp_dir)
-        cmdfile = tmp_dir + "/" + cmdfile
-    return cmdfile
+        cmdname = tmp_dir + "/" + cmdname
+    return cmdname
