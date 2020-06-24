@@ -103,7 +103,6 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
     cmdfile = os.path.join(dir_path,"pipeline_project_runner.cmd")
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
     job_id = submit(cmdfile)
-    log.info(f"Started job: {job_id}")
     Sleep(alias, job_id)
     alias = 'AggregateSummaries'
     pipeline_dir = pipeline_path[0:pipeline_path.rfind('/')]
@@ -112,7 +111,6 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmd4, queue=queue, load_python=True)
     #TODO: why figure out why job is presented to the queue but doesn't seem to actually happen..!
     job_id = submit(f'-W depend=afterok:{job_id} {cmdfile}') # start when the last job finishes successfully.
-    log.info(f"Started job: {job_id}")  
     Sleep(alias, job_id)
 
 def main(args):
