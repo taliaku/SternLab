@@ -11,6 +11,7 @@ def check_queue(queue):
 	if queue not in allowed_queues:
 		raise Exception(f"Sorry but queue must be one of {allowed_queues}, not '{queue}'")
 
+#TODO: merge duplicate code with pbs_jobs
 def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True):
 	with open(cmdfile, 'w') as o:
 		o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")

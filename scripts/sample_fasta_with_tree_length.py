@@ -5,10 +5,9 @@ from optparse import OptionParser
 from file_utilities import  check_filename
 from seqFileTools import unalign, remove_description
 import phylogenetic_utilities
-from pbs_jobs import check_pbs
+from utils.pbs_jobs import check_pbs
 import pbs_runners
 import os
-from time import sleep
 
 
 def main():

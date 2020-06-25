@@ -2,7 +2,7 @@ import os
 import shutil
 import PAML_utilities
 import file_utilities
-import pbs_jobs
+from utils import pbs_jobs
 from optparse import OptionParser
 
 

@@ -7,15 +7,11 @@
 
 import pandas as pd
 import glob
-from optparse import OptionParser
 from Bio.Blast import NCBIXML
 from pbs_runners import blast_runner
-from pbs_jobs import check_pbs
-import matplotlib as plt
+from utils.pbs_jobs import check_pbs
 from nt_freq_counter import *
 import subprocess
-import os
-import re
 
 
 def main():
