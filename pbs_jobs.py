@@ -27,7 +27,7 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi", gmem=2, ncpus=1, ngpus=1,
            if jnum != 1:
                o.write("#PBS -J 1-"+str(jnum)+"\n\n")
         if run_after_job != None:
-            o.write("#PBS -W depend=afterok:" + str(run_after_job)+"\n\n")
+            o.write("#PBS -W depend=afterok:" + str(run_after_job)+ ".power9.tau.ac.il\n\n")
     
         if dir != "":
             o.write("ls -land %s\n" % dir)
