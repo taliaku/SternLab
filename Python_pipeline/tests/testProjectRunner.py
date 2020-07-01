@@ -21,6 +21,7 @@ class TestProjectRunner(unittest.TestCase):
         args = create_parser()
         for parameter, value in parameters_dict.items():
             setattr(args, parameter, value)
+        print(args.output_dir)
         main(args)
 
     def assertAggregatedSummary(self):

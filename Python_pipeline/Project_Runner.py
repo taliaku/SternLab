@@ -263,8 +263,8 @@ def create_parser():
                         help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'",
                         required=False, default="linear")
     parser.add_argument("-w", "--overwrite", type=str, help="overwrite? Y/N, default='N'", required=False, default="N")
-    return parser.parse_args()
+    return parser
 
 if __name__ == "__main__":
-    args = create_parser()
+    args = create_parser().parse_args()
     main(args)
