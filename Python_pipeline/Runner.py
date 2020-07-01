@@ -7,7 +7,8 @@ import os
 import sys
 #append parent directory to path so that we can import from there:
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-from utils.runner_utils import FindFilesInDir, check_queue, create_pbs_cmd, submit, Sleep, create_array	
+from utils.runner_utils import FindFilesInDir, check_queue, Sleep, create_array
+from utils.pbs_jobs import create_pbs_cmd, submit
 from utils.logger import pipeline_logger
 
 #TODO?: relative path support for input files

@@ -12,10 +12,10 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi", gmem=2, ncpus=1, ngpus=1,
         o.write("#PBS -q %s\n" % queue)
         o.write("#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH \n")
         o.write("#PBS -N "+alias+"\n")
-
-        if alias in cmdfile and datetime.datetime.today().strftime('%Y-%m') in cmdfile:
-            o.write("#PBS -o %s\n" % "/".join(cmdfile.split("/")[:-1]))
-            o.write("#PBS -e %s\n" % "/".join(cmdfile.split("/")[:-1]))
+        #TODO: did dropping this "if" do something horrible?
+        #if alias in cmdfile and datetime.datetime.today().strftime('%Y-%m') in cmdfile:
+        o.write("#PBS -o %s\n" % "/".join(cmdfile.split("/")[:-1]))
+        o.write("#PBS -e %s\n" % "/".join(cmdfile.split("/")[:-1]))
 
         # running on GPUs 
         if queue == 'gpu':
@@ -35,7 +35,7 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi", gmem=2, ncpus=1, ngpus=1,
         o.write("date\n")
         o.write("hostname\n")
         if load_python:
-            o.write("module load python/anaconda_python-3.6.1\n")
+            o.write("module load python/python-anaconda3.2019.10\n")
         
         o.write("\n")
         o.write('echo "%s"' % cmds)
@@ -102,7 +102,7 @@ def check_pbs(job_id):
     return status
 
 
-def get_cmdfile_dir(cmdfile, alias):
+def assign_cmdfile_path(cmdname, alias):
     username = getpass.getuser()
     lab_users_dic = {"taliakustin":"/sternadi/home/volume1/taliakustin/temp", 
                      "daniellem1":"/sternadi/home/volume1/daniellem1/temp", 
@@ -121,5 +121,5 @@ def get_cmdfile_dir(cmdfile, alias):
         tmp_dir = tmp_dir + "/%s" % alias
         if not os.path.exists(tmp_dir):
             os.system("mkdir %s" % tmp_dir)
-        cmdfile = tmp_dir + "/" + cmdfile
-    return cmdfile
+        cmdname = tmp_dir + "/" + cmdname
+    return cmdname
