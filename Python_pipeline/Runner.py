@@ -7,8 +7,8 @@ import os
 import sys
 #append parent directory to path so that we can import from there:
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.runner_utils import FindFilesInDir, check_queue, Sleep, create_array
-from utils.pbs_jobs import create_pbs_cmd, submit
+from utils.runner_utils import FindFilesInDir, check_queue, create_array, submit_wait_and_log
+from utils.pbs_jobs import create_pbs_cmd
 from utils.logger import pipeline_logger
 
 #TODO?: relative path support for input files
@@ -26,7 +26,7 @@ Pipeline generating frequency files from raw sequencing data files, either fastq
 6.	Warp up. zip files.
 '''
 
-def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue):
+def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue, log):
 	alias = "MergeFiles"
 	script_path = "/sternadi/home/volume1/shared/SternLab/scripts/merge_fastq_files.py"
 
@@ -73,16 +73,14 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 
 	cmdfile = dir_path + "/merge_files.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_expected_merged_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
-
+	submit_wait_and_log(cmdfile, log, alias)
 	time.sleep(10)
 	file_type = "merged*"
 	merged_files = FindFilesInDir(dir_path, file_type)
 	if len(merged_files) != num_of_expected_merged_files:
 		raise Exception("Unexpected error, number of merged files does not match expected number of merged files " + str(num_of_expected_merged_files) + "\n")
 
-def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue):
+def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue, log):
 	alias = "toFastaAndSplit"
 	script_path = pipeline_dir + "/ToFastaAndSplit.py"
 
@@ -104,9 +102,7 @@ def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, que
 
 	cmdfile = dir_path + "/FastaAndSplit.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
-
+	submit_wait_and_log(cmdfile, log, alias)
 	time.sleep(10)
 	file_type = ".fasta"
 	fasta_files = FindFilesInDir(dir_path, file_type)
@@ -115,7 +111,7 @@ def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, que
 	if len(fasta_files) != len(quality_files) or len(fasta_files) == 0 or len(quality_files) == 0:
 		raise Exception("Unexpected error, number of fasta and / or quality output files does not match expected number of output files\n")
 
-def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue):
+def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue, log):
 	alias = "Blast"
 	blast_dir = "/sternadi/home/volume1/shared/tools/ncbi-blast-2.2.30+/bin"
 
@@ -153,8 +149,7 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue):
 
 	cmdfile = dir_path + "/Blast.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
+	submit_wait_and_log(cmdfile, log, alias)
 
 	time.sleep(10)
 	file_type = ".blast"
@@ -162,7 +157,7 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue):
 	if len(blast_files) != len(input_fasta_files):
 		raise Exception("Unexpected error, number of blast output files " + str(len(blast_files)) + " does not match number of input fasta files " + str(len(input_fasta_files)) + "\n")
 
-def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue):
+def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue, log):
 	alias = "BaseCalling"
 	script_path = pipeline_dir + "/BaseCall.py"
 
@@ -186,8 +181,7 @@ def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode,
 
 	cmdfile = dir_path + "/BaseCalling.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
+	submit_wait_and_log(cmdfile, log, alias)
 
 	time.sleep(30)
 	file_type = ".freqs"
@@ -195,7 +189,7 @@ def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode,
 	if len(input_blast_files) != len(freqs_files):
 		raise Exception("Unexpected error, number of freqs output files " + str(len(freqs_files)) + " does not match number of input blast files " + str(len(input_blast_files)) + "\n")
 
-def Join (pipeline_dir, dir_path, ref_genome, Coverage, queue):
+def Join (pipeline_dir, dir_path, ref_genome, Coverage, queue, log):
 	alias = "Join"
 	script_path = pipeline_dir + "/Join.py"
 
@@ -207,8 +201,7 @@ def Join (pipeline_dir, dir_path, ref_genome, Coverage, queue):
 	cmdfile = dir_path + "/Join.cmd"
 	cmds = "python " + script_path + " -o " + dir_path + " -r " + ref_genome + " -c " + str(Coverage)
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
+	submit_wait_and_log(cmdfile, log, alias)
 
 	time.sleep(10)
 	file_type = "merge.freqs.csv"
@@ -216,7 +209,7 @@ def Join (pipeline_dir, dir_path, ref_genome, Coverage, queue):
 	if len(merge_file) != 1:
 		raise Exception("Unexpected error, merge.freqs.csv file does not exist in directory " + dir_path + " or is different than 1\n")
 
-def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue):
+def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue, log):
 	alias = "Summary"
 	script_path = pipeline_dir + "/Summary.py"
 
@@ -238,8 +231,7 @@ def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue):
 	cmdfile = dir_path + "/Summary.cmd"
 	cmds = "python " + script_path + " -o " + dir_path + " -c " + str(Coverage) + " -r " + ref_genome
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
+	submit_wait_and_log(cmdfile, log, alias)
 
 	time.sleep(10)
 	file_type = "Summary.txt"
@@ -406,7 +398,7 @@ def main(args):
 				raise Exception("Unexpected error, merged files were found in directory" + dir_path + ". Cannot run merge_fastq_files. To re-write add -w Y to command line\n")
 			elif len(merged_files) > 0	and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.merged.fastq*")
-			merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue)
+			merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue, log)
 
 		if stage == 1:
 			file_type = ".fasta"
@@ -450,7 +442,7 @@ def main(args):
 				input_files = input_fastq_files
 			elif len(input_fastq_files) == 0 and len(input_gz_files) > 0:
 				input_files = input_gz_files
-			toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue)
+			toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue, log)
 
 		if stage == 2:
 			file_type = ".blast"
@@ -459,7 +451,7 @@ def main(args):
 				raise Exception("Unexpected error, blast files were found in directory " + dir_path + ". Cannot run Blast. To re-write add -w Y to command line\n")
 			elif len(blast_files) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.blast")
-			Blast(dir_path, ref_genome, task, mode, e_value, blast_id, queue)
+			Blast(dir_path, ref_genome, task, mode, e_value, blast_id, queue, log)
 
 		if stage == 3:
 			file_type = ".freqs"
@@ -468,7 +460,7 @@ def main(args):
 				raise Exception("Unexpected error, freqs files were found in directory " + dir_path + ". Cannot run BaseCall. To re-write add -w Y to command line\n")
 			elif len(freqs_files) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.freqs* " + dir_path + "/*.good* " + dir_path + "/*.NonContributing")
-			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue)
+			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue, log)
 
 		if stage == 4:
 			file_type = "merge.freqs.csv"
@@ -477,10 +469,10 @@ def main(args):
 				raise Exception("Unexpected error, merge.freqs.csv was found in directory " + dir_path + ". Cannot run Join. To re-write add -w Y to command line\n")
 			elif len(merged_freqs) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.merge.freqs.csv")
-			Join(pipeline_dir, dir_path, ref_genome, Coverage, queue)
+			Join(pipeline_dir, dir_path, ref_genome, Coverage, queue, log)
 
 		if stage == 5:
-			Summary(pipeline_dir, dir_path, Coverage, ref_genome, queue)
+			Summary(pipeline_dir, dir_path, Coverage, ref_genome, queue, log)
 
 		if stage == 6:
 			os.system("zip " + dir_path + "/OutputFiles.zip " + dir_path + "/*.part* " + dir_path + "/*.OU")

@@ -698,7 +698,7 @@ def fits_runner(inference_type, dataset_file, param_file,alias='FITS', posterior
     :param inference_type: the type of inference - fitness = 0, mutation rate =1, population size=2, simulate=3,
     :param dataset_file: dataset file. if batch != None should indicate $PBS_ARRAY_INDEX
     :param param_file: parameter file
-    :param alias: job alias. default is FITS.
+    :param alias: job job_name. default is FITS.
     :param posterior_file: output posterior file. should be provided to all types except of simulate. if batch != None should indicate $PBS_ARRAY_INDEX
     :param summary_file: output summary file. should be provided to all types except of simulate. if batch != None should indicate $PBS_ARRAY_INDEX
     :param batch: the number of jobs in the array, if None run as a single job
