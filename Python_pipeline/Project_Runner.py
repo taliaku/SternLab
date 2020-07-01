@@ -108,7 +108,7 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
     alias = 'AggregateSummaries'
     pipeline_dir = pipeline_path[0:pipeline_path.rfind('/')]
     summary_file_path = os.path.join(dir_path, 'AggregatedSummary.csv')
-    cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {summary_file_path} -L {dir_path}"
+    cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {summary_file_path}"
     cmdfile = os.path.join(dir_path, "pipeline_project_runner_aggregateSummaries.cmd")
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmd4, queue=queue, load_python=True)
     submit_wait_and_log(cmdfile, log, alias)
