@@ -12,7 +12,7 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi", gmem=2, ncpus=1, ngpus=1,
         o.write("#PBS -q %s\n" % queue)
         o.write("#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH \n")
         o.write("#PBS -N "+alias+"\n")
-        #TODO: did dropping this if did something horrible?
+        #TODO: did dropping this "if" do something horrible?
         #if alias in cmdfile and datetime.datetime.today().strftime('%Y-%m') in cmdfile:
         o.write("#PBS -o %s\n" % "/".join(cmdfile.split("/")[:-1]))
         o.write("#PBS -e %s\n" % "/".join(cmdfile.split("/")[:-1]))
