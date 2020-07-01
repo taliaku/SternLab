@@ -22,7 +22,7 @@ class TestProjectRunner(unittest.TestCase):
         for parameter, value in parameters_dict.items():
             setattr(args, parameter, value)
         print(args.output_dir)
-        main(args)
+        main(args.parse_args())
 
     def assertAggregatedSummary(self):
         AggregatedSummaryExample = '/sternadi/home/volume3/ita/pipelineTester/small_sample_results/AggregatedSummary.csv'
