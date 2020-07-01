@@ -272,8 +272,10 @@ def main(args):
 	log_folder = args.log_folder
 	if log_folder is None:
 		log_folder = dir_path
-	dir_name = os.path.basename(dir_path[:-1]) # the [:-1] is a hack to get dir name even if it ends with a '/'
-	log = pipeline_logger(f'PipelineRunner_{dir_name}', log_folder)
+	if dir_path[-1] == '/':
+		dir_path = dir_path[:-1]
+	dir_name = os.path.basename(dir_path)
+	log = pipeline_logger(f'PipelineRunner[{dir_name}]', log_folder)
 	log.debug(f"args.log_folder: {args.log_folder}")
 	if start_stage == None or start_stage in [0,1]:
 		if not os.path.isdir(sample_dir_path):
