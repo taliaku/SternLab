@@ -18,14 +18,14 @@ class TestProjectRunner(unittest.TestCase):
             'output_dir': self.output_dir,
             'ref': '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
         }
-        args = create_parser().parse_args()
+        args = create_parser()
         args.input_dir = parameters_dict['input_dir']
         args.output_dir = parameters_dict['output_dir']
         args.ref = parameters_dict['ref']
         """for parameter, value in parameters_dict.items():
             setattr(args, parameter, value)
         """
-        main(args)
+        main(args.parse_args())
 
     def assertAggregatedSummary(self):
         AggregatedSummaryExample = '/sternadi/home/volume3/ita/pipelineTester/small_sample_results/AggregatedSummary.csv'
