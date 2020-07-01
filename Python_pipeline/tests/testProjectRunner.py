@@ -14,14 +14,14 @@ class TestProjectRunner(unittest.TestCase):
         print('Im init!!!!')
         self.output_dir = '/tmp/TestProjectRunner/'
         parser = argparse.ArgumentParser()
+        args = parser.parse_args("")
         parameters_dict = {
             'input_dir': '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/',
             'output_dir': self.output_dir,
             'ref': '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
         }
         for parameter, value in parameters_dict.items():
-            setattr(parser, parameter, value)
-        args = parser.parse_args()
+            setattr(args, parameter, value)
         main(args)
 
     def assertAggregatedSummary(self):
