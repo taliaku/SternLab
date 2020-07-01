@@ -13,7 +13,7 @@ from utils.pbs_jobs import create_pbs_cmd, submit
 def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id,
                 e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern):
     alias = "RunProject"
-    log = pipeline_logger(dir_path)
+    log = pipeline_logger(alias, dir_path)
     file_type = sample_basename_pattern + "*"
     project_samples = FindFilesInDir(input_dir, file_type)
     if len(project_samples) == 0:
@@ -127,7 +127,7 @@ def main(args):
             raise Exception("failed to create input directory " + dir_path + "\n")
         if not os.path.isdir(dir_path):
             raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
-    log = pipeline_logger(dir_path)
+    log = pipeline_logger(logger_name='RunProject', log_folder=dir_path)
     if not (os.path.isfile(pipeline_path) and os.path.splitext(pipeline_path)[1] == '.py'):
         raise Exception("Unexpected error, pipeline path " + pipeline_path + " does not exist or not a .py file\n")
 

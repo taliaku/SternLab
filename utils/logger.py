@@ -30,13 +30,12 @@ def _create_new_logger(logger, log_file):
     logger.info(f'Log started! Outputing to: {log_file}')
     return logger
 
-def pipeline_logger(log_folder=None):
+def pipeline_logger(logger_name, log_folder=None):
     # create logger
     if log_folder is not None:
         log_file = os.path.join(log_folder, '.log')
     else:
         log_file = None
-    logger_name = 'PipelineLogger'
     logger = logging.getLogger(logger_name)
     if not _logger_already_exists(logger, log_file):
         if log_file is None:

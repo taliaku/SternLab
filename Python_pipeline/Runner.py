@@ -281,7 +281,7 @@ def main(args):
 		log_folder = args.log_folder
 	else:
 		log_folder = dir_path
-	log = pipeline_logger(log_folder)
+	log = pipeline_logger('PipelineRunner', log_folder)
 	if start_stage == None or start_stage in [0,1]:
 		if not os.path.isdir(sample_dir_path):
 			raise Exception("Directory of sample to merge/split " + sample_dir_path + " does not exist or is not a valid directory path\n")

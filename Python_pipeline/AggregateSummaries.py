@@ -69,7 +69,7 @@ def aggregate_summaries(project_dir_path, output_file):
     """
     Returns: a dataframe aggregating all the summaries in a project.
     """
-    log = pipeline_logger(project_dir_path)
+    log = pipeline_logger('AggregateSummaries', project_dir_path)
     log.debug("Started AggregateSummaries")
     sub_dir_list = [name for name in os.listdir(project_dir_path) if os.path.isdir(os.path.join(project_dir_path,name))]
     data_categories_with_spaces = ['mode', 'task', '%id for blast', 'e-value', 'number of repeats used', 'q-score', 'protocol']
