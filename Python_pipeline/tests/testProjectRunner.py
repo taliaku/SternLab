@@ -10,6 +10,7 @@ from Project_Runner import main
 class TestProjectRunner(unittest.TestCase):
 
     def __init__(self):
+        super().__init__()
         self.output_dir = '/tmp/TestProjectRunner/'
         parser = argparse.ArgumentParser()
         parameters_dict = {
