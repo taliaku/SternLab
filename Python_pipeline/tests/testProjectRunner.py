@@ -11,6 +11,7 @@ class TestProjectRunner(unittest.TestCase):
 
     def __init__(self):
         super().__init__()
+        print('Im init!!!!')
         self.output_dir = '/tmp/TestProjectRunner/'
         parser = argparse.ArgumentParser()
         parameters_dict = {
