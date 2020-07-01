@@ -64,4 +64,14 @@ def submit_wait_and_log(cmdfile, logger, job_name):
 	job_id = submit(cmdfile)
 	logger.info(f"Started {job_name} with job id: {job_id}")
 	elapsed_time = Sleep(job_name, job_id)
-	logger.info(f"Done {job_name} in {elapsed_time} minutes")
+	time_suffix = _get_time_suffix(elapsed_time)
+	logger.info(f"Done {job_name} in {elapsed_time} {time_suffix}")
+
+
+def _get_time_suffix(elapsed_time):
+	time_suffix = 'seconds'
+	if int(elapsed_time[:1]) > 0:
+		time_suffix = 'hours'
+	elif int(elapsed_time[3:4]) > 0:
+		time_suffix = 'minutes'
+	return time_suffix

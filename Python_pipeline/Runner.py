@@ -269,9 +269,8 @@ def main(args):
 				raise Exception("failed to create directory " + dir_path + "\n")
 	if not os.path.isdir(dir_path):
 		raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
-	if args.log_folder is not None:
-		log_folder = args.log_folder
-	else:
+	log_folder = args.log_folder
+	if log_folder is None:
 		log_folder = dir_path
 	log = pipeline_logger('PipelineRunner', log_folder)
 	if start_stage == None or start_stage in [0,1]:
