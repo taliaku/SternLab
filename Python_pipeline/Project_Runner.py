@@ -231,27 +231,40 @@ def main(args):
     run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id, e_value,
                 min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern, log)
 
-if __name__ == "__main__":
+
+def create_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-N", "--num_of_N", type=int, help="number of N's to add for merge of R1 and R2 pair-end reads", required=False, default=60)
+    parser.add_argument("-N", "--num_of_N", type=int, help="number of N's to add for merge of R1 and R2 pair-end reads",
+                        required=False, default=60)
     parser.add_argument("-i", "--input_dir", type=str, help="a path to an input directory containing sequencing samples for pipeline analysis, example: dir1/dir2/. \
-                        Sample pattern is allowed, example: dir1/dir2/sample_1_", required=True)
-    parser.add_argument("-n", "--num_reads", type=int, help="number of reads per split file", required=False, default=25000)
+                            Sample pattern is allowed, example: dir1/dir2/sample_1_", required=True)
+    parser.add_argument("-n", "--num_reads", type=int, help="number of reads per split file", required=False,
+                        default=25000)
     parser.add_argument("-o", "--output_dir", type=str, help="a path to an output directory", required=True)
     parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference fasta file", required=True)
-    parser.add_argument("-m", "--blast_mode", type=str, help="mode for blast, for Seq to Ref blast type SR, sr or SeqtoRef, for Ref to Seq blast type RS, rs or ReftoSeq, default = 'SeqtoRef'", required=False, default="SeqtoRef")
+    parser.add_argument("-m", "--blast_mode", type=str,
+                        help="mode for blast, for Seq to Ref blast type SR, sr or SeqtoRef, for Ref to Seq blast type RS, rs or ReftoSeq, default = 'SeqtoRef'",
+                        required=False, default="SeqtoRef")
     parser.add_argument("-d", "--blast_id", type=int, help="% blast id, default=85", required=False, default=85)
-    parser.add_argument("-t", "--blast_task", type=str, help="task for blast, blastn/megablast/dc-megablast?, default='blastn'", required=False, default="blastn")
-    parser.add_argument("-v", "--evalue", type=float, help="E-value for blast, default=1e-7", required=False, default=1e-7)
+    parser.add_argument("-t", "--blast_task", type=str,
+                        help="task for blast, blastn/megablast/dc-megablast?, default='blastn'", required=False,
+                        default="blastn")
+    parser.add_argument("-v", "--evalue", type=float, help="E-value for blast, default=1e-7", required=False,
+                        default=1e-7)
     parser.add_argument("-s", "--start", type=int, help="start stage number", required=False)
     parser.add_argument("-e", "--end", type=int, help="end stage number, default=5", required=False, default=5)
     parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=2", required=False, default=2)
-    parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default=10000", required=False, default=10000)
-    parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='tzachi@power9'", required=False, default="tzachi@power9")
-    parser.add_argument("-p", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'",
+    parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default=10000",
+                        required=False, default=10000)
+    parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='tzachi@power9'",
+                        required=False, default="tzachi@power9")
+    parser.add_argument("-p", "--protocol", type=str,
+                        help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'",
                         required=False, default="linear")
     parser.add_argument("-w", "--overwrite", type=str, help="overwrite? Y/N, default='N'", required=False, default="N")
+    return parser.parse_args()
 
-    args = parser.parse_args()
+if __name__ == "__main__":
+    args = create_parser()
     main(args)

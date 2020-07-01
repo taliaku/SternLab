@@ -4,7 +4,7 @@ import filecmp
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from Project_Runner import main
+from Project_Runner import main, create_parser
 
 
 class TestProjectRunner(unittest.TestCase):
@@ -13,13 +13,12 @@ class TestProjectRunner(unittest.TestCase):
         super().__init__()
         print('Im init!!!!')
         self.output_dir = '/tmp/TestProjectRunner/'
-        parser = argparse.ArgumentParser()
-        args = parser.parse_args("")
         parameters_dict = {
             'input_dir': '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/',
             'output_dir': self.output_dir,
             'ref': '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
         }
+        args = create_parser()
         for parameter, value in parameters_dict.items():
             setattr(args, parameter, value)
         main(args)
