@@ -70,8 +70,8 @@ def submit_wait_and_log(cmdfile, logger, job_name):
 
 def _get_time_suffix(elapsed_time):
 	time_suffix = 'seconds'
-	if int(elapsed_time[:1]) > 0:
+	if int(elapsed_time[:2]) > 0:
 		time_suffix = 'hours'
-	elif int(elapsed_time[3:4]) > 0:
+	elif int(elapsed_time[3:5]) > 0:
 		time_suffix = 'minutes'
 	return time_suffix
