@@ -40,6 +40,6 @@ def pipeline_logger(log_folder=None):
     logger = logging.getLogger(logger_name)
     if not _logger_already_exists(logger, log_file):
         if log_file is None:
-            raise ValueError("First instance of logger must be intiated with an output file!")
+            raise ValueError("First instance of logger must be initiated with an output file!")
         logger = _create_new_logger(logger, log_file)
     return logger

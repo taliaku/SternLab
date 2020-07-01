@@ -96,5 +96,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input_directory", type=str, help="path to project directory", required=True)
     parser.add_argument("-o", "--output_file", type=str, help="path to output file", required=True)
+    parser.add_argument("-L", "--log_folder", type=str, help="Folder path to write .log file in, default is None",
+                        default=None)
     args = parser.parse_args()
     aggregate_summaries(args.input_directory, args.output_file)
