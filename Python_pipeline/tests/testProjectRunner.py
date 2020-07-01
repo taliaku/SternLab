@@ -31,4 +31,5 @@ class TestProjectRunner(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    TestProjectRunner.assertAggregatedSummary()
+    test = TestProjectRunner()
+    test.assertAggregatedSummary()
