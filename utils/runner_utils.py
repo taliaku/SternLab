@@ -5,6 +5,8 @@ import sys
 import glob
 import time
 from utils.logger import pipeline_logger
+from utils.pbs_jobs import submit
+
 
 def check_queue(queue):
 	allowed_queues = ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long", "tzachi@power9", 'adistzachi'] 
@@ -12,8 +14,7 @@ def check_queue(queue):
 		raise Exception(f"Sorry but queue must be one of {allowed_queues}, not '{queue}'")
 
 def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='adistzachi'):
-	log = pipeline_logger()
-	log.info(f"Starting {alias} with job id: {job_id}")
+	#TODO: How do I get the class name into each specific log? should sleep be even logging?
 	start_time = time.time()
 	i = 0
 	if job_id[-2:]=='[]': # grep doesn't like these..
@@ -29,10 +30,10 @@ def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='adistzachi
 			time.sleep(1)
 		i += sleep_quantum
 		qstat_result = os.popen(qstat_command).read()
-	if len(qstat_result) > 0: 
-		raise Exception(alias + " stage was not completed. Max sleep time reached\n")
 	sys.stdout.write("\n")
-	log.info(f"{alias} Done.")
+	if len(qstat_result) > 0:
+		raise Exception(alias + " stage was not completed. Max sleep time reached\n")
+	return elapsed_time
 
 def FindFilesInDir(dir_path, file_type):
 	file_path = dir_path + "/*" + file_type
@@ -57,3 +58,20 @@ def create_array(files_list):
 			array += " "
 	array += ')'
 	return array
+
+
+def submit_wait_and_log(cmdfile, logger, job_name):
+	job_id = submit(cmdfile)
+	logger.info(f"Started {job_name} with job id: {job_id}")
+	elapsed_time = Sleep(job_name, job_id)
+	time_suffix = _get_time_suffix(elapsed_time)
+	logger.info(f"Done {job_name} in {elapsed_time} {time_suffix}")
+
+
+def _get_time_suffix(elapsed_time):
+	time_suffix = 'seconds'
+	if int(elapsed_time[:2]) > 0:
+		time_suffix = 'hours'
+	elif int(elapsed_time[3:5]) > 0:
+		time_suffix = 'minutes'
+	return time_suffix

@@ -1,12 +1,8 @@
 import os
 import argparse
 import pandas as pd
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-from utils.logger import pipeline_logger
 
-
-def _get_last_end_value_location(string, substring, substring_end_loc, end_values):
+def _get_last_end_value_location(string, substring_end_loc, end_values):
     end_value_locations = []
     for end_value in end_values:
         end_value_loc = string.find(end_value, substring_end_loc)
@@ -33,7 +29,7 @@ def get_value_after_substring(string, substring, start=None, end=None):
     substring_start_loc = string.find(substring, start, end)
     if substring_start_loc != -1:
         substring_end_loc = substring_start_loc + len(substring)
-        return_value = string[substring_end_loc : _get_last_end_value_location(string, substring, substring_end_loc, end_values)]
+        return_value = string[substring_end_loc : _get_last_end_value_location(string, substring_end_loc, end_values)]
     else: 
         return_value = None
     return return_value
@@ -69,8 +65,6 @@ def aggregate_summaries(project_dir_path, output_file):
     """
     Returns: a dataframe aggregating all the summaries in a project.
     """
-    log = pipeline_logger(project_dir_path)
-    log.debug("Started AggregateSummaries")
     sub_dir_list = [name for name in os.listdir(project_dir_path) if os.path.isdir(os.path.join(project_dir_path,name))]
     data_categories_with_spaces = ['mode', 'task', '%id for blast', 'e-value', 'number of repeats used', 'q-score', 'protocol']
     data_categories_with_colon = ['Total number of reads', 'Number of reads mapped to reference', "% of mapped reads", 

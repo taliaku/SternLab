@@ -264,7 +264,7 @@ def discretize_fitness_dfe(df, alias):
     """
     This method displays the fitness dfe according to defined bins
     :param df: a data frame of fitness values
-    :param alias: an alias which will be added to the graph title
+    :param alias: an job_name which will be added to the graph title
     :return: plots a histogram of fitness values - binned
     """
 

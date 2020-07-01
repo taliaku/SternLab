@@ -6,14 +6,14 @@ import glob
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-from utils.runner_utils import FindFilesInDir, check_queue, Sleep, create_array
+from utils.runner_utils import FindFilesInDir, check_queue, create_array, submit_wait_and_log
 from utils.logger import pipeline_logger
-from utils.pbs_jobs import create_pbs_cmd, submit
+from utils.pbs_jobs import create_pbs_cmd
 
 def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id,
-                e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern):
+                e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite,
+                sample_basename_pattern, log):
     alias = "RunProject"
-    log = pipeline_logger(dir_path)
     file_type = sample_basename_pattern + "*"
     project_samples = FindFilesInDir(input_dir, file_type)
     if len(project_samples) == 0:
@@ -99,20 +99,19 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
     cmd2 = 'SAMPLENAMES=' + array + "\n\n"
     cmd3 = "python " + pipeline_path + " -i ${SAMPLENAMES[" + p + "]} -o ${SAMPLENAMES[" + o + "]} -r " + ref_genome + " -m " + mode + " -t " + task + " -s " + str(start_stage) + \
            " -e " + str(end_stage) + " -q " + str(q_score) + " -d " + str(blast_id) + " -v " + str(e_value) + " -x " + str(min_num_repeats) + " -n " + str(Num_reads_per_file) + \
-           " -c " + str(Coverage) + " -p " + Protocol + " -u " + queue + " -w " + overwrite + "\n"
+           " -c " + str(Coverage) + " -p " + Protocol + " -u " + queue + " -w " + overwrite + " -L " + dir_path + "\n"
     cmds = cmd1 + cmd2 + cmd3 
     cmdfile = os.path.join(dir_path,"pipeline_project_runner.cmd")
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_samples, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
-    job_id = submit(cmdfile)
-    Sleep(alias, job_id)
+    submit_wait_and_log(cmdfile, log, alias)
     # After we are done with the project we run AggregateSummaries:
     alias = 'AggregateSummaries'
     pipeline_dir = pipeline_path[0:pipeline_path.rfind('/')]
-    cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {dir_path}AggregatedSummary.csv"
+    summary_file_path = os.path.join(dir_path, 'AggregatedSummary.csv')
+    cmd4 = f"python {pipeline_dir}/AggregateSummaries.py -i {dir_path} -o {summary_file_path}"
     cmdfile = os.path.join(dir_path, "pipeline_project_runner_aggregateSummaries.cmd")
     create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmd4, queue=queue, load_python=True)
-    job_id = submit(cmdfile)
-    Sleep(alias, job_id)
+    submit_wait_and_log(cmdfile, log, alias)
 
 def main(args):
     pipeline_dir = os.path.dirname(os.path.abspath(__file__).strip())
@@ -126,7 +125,7 @@ def main(args):
             raise Exception("failed to create input directory " + dir_path + "\n")
         if not os.path.isdir(dir_path):
             raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
-    log = pipeline_logger(dir_path)
+    log = pipeline_logger(logger_name='ProjectRunner', log_folder=dir_path)
     if not (os.path.isfile(pipeline_path) and os.path.splitext(pipeline_path)[1] == '.py'):
         raise Exception("Unexpected error, pipeline path " + pipeline_path + " does not exist or not a .py file\n")
 
@@ -230,7 +229,7 @@ def main(args):
     log.info(f"Executing command: {cmd}")
 
     run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, start_stage, end_stage, q_score, blast_id, e_value,
-                min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern)
+                min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite, sample_basename_pattern, log)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

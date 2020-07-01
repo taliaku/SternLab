@@ -131,7 +131,7 @@ def main():
                                   % (SELECTON_WEB_WRT_PATH, aln, best_tree, out_GA, out_GA, out_GA
                                      , out_GA, out_GA, out_GA, i, j, parameters["additional_omega_category"],
                                      1 - parameters["prob(additional_omega_category)"],
-                                     parameters["alpha"], parameters["beta"], parameters["kappa"]), alias="GA_wrt_forth_iteration")
+                                     parameters["alpha"], parameters["beta"], parameters["kappa"]), job_name="GA_wrt_forth_iteration")
                     """
                     script_runner("%s -i %s -u %s -l %s_log.txt -r %s_result.txt -o %s_output.txt -s %s_rasmul.txt "
                                   "-c %s_color.txt -t %s_tree.txt -v %s -y %s -w %f -p %f -a %f -x %f -k %f -j 40 -z 0"
@@ -149,7 +149,7 @@ def main():
                                      , out_CT, out_CT, out_CT, i, j, parameters["additional_omega_category"],
                                      1 - parameters["prob(additional_omega_category)"],
                                      parameters["alpha"], parameters["beta"], parameters["kappa"]),
-                                  alias="wrt_first_iteration_CT")
+                                  job_name="wrt_first_iteration_CT")
 
                     script_runner("%s -i %s -u %s -l %s_log.txt -r %s_result.txt -o %s_output.txt -s %s_rasmul.txt "
                                   "-c %s_color.txt -t %s_tree.txt -v %s -y %s -w %f -p %f -a %f -x %f -k %f -j 40 -v 11"
@@ -157,7 +157,7 @@ def main():
                                      , out_TC, out_TC, out_TC, i, j, parameters["additional_omega_category"],
                                      1 - parameters["prob(additional_omega_category)"],
                                      parameters["alpha"], parameters["beta"], parameters["kappa"]),
-                                  alias="wrt_first_iteration_TC")
+                                  job_name="wrt_first_iteration_TC")
                     """
 
 

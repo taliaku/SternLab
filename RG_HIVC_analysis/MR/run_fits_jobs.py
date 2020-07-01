@@ -208,7 +208,7 @@ def run_fits():
     #
     #     print(params_file)
     #     print(file)
-    #     fits_runner(1, file, params_file, alias='FITS_{}'.format(patient_id),
+    #     fits_runner(1, file, params_file, job_name='FITS_{}'.format(patient_id),
     #                 posterior_file=file+'.posterior', summary_file=file+'.summary')
 
     ## per pos

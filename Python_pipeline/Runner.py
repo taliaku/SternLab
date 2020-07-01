@@ -6,9 +6,9 @@ import datetime
 import os
 import sys
 #append parent directory to path so that we can import from there:
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-from utils.runner_utils import FindFilesInDir, check_queue, Sleep, create_array
-from utils.pbs_jobs import create_pbs_cmd, submit
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.runner_utils import FindFilesInDir, check_queue, create_array, submit_wait_and_log
+from utils.pbs_jobs import create_pbs_cmd
 from utils.logger import pipeline_logger
 
 #TODO?: relative path support for input files
@@ -26,10 +26,10 @@ Pipeline generating frequency files from raw sequencing data files, either fastq
 6.	Warp up. zip files.
 '''
 
-def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue):
+def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue, log):
 	alias = "MergeFiles"
 	script_path = "/sternadi/home/volume1/shared/SternLab/scripts/merge_fastq_files.py"
-	
+
 	files_to_merge = FindFilesInDir(sample_dir_path, sample_basename_pattern)
 	num_of_files_to_merge = len(files_to_merge)
 	if num_of_files_to_merge == 0 or num_of_files_to_merge % 2 != 0:
@@ -64,25 +64,23 @@ def merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir
 		e = '$((PBS_ARRAY_INDEX*3))-2'
 		o = '$((PBS_ARRAY_INDEX*3))-1'
 		gmem = 7
-	
+
 	array = create_array(files_to_merge_list)
 	cmd1 = 'declare -a FILENAMES\n'
 	cmd2 = 'FILENAMES=' + array + "\n\n"
 	cmd3 = "python " + script_path + " -f ${FILENAMES[" + f + "]} -e ${FILENAMES[" + e + "]} -o ${FILENAMES[" + o + "]} -r " + str(number_of_N) + "\n"
 	cmds = cmd1 + cmd2 + cmd3
 
-	cmdfile = dir_path + "/merge_files.cmd"	
+	cmdfile = dir_path + "/merge_files.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_expected_merged_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
-	
+	submit_wait_and_log(cmdfile, log, alias)
 	time.sleep(10)
 	file_type = "merged*"
 	merged_files = FindFilesInDir(dir_path, file_type)
-	if len(merged_files) != num_of_expected_merged_files: 
+	if len(merged_files) != num_of_expected_merged_files:
 		raise Exception("Unexpected error, number of merged files does not match expected number of merged files " + str(num_of_expected_merged_files) + "\n")
-	
-def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue):
+
+def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue, log):
 	alias = "toFastaAndSplit"
 	script_path = pipeline_dir + "/ToFastaAndSplit.py"
 
@@ -95,27 +93,25 @@ def toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, que
 	else:
 		index = '$PBS_ARRAY_INDEX-1'
 		gmem = 7
-  
+
 	array = create_array(input_files)
 	cmd1 = 'declare -a FILENAMES\n'
 	cmd2 = 'FILENAMES=' + array + "\n\n"
 	cmd3 = "python " + script_path + " -o " + dir_path + " -f ${FILENAMES[" + index + "]} -n " + str(Num_reads_per_file) + "\n"
 	cmds = cmd1 + cmd2 + cmd3
-	
+
 	cmdfile = dir_path + "/FastaAndSplit.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
-	
+	submit_wait_and_log(cmdfile, log, alias)
 	time.sleep(10)
 	file_type = ".fasta"
-	fasta_files = FindFilesInDir(dir_path, file_type)    
+	fasta_files = FindFilesInDir(dir_path, file_type)
 	file_type = ".qual"
 	quality_files = FindFilesInDir(dir_path, file_type)
-	if len(fasta_files) != len(quality_files) or len(fasta_files) == 0 or len(quality_files) == 0: 
+	if len(fasta_files) != len(quality_files) or len(fasta_files) == 0 or len(quality_files) == 0:
 		raise Exception("Unexpected error, number of fasta and / or quality output files does not match expected number of output files\n")
 
-def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue):
+def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue, log):
 	alias = "Blast"
 	blast_dir = "/sternadi/home/volume1/shared/tools/ncbi-blast-2.2.30+/bin"
 
@@ -123,7 +119,7 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue):
 	input_fasta_files = FindFilesInDir(dir_path, file_type)
 	num_of_input_files = len(input_fasta_files)
 	if num_of_input_files == 0:
-		raise Exception("Unexpected error, there are no fasta files in directory" + dir_path + "\n") 
+		raise Exception("Unexpected error, there are no fasta files in directory" + dir_path + "\n")
 	elif num_of_input_files == 1:
 		index = '0'
 		gmem = 2
@@ -134,97 +130,94 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue):
 	array = create_array(input_fasta_files)
 	cmd1 = 'declare -a FILENAMES\n'
 	cmd2 = 'FILENAMES=' + array + "\n\n"
-	
+
 	if mode in ["SeqtoRef", "SR", "sr"]:
 		outfile = '${FILENAMES[' + index + ']}.SR.' + task + '.blast'
 		cmd3 = blast_dir + "/blastn -query ${FILENAMES[" + index + "]} -task " + task + " -out " + outfile + " -subject " + ref_genome + " -outfmt '6 qseqid sseqid qstart qend qstrand sstart send sstrand length btop' " \
 				"-num_alignments 1000000 -dust no -soft_masking F -perc_identity " + str(ID_blast) + " -evalue " + str(e_value) + "\n"
 		cmds = cmd1 + cmd2 + cmd3
-	
-	elif mode in ["ReftoSeq", "RS", "rs"]:	
+
+	elif mode in ["ReftoSeq", "RS", "rs"]:
 		outfile = '${FILENAMES[' + index + ']}.RS.' + task + '.blast'
 		cmd3 = blast_dir + '/makeblastdb -in ${FILENAMES[' + index + ']} -dbtype nucl\n'
 		cmd4 = blast_dir + "/blastn -query " + ref_genome + " -task " + task + " -out " + outfile + " -db ${FILENAMES[" + index + "]} -outfmt '6 qseqid sseqid qstart qend qstrand sstart send sstrand length btop' " \
 				"-num_alignments 1000000 -dust no -soft_masking F -perc_identity " + str(ID_blast) + " -evalue " + str(e_value) + "\n"
 		cmds = cmd1 + cmd2 + cmd3 + cmd4
-	
+
 	else:
 		raise Exception("Unexpected error, blast mode has to be either ReftoSeq, RS, rs or SeqtoRef, SR, sr\n")
-	
+
 	cmdfile = dir_path + "/Blast.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
-	
+	submit_wait_and_log(cmdfile, log, alias)
+
 	time.sleep(10)
 	file_type = ".blast"
 	blast_files = FindFilesInDir(dir_path, file_type)
 	if len(blast_files) != len(input_fasta_files):
 		raise Exception("Unexpected error, number of blast output files " + str(len(blast_files)) + " does not match number of input fasta files " + str(len(input_fasta_files)) + "\n")
-		
-def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue):
+
+def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue, log):
 	alias = "BaseCalling"
 	script_path = pipeline_dir + "/BaseCall.py"
-		
+
 	file_type = ".blast"
 	input_blast_files = FindFilesInDir(dir_path, file_type)
 	num_of_input_files = len(input_blast_files)
 	if num_of_input_files == 0:
-		raise Exception("Unexpected error, there are no blast files in directory" + dir_path + "\n") 
+		raise Exception("Unexpected error, there are no blast files in directory" + dir_path + "\n")
 	elif num_of_input_files == 1:
 		index = '0'
 		gmem = 2
 	else:
 		index = '$PBS_ARRAY_INDEX-1'
 		gmem = 7
-	
+
 	array = create_array(input_blast_files)
 	cmd1 = 'declare -a FILENAMES\n'
 	cmd2 = 'FILENAMES=' + array + "\n\n"
 	cmd3 = "python " + script_path + " -f ${FILENAMES[" + index + "]} -r " + ref_genome + " -q " + str(q_score) + " -x " + str(min_num_repeats) + " -m " + mode + " -p " + Protocol
 	cmds = cmd1 + cmd2 + cmd3
-	    
+
 	cmdfile = dir_path + "/BaseCalling.cmd"
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=num_of_input_files, gmem=gmem, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
-	
-	time.sleep(30)	
+	submit_wait_and_log(cmdfile, log, alias)
+
+	time.sleep(30)
 	file_type = ".freqs"
-	freqs_files = FindFilesInDir(dir_path, file_type)	
-	if len(input_blast_files) != len(freqs_files):  
-		raise Exception("Unexpected error, number of freqs output files " + str(len(freqs_files)) + " does not match number of input blast files " + str(len(input_blast_files)) + "\n")				
-	
-def Join (pipeline_dir, dir_path, ref_genome, Coverage, queue):
+	freqs_files = FindFilesInDir(dir_path, file_type)
+	if len(input_blast_files) != len(freqs_files):
+		raise Exception("Unexpected error, number of freqs output files " + str(len(freqs_files)) + " does not match number of input blast files " + str(len(input_blast_files)) + "\n")
+
+def Join (pipeline_dir, dir_path, ref_genome, Coverage, queue, log):
 	alias = "Join"
 	script_path = pipeline_dir + "/Join.py"
-	
+
 	file_type = ".freqs"
 	input_freqs_files = FindFilesInDir(dir_path, file_type)
 	if len(input_freqs_files) == 0:
-		raise Exception("Unexpected error, there are no freqs files in directory " + dir_path + "\n") 
-	
+		raise Exception("Unexpected error, there are no freqs files in directory " + dir_path + "\n")
+
 	cmdfile = dir_path + "/Join.cmd"
 	cmds = "python " + script_path + " -o " + dir_path + " -r " + ref_genome + " -c " + str(Coverage)
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
-	
+	submit_wait_and_log(cmdfile, log, alias)
+
 	time.sleep(10)
 	file_type = "merge.freqs.csv"
 	merge_file = FindFilesInDir(dir_path, file_type)
 	if len(merge_file) != 1:
 		raise Exception("Unexpected error, merge.freqs.csv file does not exist in directory " + dir_path + " or is different than 1\n")
-		
-def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue):
+
+def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue, log):
 	alias = "Summary"
 	script_path = pipeline_dir + "/Summary.py"
-	
+
 	file_type = "merge.freqs.csv"
 	input_csv_files = FindFilesInDir(dir_path, file_type)
 	if len(input_csv_files) != 1:
 		raise Exception("Unexpected error, number of merge.freqs.csv file in directory " + dir_path + " is different than 1. Cannot perform summary analysis\n")
-		
+
 	file_type = ".stats"
 	input_stats_files = FindFilesInDir(dir_path, file_type)
 	if len(input_stats_files) < 1:
@@ -238,18 +231,17 @@ def Summary (pipeline_dir, dir_path, Coverage, ref_genome, queue):
 	cmdfile = dir_path + "/Summary.cmd"
 	cmds = "python " + script_path + " -o " + dir_path + " -c " + str(Coverage) + " -r " + ref_genome
 	create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=1, gmem=2, cmds=cmds, queue=queue, load_python=True)
-	job_id = submit(cmdfile)
-	Sleep(alias, job_id)
-	
+	submit_wait_and_log(cmdfile, log, alias)
+
 	time.sleep(10)
 	file_type = "Summary.txt"
 	summary_file = FindFilesInDir(dir_path, file_type)
 	if len(summary_file) != 1:
 		raise Exception("Unexpected error, number of Summary.txt file in directory" + dir_path + " is different than 1\n")
-		
+
 def main(args):
-	
-	
+
+
 	pipeline_dir = os.path.dirname(os.path.abspath(__file__).strip())
 	pipeline_path = pipeline_dir + "/Runner.py"
 
@@ -277,7 +269,13 @@ def main(args):
 				raise Exception("failed to create directory " + dir_path + "\n")
 	if not os.path.isdir(dir_path):
 		raise Exception("Directory " + dir_path + " does not exist or is not a valid directory path\n")
-	log = pipeline_logger(dir_path)
+	log_folder = args.log_folder
+	if log_folder is None:
+		log_folder = dir_path
+	if dir_path[-1] == '/':
+		dir_path = dir_path[:-1]
+	dir_name = os.path.basename(dir_path)
+	log = pipeline_logger(f'PipelineRunner[{dir_name}]', log_folder)
 	if start_stage == None or start_stage in [0,1]:
 		if not os.path.isdir(sample_dir_path):
 			raise Exception("Directory of sample to merge/split " + sample_dir_path + " does not exist or is not a valid directory path\n")
@@ -321,24 +319,24 @@ def main(args):
 			raise Exception("Unexpected error, q-score value " + str(q_score) + " is not valid, should be an integer value between 0-40\n")
 		if q_score < 16:
 			log.warning("Running pipeline with q-score value of " + str(q_score))
-	
+
 	blast_id = args.blast_id
 	if blast_id != None:
 		if blast_id < 85:
 			log.warning("Running pipeline with blast id value of " + str(blast_id))
 		if blast_id < 0 or blast_id > 100:
 			raise Exception("Unexpected error, identity % for blast is not a valid value: " + str(blast_id) + " \n")
-	
+
 	e_value = args.evalue
 	if e_value != None:
 		if e_value > 1e-7:
 			log.warning("Running pipeline with e_value > " + str(e_value) + "\n")
-	
+
 	task = args.blast_task.strip()
 	if task != None:
 		if task not in ["megablast", "blastn", "dc-megablast"]:
-			raise Exception("Unexpected error, blast task has to be 'blastn', 'megablast' or 'dc-megablast'\n") 	
-			
+			raise Exception("Unexpected error, blast task has to be 'blastn', 'megablast' or 'dc-megablast'\n")
+
 	mode = args.blast_mode.strip()
 	if mode != None:
 		if mode not in ["ReftoSeq", "RS", "rs", "sr", "SR", "SeqtoRef"]:
@@ -351,15 +349,15 @@ def main(args):
 	if min_num_repeats != None:
 		if min_num_repeats < 1:
 			raise Exception ("Unexpected error, min number of repeats is less than 1\n")
-		if min_num_repeats < 2:  
+		if min_num_repeats < 2:
 			log.warning("Running pipeline with min number of repeats less than 2")
-		if min_num_repeats > 2:  
+		if min_num_repeats > 2:
 			log.warning("Running pipeline with min number of repeats bigger than 2")
-			
+
 	Min_Num_reads_per_file = 10000
 	Max_Num_reads_per_file = 40000
 	Num_reads_per_file = args.num_reads
-	if Num_reads_per_file != None:	
+	if Num_reads_per_file != None:
 		if Num_reads_per_file < Min_Num_reads_per_file:
 			log.warning("Running pipeline with less than " + str(Min_Num_reads_per_file) + " reads per split file")
 		if Num_reads_per_file > Max_Num_reads_per_file:
@@ -370,7 +368,7 @@ def main(args):
 	if Coverage != None:
 		if Coverage < Min_Coverage:
 			log.warning("Running pipeline with coverage smaller than " + str(Min_Coverage))
-			
+
 	Protocol = args.protocol.strip()
 	if Protocol not in ["L", "l", "linear", "C", "c", "circular"]:
 		raise Exception("Unexpected error, for linear library prep protocol type 'linear', 'L' or 'l', for circular library prep protocol type 'circular', 'C' or 'c'\n")
@@ -378,11 +376,11 @@ def main(args):
 	overwrite = args.overwrite.strip()
 	if overwrite not in ["Y", "y", "N", "n"]:
 		raise Exception("Unexpected error, overwrite value is different than Y/N\n")
-	
+
 	cmd = "python {} -i {} -o {} -r {} -m {} -t {} -s {} -e {} -q {} -d {} -v {} -x {} -n {} -c {} -p {} -u {} -w {}".format(pipeline_path, sample_path, dir_path, ref_genome, mode, task,
                                                             start_stage, end_stage, q_score, blast_id, e_value, min_num_repeats, Num_reads_per_file, Coverage, Protocol, queue, overwrite)
 	log.info(cmd)
-		
+
 	pipeline_summary = dir_path + "/Summary.txt"
 	try:
 		with open(pipeline_summary, "a") as o:
@@ -393,8 +391,8 @@ def main(args):
 			o.write("Base Calling Parameters: number of repeats used = {}, q-score = {}, protocol = {}\n\n".format(min_num_repeats, q_score, Protocol))
 	except:
 		raise Exception("Unexpected error, cannot write into file " + pipeline_summary + "\n")
-	
-	for stage in range(start_stage, end_stage+1):	
+
+	for stage in range(start_stage, end_stage+1):
 		if stage == 0:
 			file_type = "merged.fastq*"
 			merged_files = FindFilesInDir(dir_path, file_type)
@@ -402,7 +400,7 @@ def main(args):
 				raise Exception("Unexpected error, merged files were found in directory" + dir_path + ". Cannot run merge_fastq_files. To re-write add -w Y to command line\n")
 			elif len(merged_files) > 0	and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.merged.fastq*")
-			merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue)
+			merge_fastq_files(sample_dir_path, sample_basename_pattern, number_of_N, dir_path, queue, log)
 
 		if stage == 1:
 			file_type = ".fasta"
@@ -445,8 +443,8 @@ def main(args):
 			elif len(input_fastq_files) > 0 and len(input_gz_files) == 0:
 				input_files = input_fastq_files
 			elif len(input_fastq_files) == 0 and len(input_gz_files) > 0:
-				input_files = input_gz_files	
-			toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue)
+				input_files = input_gz_files
+			toFastaAndSplit(pipeline_dir, dir_path, input_files, Num_reads_per_file, queue, log)
 
 		if stage == 2:
 			file_type = ".blast"
@@ -455,7 +453,7 @@ def main(args):
 				raise Exception("Unexpected error, blast files were found in directory " + dir_path + ". Cannot run Blast. To re-write add -w Y to command line\n")
 			elif len(blast_files) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.blast")
-			Blast(dir_path, ref_genome, task, mode, e_value, blast_id, queue)
+			Blast(dir_path, ref_genome, task, mode, e_value, blast_id, queue, log)
 
 		if stage == 3:
 			file_type = ".freqs"
@@ -464,7 +462,7 @@ def main(args):
 				raise Exception("Unexpected error, freqs files were found in directory " + dir_path + ". Cannot run BaseCall. To re-write add -w Y to command line\n")
 			elif len(freqs_files) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.freqs* " + dir_path + "/*.good* " + dir_path + "/*.NonContributing")
-			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue)
+			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue, log)
 
 		if stage == 4:
 			file_type = "merge.freqs.csv"
@@ -473,21 +471,21 @@ def main(args):
 				raise Exception("Unexpected error, merge.freqs.csv was found in directory " + dir_path + ". Cannot run Join. To re-write add -w Y to command line\n")
 			elif len(merged_freqs) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.merge.freqs.csv")
-			Join(pipeline_dir, dir_path, ref_genome, Coverage, queue)
+			Join(pipeline_dir, dir_path, ref_genome, Coverage, queue, log)
 
 		if stage == 5:
-			Summary(pipeline_dir, dir_path, Coverage, ref_genome, queue)
+			Summary(pipeline_dir, dir_path, Coverage, ref_genome, queue, log)
 
 		if stage == 6:
 			os.system("zip " + dir_path + "/OutputFiles.zip " + dir_path + "/*.part* " + dir_path + "/*.OU")
 			os.system("rm -rf " + dir_path + "/*.part* " + dir_path + "/*.OU")
-			
-	log.info("END OF PIPELINE RUN")		
-    
+
+	log.info("END OF PIPELINE RUN")
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-i", "--path", type=str, help="a full path with a pattern of sample name for merge and/or split. Example: dir1/dir2/sample1_", required=False)
-	parser.add_argument("-N", "--num_of_N", type=int, help="number of N's to add for merge of R1 and R2 pair-end reads", required=False, default=60) 
+	parser.add_argument("-N", "--num_of_N", type=int, help="number of N's to add for merge of R1 and R2 pair-end reads", required=False, default=60)
 	parser.add_argument("-n", "--num_reads", type=int, help="number of reads per split file, default=25000", required=False, default=25000)
 	parser.add_argument("-o", "--output_dir", type=str, help="a path to an output directory", required=True)
 	parser.add_argument("-r", "--ref", type=str, help="a path to a genome reference fasta file", required=True)
@@ -505,6 +503,7 @@ if __name__ == "__main__":
 						required=False, default="linear")
 	parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='tzachi@power9'", required=False, default="tzachi@power9")
 	parser.add_argument("-w", "--overwrite", type=str, help="overwrite? Y/N, default='N'", required=False, default="N")
+	parser.add_argument("-L", "--log_folder", type=str, help="Folder path to write .log file in. defaults to --output_dir", default=None)
 	args = parser.parse_args()
 	main(args)
 

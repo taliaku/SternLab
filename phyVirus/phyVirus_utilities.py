@@ -263,21 +263,21 @@ def run_analysis_for_new_files_in_phyVirus_analysis(file):
     #baseml and dirSel
     if not os.path.isfile(phyVirus_analysis_dir + "/gtr/%smlb7" % basename) and not os.path.isfile(phyVirus_analysis_dir + "/unrest/%smlb8" % basename):
         print("runs PAML")
-        baseml_job7, baseml_job8 = run_baseml_on_aln_files(aln_phy, t=tree, t_rooted=rooted_tree, alias=basename_4jobs, output_dirs=True)
+        baseml_job7, baseml_job8 = run_baseml_on_aln_files(aln_phy, t=tree, t_rooted=rooted_tree, job_name=basename_4jobs, output_dirs=True)
 
         #run dirSel
         print("runs dirSel")
         dirsel_alternative_job = pbs_runners.script_runner("/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
                                   "-a %s -t %s  -m alternative -g %s"
-                                  % (aln, tree, gtr_output), run_after_job=baseml_job7, alias=basename_4jobs, cmdname="dirSel")
+                                  % (aln, tree, gtr_output), run_after_job=baseml_job7, job_name=basename_4jobs, cmdname="dirSel")
         dirsel_null_job = pbs_runners.script_runner("/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
                                   "-a %s -t %s  -m fixed_beta -g %s"
-                                  % (aln, tree, gtr_output), run_after_job=baseml_job7, alias=basename_4jobs, cmdname="dirSel_beta0")
+                                  % (aln, tree, gtr_output), run_after_job=baseml_job7, job_name=basename_4jobs, cmdname="dirSel_beta0")
 
         #run dirSel analysis
         print("runs dirSel analysis")
         pbs_runners.script_runner("/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel_analysis.py -b %s" % basename,
-                                  run_after_job=dirsel_alternative_job, alias=basename_4jobs, cmdname="dirSel_analysis")
+                                  run_after_job=dirsel_alternative_job, job_name=basename_4jobs, cmdname="dirSel_analysis")
         ran_something = True
     elif not os.path.isfile(phyVirus_analysis_dir + "/dirSel/%sdirSel.log" % basename):
         # run dirSel
@@ -285,24 +285,24 @@ def run_analysis_for_new_files_in_phyVirus_analysis(file):
         dirsel_alternative_job = pbs_runners.script_runner(
             "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
             "-a %s -t %s  -m alternative -g %s"
-            % (aln, tree, gtr_output), alias=basename_4jobs, cmdname="dirSel")
+            % (aln, tree, gtr_output), job_name=basename_4jobs, cmdname="dirSel")
         dirsel_null_job = pbs_runners.script_runner(
             "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
             "-a %s -t %s  -m fixed_beta -g %s"
-            % (aln, tree, gtr_output), alias=basename_4jobs, cmdname="dirSel_beta0")
+            % (aln, tree, gtr_output), job_name=basename_4jobs, cmdname="dirSel_beta0")
 
         # run dirSel analysis
         print("runs dirSel analysis")
         pbs_runners.script_runner(
             "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel_analysis.py -b %s" % basename,
-            run_after_job=dirsel_alternative_job, alias=basename_4jobs, cmdname="dirSel_analysis")
+            run_after_job=dirsel_alternative_job, job_name=basename_4jobs, cmdname="dirSel_analysis")
         ran_something = True
 
     elif not os.path.isfile(phyVirus_analysis_dir + "/dirSel_analysis/%sdirSel.aln" % basename):
         print("runs dirSel analysis")
         pbs_runners.script_runner(
             "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel_analysis.py -b %s" % basename,
-            alias=basename_4jobs, cmdname="dirSel_analysis")
+            job_name=basename_4jobs, cmdname="dirSel_analysis")
         ran_something = True
     """
     """
@@ -313,7 +313,7 @@ def run_analysis_for_new_files_in_phyVirus_analysis(file):
              "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
              "-a %s -t %s  -m extInt -g %s -d %s"
              % (aln, tree, gtr_output, "/sternadi/home/volume1/taliakustin/software/directional_selection_extInt/programs/directionalSelection/directionalSelection"),
-             alias=basename_4jobs, cmdname="dirSel-extInt")
+             job_name=basename_4jobs, cmdname="dirSel-extInt")
         print(dirsel_extInt_job)
         ran_something = True
 
@@ -326,7 +326,7 @@ def run_analysis_for_new_files_in_phyVirus_analysis(file):
             "-a %s -t %s  -m dirSel_extIntNull -g %s -d %s"
             % (aln, tree, gtr_output,
                "/sternadi/home/volume1/taliakustin/software/directional_selection_extInt/programs/directionalSelection/directionalSelection"),
-            alias=basename_4jobs, cmdname="dirSel-extInt-null")
+            job_name=basename_4jobs, cmdname="dirSel-extInt-null")
         print(dirsel_extInt_job)
         ran_something = True
     """
@@ -339,7 +339,7 @@ def run_analysis_for_new_files_in_phyVirus_analysis(file):
             "-a %s -t %s  -m dirSel_A_internal -g %s -d %s"
             % (aln, tree, gtr_output,
                "/sternadi/home/volume1/taliakustin/software/directional_selection_A_internal_selection/programs/directionalSelection/directionalSelection"),
-            alias=basename_4jobs, cmdname="dirSel-A")
+            job_name=basename_4jobs, cmdname="dirSel-A")
         print(dirsel_A_job)
         ran_something = True
 
@@ -351,7 +351,7 @@ def run_analysis_for_new_files_in_phyVirus_analysis(file):
             "-a %s -t %s  -m dirSel_A_internal_null -g %s -d %s"
             % (aln, tree, gtr_output,
                "/sternadi/home/volume1/taliakustin/software/directional_selection_A_internal_selection/programs/directionalSelection/directionalSelection"),
-            alias=basename_4jobs, cmdname="dirSel-A")
+            job_name=basename_4jobs, cmdname="dirSel-A")
         print(dirsel_A_job)
         ran_something = True
 
@@ -363,7 +363,7 @@ def run_analysis_for_new_files_in_phyVirus_analysis(file):
             "-a %s -t %s  -m dirSel_A_external -g %s -d %s"
             % (aln, tree, gtr_output,
                "/sternadi/home/volume1/taliakustin/software/directional_selection_A_external_selection/programs/directionalSelection/directionalSelection"),
-            alias=basename_4jobs, cmdname="dirSel-A")
+            job_name=basename_4jobs, cmdname="dirSel-A")
         print(dirsel_A_job)
         ran_something = True
 
@@ -375,7 +375,7 @@ def run_analysis_for_new_files_in_phyVirus_analysis(file):
             "-a %s -t %s  -m dirSel_A_external_null -g %s -d %s"
             % (aln, tree, gtr_output,
                "/sternadi/home/volume1/taliakustin/software/directional_selection_A_external_selection/programs/directionalSelection/directionalSelection"),
-            alias=basename_4jobs, cmdname="dirSel-A")
+            job_name=basename_4jobs, cmdname="dirSel-A")
         print(dirsel_A_job)
         ran_something = True
 
@@ -387,7 +387,7 @@ def run_analysis_for_new_files_in_phyVirus_analysis(file):
             "-a %s -t %s  -m dirSel_A_internal_fixed_beta -g %s -d %s"
             % (aln, tree, gtr_output,
                "/sternadi/home/volume1/taliakustin/software/directional_selection_A_internal_selection/programs/directionalSelection/directionalSelection"),
-            alias=basename_4jobs, cmdname="dirSel-A")
+            job_name=basename_4jobs, cmdname="dirSel-A")
         print(dirsel_A_job)
         ran_something = True
 
@@ -399,7 +399,7 @@ def run_analysis_for_new_files_in_phyVirus_analysis(file):
             "-a %s -t %s  -m dirSel_A_external_fixed_beta -g %s -d %s"
             % (aln, tree, gtr_output,
                "/sternadi/home/volume1/taliakustin/software/directional_selection_A_external_selection/programs/directionalSelection/directionalSelection"),
-            alias=basename_4jobs, cmdname="dirSel-A")
+            job_name=basename_4jobs, cmdname="dirSel-A")
         print(dirsel_A_job)
         ran_something = True
 
@@ -433,13 +433,13 @@ def run_dirSel_phyVirus_analysis(file):
         #dirsel_null_job = pbs_runners.script_runner(
         #    "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
         #    "-a %s -t %s  -m midpoint_null -g %s -d /sternadi/home/volume1/taliakustin/software/directional_selection_no_root_selection_toA_internal/programs/directionalSelection/directionalSelection"
-        #    % (aln, rooted_tree, gtr_output), alias=basename_4jobs, cmdname="dirSel_selection_toA_internal_null")
+        #    % (aln, rooted_tree, gtr_output), job_name=basename_4jobs, cmdname="dirSel_selection_toA_internal_null")
         """
         # run dirSel analysis
         print("runs dirSel analysis")
         pbs_runners.script_runner(
             "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel_analysis.py -b %s" % basename,
-            run_after_job=dirsel_alternative_job, alias=basename_4jobs, cmdname="dirSel_analysis")
+            run_after_job=dirsel_alternative_job, job_name=basename_4jobs, cmdname="dirSel_analysis")
         ran_something = True
         """
 
@@ -463,18 +463,18 @@ def run_dirSel_phyVirus_analysis_HIV(file):
     dirsel_alternative_job = pbs_runners.script_runner(
         "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
         "-a %s -t %s  -m midpoint -g %s -d /sternadi/home/volume1/taliakustin/software/directional_selection_no_root/programs/directionalSelection/directionalSelection"
-        % (aln, rooted_tree, gtr_output), alias=basename_4jobs, cmdname="dirSel_selection_toA_internal")
+        % (aln, rooted_tree, gtr_output), job_name=basename_4jobs, cmdname="dirSel_selection_toA_internal")
     dirsel_null_job = pbs_runners.script_runner(
         "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
         "-a %s -t %s  -m midpoint_null -g %s -d /sternadi/home/volume1/taliakustin/software/directional_selection_no_root/programs/directionalSelection/directionalSelection"
-        % (aln, rooted_tree, gtr_output), alias=basename_4jobs, cmdname="dirSel_selection_toA_internal_null")
+        % (aln, rooted_tree, gtr_output), job_name=basename_4jobs, cmdname="dirSel_selection_toA_internal_null")
     """
     #run midpoint rooting - selection to A internal
     """
     dirsel_alternative_job = pbs_runners.script_runner(
             "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
             "-a %s -t %s  -m toA_internal -g %s -d /sternadi/home/volume1/taliakustin/software/directional_selection_no_root_selection_toA_internal/programs/directionalSelection/directionalSelection"
-            % (aln, rooted_tree, gtr_output), alias=basename_4jobs, cmdname="dirSel_selection_toA_internal")
+            % (aln, rooted_tree, gtr_output), job_name=basename_4jobs, cmdname="dirSel_selection_toA_internal")
     """
     dirsel_null_job = pbs_runners.script_runner(
         "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
@@ -485,11 +485,11 @@ def run_dirSel_phyVirus_analysis_HIV(file):
     dirsel_alternative_job = pbs_runners.script_runner(
             "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
             "-a %s -t %s  -m toA_external -g %s -d /sternadi/home/volume1/taliakustin/software/directional_selection_no_root_selection_toA_external//programs/directionalSelection/directionalSelection"
-            % (aln, rooted_tree, gtr_output), alias=basename_4jobs, cmdname="dirSel_selection_toA_external")
+            % (aln, rooted_tree, gtr_output), job_name=basename_4jobs, cmdname="dirSel_selection_toA_external")
     dirsel_null_job = pbs_runners.script_runner(
         "/sternadi/home/volume1/taliakustin/SternLab/phyVirus/run_dirSel.py "
         "-a %s -t %s  -m toA_external_null -g %s -d /sternadi/home/volume1/taliakustin/software/directional_selection_no_root_selection_toA_external//programs/directionalSelection/directionalSelection"
-        % (aln, rooted_tree, gtr_output), alias=basename_4jobs, cmdname="dirSel_selection_toA_external_null")
+        % (aln, rooted_tree, gtr_output), job_name=basename_4jobs, cmdname="dirSel_selection_toA_external_null")
     """
 
 def cp_files_from_new_names_to_phyVirus_analysis(file):
