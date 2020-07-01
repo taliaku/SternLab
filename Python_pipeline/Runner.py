@@ -503,7 +503,7 @@ if __name__ == "__main__":
 						required=False, default="linear")
 	parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='tzachi@power9'", required=False, default="tzachi@power9")
 	parser.add_argument("-w", "--overwrite", type=str, help="overwrite? Y/N, default='N'", required=False, default="N")
-	parser.add_argument("-L", "--log_folder", type=str, help="Folder path to write .log file in, default is None", default=None)
+	parser.add_argument("-L", "--log_folder", type=str, help="Folder path to write .log file in. defaults to --output_dir", default=None)
 	args = parser.parse_args()
 	main(args)
 
