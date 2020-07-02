@@ -5,6 +5,8 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Project_Runner import main, create_parser
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from utils import logger
 import subprocess
 
 
@@ -13,8 +15,9 @@ class TestProjectRunner(unittest.TestCase):
 
     def __init__(self):
         super().__init__()
-        print('Im init!!!!')
-        self.output_dir = '/tmp/TestProjectRunner/'
+        self.output_dir = '/tmp/TestProjectRunner'
+        log = logger('TestProjectRunner', self.output_dir)
+        log.INFO('Starting TestProjectRunner!')
         input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
         reference = '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
         parameters_dict = {
@@ -29,7 +32,6 @@ class TestProjectRunner(unittest.TestCase):
         for parameter, value in parameters_dict.items():
             setattr(args, parameter, value)
 
-        print(args.ref)
         project_runner_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                            'Project_Runner.py')
         bash_command = f"python {project_runner_path} -o {self.output_dir} -i {input_dir} -r {reference}"
@@ -39,8 +41,10 @@ class TestProjectRunner(unittest.TestCase):
 
     def assertAggregatedSummaryIsEqual(self):
         AggregatedSummaryExample = '/sternadi/home/volume3/ita/pipelineTester/small_sample_results/AggregatedSummary.csv'
-        self.assertTrue(filecmp.cmp(f'{self.output_dir}/AggregatedSummary.csv', AggregatedSummaryExample),
-                        'AggregatedSummary does not match example..!')
+        AggregatedSummaryTest = f'{self.output_dir}/AggregatedSummary.csv'
+        self.assertTrue(os.path.isfile(AggregatedSummaryTest), "AggregatedSummary.csv does not exist!")
+        self.assertTrue(filecmp.cmp(AggregatedSummaryTest, AggregatedSummaryExample),
+                        'AggregatedSummary.csv does not match example..!')
 
 
 if __name__ == '__main__':
