@@ -5,6 +5,8 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Project_Runner import main, create_parser
+import subprocess
+
 
 
 class TestProjectRunner(unittest.TestCase):
@@ -19,15 +21,17 @@ class TestProjectRunner(unittest.TestCase):
             'ref': '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
         }
         args = create_parser()
-        args.input_dir = parameters_dict['input_dir']
+        """args.input_dir = parameters_dict['input_dir']
         args.output_dir = parameters_dict['output_dir']
-        args.ref = parameters_dict['ref']
-        """for parameter, value in parameters_dict.items():
+        args.ref = parameters_dict['ref']"""
+        for parameter, value in parameters_dict.items():
             setattr(args, parameter, value)
-        """
-        main(args.parse_args())
 
-    def assertAggregatedSummary(self):
+        print(args.ref)
+        #subprocess.run("python ")
+        main(args)
+
+    def assertAggregatedSummaryIsEqual(self):
         AggregatedSummaryExample = '/sternadi/home/volume3/ita/pipelineTester/small_sample_results/AggregatedSummary.csv'
         self.assertTrue(filecmp.cmp(f'{self.output_dir}/AggregatedSummary.csv', AggregatedSummaryExample),
                         'AggregatedSummary does not match example..!')
@@ -35,4 +39,4 @@ class TestProjectRunner(unittest.TestCase):
 
 if __name__ == '__main__':
     test = TestProjectRunner()
-    test.assertAggregatedSummary()
+    test.assertAggregatedSummaryIsEqual()
