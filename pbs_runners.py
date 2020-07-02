@@ -4,7 +4,7 @@ from utils import pbs_jobs
 import os
 from os import path
 from seqFileTools import convert_fasta_to_phylip, get_longest_sequence_name_in_fasta
-from file_utilities import set_filenames_for_pbs_runs, check_filename, check_dirname
+from file_utilities import set_filenames_for_pbs_runs, check_filename, check_dirname, make_dir
 from beast_utilities import configure_log_path
 
 def baseml_runner(ctl, alias = "bml", cmdname="baseml"):
@@ -51,7 +51,7 @@ def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis
         return job_id
 
 
-def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adistzachi", toRun=False):
+def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adistzachi", run_after_job=None, toRun=False):
 
     """
     run script on cluster as a pbs array
@@ -63,7 +63,7 @@ def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1,
 
     cmdfile = pbs_jobs.assign_cmdfile_path("script", alias); gmem=gmem
     print(cmdfile, alias, queue, jnum, gmem, cmds)
-    pbs_jobs.create_array_pbs_cmd(cmdfile, jnum=jnum, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=load_python)
+    pbs_jobs.create_array_pbs_cmd(cmdfile, jnum=jnum, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=load_python, run_after_job=run_after_job)
     if toRun:
         job_id = pbs_jobs.submit(cmdfile)
         return job_id
@@ -1032,3 +1032,37 @@ def make_blastDB(input, dbtype, alias="makeBlastDB", queue="adistzachi", cmdname
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
+
+def associvar_runner(input_dir, output_dir, start_position, end_position, job_num=100, alias="associvar", queue="adistzachi", cmdname = "associvar"):
+    '''
+    @input_dir: directory with blast results file/files (compatible with old pipeline)
+    @out_dir: directory to write outputs into
+    @start_position: start position to test associations, also requires all reads to span this
+    @end_position: end position to test associations, also requires all reads to span this
+    @job_num: how many jobs to split the association tests into (default 100)
+    '''
+    input_dir = check_dirname(input_dir)
+    output_dir = check_dirname(output_dir, Truedir = False)
+    make_dir(output_dir)
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias);
+    gmem = 5;
+    cmds = f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/parse_blasts.py -i {input_dir} -o {output_dir}\n"
+    cmds += f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/create_couples_index_file.py -s {start_position} -e {end_position} -j {job_num} -o {output_dir}/couples_index_file.csv"
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+
+    # array job, waits for first job to finish
+    associations_dir = check_dirname(f'{output_dir}/associations', Truedir=False)
+    make_dir(associations_dir)
+    cmds = f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/association_test.py -b {output_dir}/blasts.csv -m {output_dir}/mutation.csv -i {output_dir}/couples_index_file.csv -o {associations_dir} -j $PBS_ARRAY_INDEX"
+    array_job_id = array_script_runner(cmds, job_num, alias+'associations', queue=queue, gmem=gmem, toRun=True, run_after_job=job_id)
+    # unify and normalize after array is done
+
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias+'unify');
+    gmem = 5;
+    cmds = f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/unify_association_results.py -i {associations_dir} -o {output_dir}/associations.csv\n"
+    cmds += f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/normalize_chi2.py -i {output_dir}/associations.csv -o {output_dir}/associations.ztest.csv\n"
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias+'unify', queue=queue, gmem=gmem, cmds=cmds, run_after_job=array_job_id)
+    unify_job_id = pbs_jobs.submit(cmdfile)
+
+    return (job_id, array_job_id, unify_job_id)
