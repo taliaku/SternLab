@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Project_Runner import main, create_parser
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-from utils import logger
+from utils import pipeline_logger
 import subprocess
 
 
@@ -16,7 +16,7 @@ class TestProjectRunner(unittest.TestCase):
     def __init__(self):
         super().__init__()
         self.output_dir = '/tmp/TestProjectRunner'
-        log = logger('TestProjectRunner', self.output_dir)
+        log = pipeline_logger('TestProjectRunner', self.output_dir)
         log.INFO('Starting TestProjectRunner!')
         input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
         reference = '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
