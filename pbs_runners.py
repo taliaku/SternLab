@@ -1054,11 +1054,11 @@ def associvar_runner(input_dir, output_dir, start_position, end_position, job_nu
     # array job, waits for first job to finish
     associations_dir = check_dirname(f'{output_dir}/associations', Truedir=False)
     make_dir(associations_dir)
-    cmds = f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/association_test.py -b {output_dir}/blasts.csv -m {output_dir}/mutation.csv -i {output_dir}/couples_index_file.csv -o {associations_dir} -j $PBS_ARRAY_INDEX"
-    array_job_id = array_script_runner(cmds, job_num, alias+'associations', queue=queue, gmem=gmem, toRun=True, run_after_job=job_id)
+    cmds = f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/association_test.py -b {output_dir}/blasts.csv -m {output_dir}/mutations.csv -i {output_dir}/couples_index_file.csv -o {associations_dir} -j $PBS_ARRAY_INDEX"
+    array_job_id = array_script_runner(cmds, job_num, alias + '_associations', queue=queue, gmem=gmem, toRun=True, run_after_job=job_id)
     # unify and normalize after array is done
 
-    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias+'unify');
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname + '_unify', alias + '_unify');
     gmem = 5;
     cmds = f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/unify_association_results.py -i {associations_dir} -o {output_dir}/associations.csv\n"
     cmds += f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/normalize_chi2.py -i {output_dir}/associations.csv -o {output_dir}/associations.ztest.csv\n"
