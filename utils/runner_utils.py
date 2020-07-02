@@ -13,8 +13,7 @@ def check_queue(queue):
 	if queue not in allowed_queues:
 		raise Exception(f"Sorry but queue must be one of {allowed_queues}, not '{queue}'")
 
-def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='adistzachi'):
-	#TODO: How do I get the class name into each specific log? should sleep be even logging?
+def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=3, queue='adistzachi'):
 	start_time = time.time()
 	i = 0
 	if job_id[-2:]=='[]': # grep doesn't like these..
