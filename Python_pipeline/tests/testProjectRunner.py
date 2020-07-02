@@ -17,7 +17,7 @@ class TestProjectRunner(unittest.TestCase):
         super().__init__()
         self.output_dir = '/tmp/TestProjectRunner'
         log = pipeline_logger('TestProjectRunner', self.output_dir)
-        log.INFO('Starting TestProjectRunner!')
+        log.info('Starting TestProjectRunner!')
         input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
         reference = '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
         parameters_dict = {
