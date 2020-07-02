@@ -34,7 +34,7 @@ class TestProjectRunner(unittest.TestCase):
 
         project_runner_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                            'Project_Runner.py')
-        bash_command = f"python {project_runner_path} -o {self.output_dir} -i {input_dir} -r {reference}"
+        bash_command = f"python {project_runner_path} -o {self.output_dir} -i {input_dir} -r {reference} -w Y"
         subprocess.run(bash_command.split(), stdout=subprocess.PIPE)
         #output, error = process.communicate()
         #main(args)
