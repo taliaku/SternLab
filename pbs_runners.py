@@ -1033,7 +1033,7 @@ def make_blastDB(input, dbtype, alias="makeBlastDB", queue="adistzachi", cmdname
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def associvar_runner(input_dir, output_dir, start_position, end_position, job_num=100, alias="associvar", queue="adistzachi", cmdname = "associvar"):
+def associvar_runner(input_dir, output_dir, start_position, end_position, job_num=100, gmem_array=5, alias="associvar", queue="adistzachi", cmdname = "associvar"):
     '''
     @input_dir: directory with blast results file/files (compatible with old pipeline)
     @out_dir: directory to write outputs into
@@ -1055,7 +1055,7 @@ def associvar_runner(input_dir, output_dir, start_position, end_position, job_nu
     associations_dir = check_dirname(f'{output_dir}/associations', Truedir=False)
     make_dir(associations_dir)
     cmds = f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/association_test.py -b {output_dir}/blasts.csv -m {output_dir}/mutations.csv -i {output_dir}/couples_index_file.csv -o {associations_dir} -j $PBS_ARRAY_INDEX"
-    array_job_id = array_script_runner(cmds, job_num, alias + '_associations', queue=queue, gmem=gmem, toRun=True, run_after_job=job_id)
+    array_job_id = array_script_runner(cmds, job_num, alias + '_associations', queue=queue, gmem=gmem_array, toRun=True, run_after_job=job_id)
     # unify and normalize after array is done
 
     cmdfile = pbs_jobs.assign_cmdfile_path(cmdname + '_unify', alias + '_unify');
