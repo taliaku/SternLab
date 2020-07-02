@@ -15,6 +15,8 @@ class TestProjectRunner(unittest.TestCase):
         super().__init__()
         print('Im init!!!!')
         self.output_dir = '/tmp/TestProjectRunner/'
+        input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
+        reference = '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
         parameters_dict = {
             'input_dir': '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/',
             'output_dir': self.output_dir,
@@ -28,8 +30,10 @@ class TestProjectRunner(unittest.TestCase):
             setattr(args, parameter, value)
 
         print(args.ref)
-        #subprocess.run("python ")
-        main(args)
+        project_runner_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                           'Project_Runner.py')
+        subprocess.run(f"python {project_runner_path} -o {self.output_dir} -i {input_dir} -r {reference}")
+        #main(args)
 
     def assertAggregatedSummaryIsEqual(self):
         AggregatedSummaryExample = '/sternadi/home/volume3/ita/pipelineTester/small_sample_results/AggregatedSummary.csv'
