@@ -40,7 +40,7 @@ class TestProjectRunner(unittest.TestCase):
         bash_command = f"python {project_runner_path} -o {self.output_dir} -i {self.input_dir} -r {reference} -c 0"
         log.info(f"Running bash command: {bash_command}")
         log.info(f"This should take 3-10 minutes...")
-        print("--------------------------------------------")
+        print("----------------------------------------------------------------------------------------")
         subprocess.run(bash_command.split(), stdout=subprocess.PIPE)
 
     def test_files_in_dir(self):
