@@ -18,6 +18,9 @@ class TestProjectRunner(unittest.TestCase):
         super().__init__()
         username = getpass.getuser()
         user_folder = USER_FOLDER_DICT[username]
+        testing_folder = os.path.join(user_folder, 'testing')
+        if not os.path.exists(testing_folder):
+            os.mkdir(testing_folder)
         self.output_dir = f"{user_folder}/testing/TestProjectRunner-{datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')}"
         log = pipeline_logger('TestProjectRunner', self.output_dir)
         log.info('Starting TestProjectRunner!')
