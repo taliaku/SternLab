@@ -49,6 +49,9 @@ class TestProjectRunner(unittest.TestCase):
         output_files = [file for file in glob.glob(self.output_dir) if not _omit_file(file)]
         example_files = [file for file in glob.glob(self.input_dir) if not _omit_file(file)]
         missing_files = [file for file in example_files if file not in output_files]
+        print(output_files)
+        print(example_files)
+        print(missing_files)
         self.assertTrue(len(missing_files) != 0, f"Whoops! we are missing these files: {missing_files}")
 
     def test_aggregated_summary(self):
