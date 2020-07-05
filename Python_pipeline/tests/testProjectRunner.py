@@ -40,7 +40,7 @@ def _get_relevant_file_names(path):
 class TestProjectRunner(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        """self.output_dir = _assign_output_dir()
+        self.output_dir = _assign_output_dir()
         log = pipeline_logger('TestProjectRunner', self.output_dir)
         log.info('Starting TestProjectRunner!')
         self.input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
@@ -52,9 +52,7 @@ class TestProjectRunner(unittest.TestCase):
         log.info(f"Running bash command: {bash_command}")
         log.info(f"This should take 3-10 minutes...")
         print("----------------------------------------------------------------------")
-        subprocess.run(bash_command.split(), stdout=subprocess.PIPE)"""
-        self.example_output = '/sternadi/home/volume3/ita/pipelineTester/small_sample_results/'
-        self.output_dir = "/sternadi/nobackup/volume1/tests/ita/TestProjectRunner-2020-07-05-19-29-47/"
+        subprocess.run(bash_command.split(), stdout=subprocess.PIPE)
 
     def test_files_in_dir(self):
         output_files = _get_relevant_file_names(self.output_dir)
@@ -65,8 +63,8 @@ class TestProjectRunner(unittest.TestCase):
         for dir, files in example_files.items():
             for file in files:
                 if file not in output_files[dir]:
-                    missing_files.append(dir+file)
-        self.assertTrue(len(missing_files) == 0, f"Whoops! we are missing these files: {missing_files}")
+                    missing_files.append(f"{dir}/{file}")
+        self.assertTrue(len(missing_files) == 0, f"Whah! Looks like we are missing these files: {missing_files}")
 
     def test_aggregated_summary(self):
         AggregatedSummaryExample = os.path.join(self.example_output, 'AggregatedSummary.csv')
