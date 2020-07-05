@@ -5,7 +5,7 @@ def _logger_already_exists(logger, log_file):
     if logger.hasHandlers(): # If logger exists, just return the existing logger.
         if logger.handlers[1].baseFilename != log_file:
             if log_file is not None:
-                logger.warn(f"Logger already exists! Sticking with log file: {logger.handlers[1].baseFilename}")
+                logger.warning(f"Logger already exists! Sticking with log file: {logger.handlers[1].baseFilename}")
         return_value = True
     else:
         return_value = False
@@ -17,6 +17,8 @@ def _create_new_logger(logger, log_file):
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     # create file handler and set level to debug
+    if not os.path.exists(log_file): #create file if it doesn't exist.
+        open(log_file, 'w').close()
     fh = logging.FileHandler(log_file)
     fh.setLevel(logging.DEBUG)
     # create formatter
@@ -33,6 +35,8 @@ def _create_new_logger(logger, log_file):
 def pipeline_logger(logger_name, log_folder=None):
     # create logger
     if log_folder is not None:
+        if not os.path.exists(log_folder):
+            os.mkdir(log_folder)
         log_file = os.path.join(log_folder, '.log')
     else:
         log_file = None

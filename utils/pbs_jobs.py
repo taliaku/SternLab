@@ -6,6 +6,14 @@ from time import sleep
 import getpass
 import datetime
 
+USER_FOLDER_DICT = {"taliakustin": "/sternadi/home/volume1/taliakustin/temp",
+                  "daniellem1":"/sternadi/home/volume1/daniellem1/temp",
+                  "okushnir": "/sternadi/home/volume3/okushnir/running",
+                  "omertirosh": "/sternadi/home/volume3/omer/logs",
+                  'noamharel':'/sternadi/home/volume2/noam/logs',
+                  'ita': '/sternadi/home/volume3/ita/logs'}
+
+
 def create_pbs_cmd(cmdfile, alias, queue="adistzachi", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "", load_python=True, jnum=False, run_after_job=None):
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
@@ -106,14 +114,8 @@ def check_pbs(job_id):
 
 def assign_cmdfile_path(cmdname, alias):
     username = getpass.getuser()
-    lab_users_dic = {"taliakustin":"/sternadi/home/volume1/taliakustin/temp", 
-                     "daniellem1":"/sternadi/home/volume1/daniellem1/temp", 
-                     "okushnir": "/sternadi/home/volume3/okushnir/running", 
-                     "omertirosh": "/sternadi/home/volume3/omer/logs", 
-                     'noamharel':'/sternadi/home/volume2/noam/logs',
-                     'ita': '/sternadi/home/volume3/ita/pbs_logs'}
-    if username in lab_users_dic.keys():
-        tmp_dir = lab_users_dic[username]
+    if username in USER_FOLDER_DICT.keys():
+        tmp_dir = USER_FOLDER_DICT[username]
         if not os.path.exists(tmp_dir):
             os.system("mkdir %s" % tmp_dir)
         date = datetime.datetime.today().strftime('%Y-%m')
