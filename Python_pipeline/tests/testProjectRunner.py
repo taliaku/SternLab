@@ -44,7 +44,7 @@ class TestProjectRunner(unittest.TestCase):
         log = pipeline_logger('TestProjectRunner', self.output_dir)
         log.info('Starting TestProjectRunner!')
         self.input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
-        self.example_output = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
+        self.example_output = '/sternadi/home/volume3/ita/pipelineTester/small_sample_results/'
         reference = '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
         project_runner_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                            'Project_Runner.py')
