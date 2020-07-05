@@ -21,12 +21,18 @@ def _assign_output_dir():
     os.mkdir(output_dir_path)
     return output_dir_path
 
-
 def _omit_file(filename):
     if filename.find("tau.ac.il") == -1:
         return False
     else:
         return True
+
+def _get_relevant_file_names(path):
+    ret = {}
+    for dirpath, dirnames, filenames in os.walk(path):
+        relevant_file_names = [file for file in filenames if not _omit_file(file)]
+        ret[dirpath] = relevant_file_names
+    return ret
 
 
 class TestProjectRunner(unittest.TestCase):
@@ -46,9 +52,13 @@ class TestProjectRunner(unittest.TestCase):
         subprocess.run(bash_command.split(), stdout=subprocess.PIPE)
 
     def test_files_in_dir(self):
-        output_files = [file for file in glob.glob(self.output_dir) if not _omit_file(file)]
-        example_files = [file for file in glob.glob(self.input_dir) if not _omit_file(file)]
-        missing_files = [file for file in example_files if file not in output_files]
+        output_files = _get_relevant_file_names(self.output_dir)
+        example_files = _get_relevant_file_names(self.input_dir)
+        missing_files = []
+        for dir, files in example_files.items():
+            for file in files:
+                if file not in output_files[dir]:
+                    missing_files.append(dir+file)
         print(output_files)
         print(example_files)
         print(missing_files)
