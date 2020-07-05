@@ -21,7 +21,7 @@ class TestProjectRunner(unittest.TestCase):
         testing_folder = os.path.join(user_folder, 'testing')
         if not os.path.exists(testing_folder):
             os.mkdir(testing_folder)
-        self.output_dir = f"{user_folder}/testing/TestProjectRunner-{datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')}"
+        self.output_dir = f"{user_folder}/testing/TestProjectRunner-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}"
         log = pipeline_logger('TestProjectRunner', self.output_dir)
         log.info('Starting TestProjectRunner!')
         input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
