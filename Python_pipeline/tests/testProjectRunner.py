@@ -44,7 +44,6 @@ class TestProjectRunner(unittest.TestCase):
         log.info(f"Running bash command: {bash_command}")
         log.info(f"This should take 3-10 minutes...")
         process = subprocess.run(bash_command.split(), stdout=subprocess.PIPE)
-        output, error = process.communicate()
         #output, error = process.communicate()
         #main(args)
 
