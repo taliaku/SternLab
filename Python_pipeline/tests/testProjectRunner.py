@@ -1,4 +1,4 @@
-import argparse
+import time
 import unittest
 import filecmp
 import os
@@ -15,9 +15,10 @@ class TestProjectRunner(unittest.TestCase):
 
     def __init__(self):
         super().__init__()
-        self.output_dir = '/tmp/TestProjectRunner'
+        self.output_dir = '/tmp/TestProjectRunner' #TODO: should it really be this folder..?
         log = pipeline_logger('TestProjectRunner', self.output_dir)
         log.info('Starting TestProjectRunner!')
+        log.info(f"{time.time()}")
         input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
         reference = '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
         parameters_dict = {
