@@ -1,4 +1,5 @@
 import datetime
+import getpass
 import unittest
 import filecmp
 import os
@@ -8,14 +9,16 @@ from Project_Runner import main, create_parser
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from utils.logger import pipeline_logger
 import subprocess
-
+from utils.pbs_jobs import USER_FOLDER_DICT
 
 
 class TestProjectRunner(unittest.TestCase):
 
     def __init__(self):
         super().__init__()
-        self.output_dir = f"/tmp/TestProjectRunner-{datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')}"
+        username = getpass.getuser()
+        user_folder = USER_FOLDER_DICT[username]
+        self.output_dir = f"{user_folder}/testing/TestProjectRunner-{datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')}"
         log = pipeline_logger('TestProjectRunner', self.output_dir)
         log.info('Starting TestProjectRunner!')
         input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
