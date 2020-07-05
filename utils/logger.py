@@ -5,7 +5,7 @@ def _logger_already_exists(logger, log_file):
     if logger.hasHandlers(): # If logger exists, just return the existing logger.
         if logger.handlers[1].baseFilename != log_file:
             if log_file is not None:
-                logger.warn(f"Logger already exists! Sticking with log file: {logger.handlers[1].baseFilename}")
+                logger.warning(f"Logger already exists! Sticking with log file: {logger.handlers[1].baseFilename}")
         return_value = True
     else:
         return_value = False
