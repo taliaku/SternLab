@@ -40,10 +40,11 @@ def _get_relevant_file_names(path):
 class TestProjectRunner(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        """self.output_dir = _assign_output_dir()
+        self.output_dir = _assign_output_dir()
         log = pipeline_logger('TestProjectRunner', self.output_dir)
         log.info('Starting TestProjectRunner!')
         self.input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
+        self.example_output = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
         reference = '/sternadi/home/volume3/ita/pipelineTester/test_data_reference.fasta'
         project_runner_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                            'Project_Runner.py')
@@ -51,25 +52,21 @@ class TestProjectRunner(unittest.TestCase):
         log.info(f"Running bash command: {bash_command}")
         log.info(f"This should take 3-10 minutes...")
         print("----------------------------------------------------------------------")
-        subprocess.run(bash_command.split(), stdout=subprocess.PIPE)"""
-        self.input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/
-        self.output_dir = "/sternadi/nobackup/volume1/tests/ita/TestProjectRunner-2020-07-05-18-48-03"
+        subprocess.run(bash_command.split(), stdout=subprocess.PIPE)
+
     def test_files_in_dir(self):
         output_files = _get_relevant_file_names(self.output_dir)
-        example_files = _get_relevant_file_names(self.input_dir)
+        example_files = _get_relevant_file_names(self.example_output)
         missing_files = []
         for dir, files in example_files.items():
             for file in files:
                 if file not in output_files[dir]:
                     missing_files.append(dir+file)
-        print(output_files)
-        print(example_files)
-        print(missing_files)
-        self.assertTrue(len(missing_files) != 0, f"Whoops! we are missing these files: {missing_files}")
+        self.assertTrue(len(missing_files) == 0, f"Whoops! we are missing these files: {missing_files}")
 
     def test_aggregated_summary(self):
-        AggregatedSummaryExample = '/sternadi/home/volume3/ita/pipelineTester/small_sample_results/AggregatedSummary.csv'
-        AggregatedSummaryTest = f'{self.output_dir}/AggregatedSummary.csv'
+        AggregatedSummaryExample = os.path.join(self.example_output, 'AggregatedSummary.csv')
+        AggregatedSummaryTest = os.path.join(self.output_dir, 'AggregatedSummary.csv')
         self.assertTrue(os.path.isfile(AggregatedSummaryTest), "AggregatedSummary.csv does not exist!")
         self.assertTrue(filecmp.cmp(AggregatedSummaryTest, AggregatedSummaryExample),
                         'AggregatedSummary.csv does not match example..!')
