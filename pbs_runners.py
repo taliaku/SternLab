@@ -1062,6 +1062,7 @@ def associvar_runner(input_dir, output_dir, start_position, end_position, job_nu
     gmem = 5;
     cmds = f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/unify_association_results.py -i {associations_dir} -o {output_dir}/associations.csv\n"
     cmds += f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/normalize_chi2.py -i {output_dir}/associations.csv -o {output_dir}/associations.ztest.csv\n"
+    cmds += f"python /sternadi/home/volume1/shared/tools/AssociVar/association_tests/visualize_association_results.py -i {output_dir}/associations.ztest.csv -o {output_dir}/associations.ztest.csv.png\n"
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias+'unify', queue=queue, gmem=gmem, cmds=cmds, run_after_job=array_job_id)
     unify_job_id = pbs_jobs.submit(cmdfile)
 
