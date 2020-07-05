@@ -251,7 +251,7 @@ def create_parser():
                         default="blastn")
     parser.add_argument("-v", "--evalue", type=float, help="E-value for blast, default=1e-7", required=False,
                         default=1e-7)
-    parser.add_argument("-s", "--start", type=int, help="start stage number", required=False)
+    parser.add_argument("-s", "--start", help="start stage number", required=False)
     parser.add_argument("-e", "--end", type=int, help="end stage number, default=5", required=False, default=5)
     parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=2", required=False, default=2)
