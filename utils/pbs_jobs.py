@@ -35,7 +35,7 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi", gmem=2, ncpus=1, ngpus=1,
            if jnum != 1:
                o.write("#PBS -J 1-"+str(jnum)+"\n\n")
         if run_after_job != None:
-            o.write("#PBS -W depend=afterok:" + str(run_after_job)+"\n\n")
+            o.write("#PBS -W depend=afterok:" + str(run_after_job)+ ".power9.tau.ac.il\n\n")
     
         if dir != "":
             o.write("ls -land %s\n" % dir)
@@ -54,7 +54,7 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi", gmem=2, ncpus=1, ngpus=1,
     o.close()
 
 
-def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_python=False, queue="adis"):
+def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_python=False, queue="adis", run_after_job=None):
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
         o.write("#PBS -q %s\n" % queue)
@@ -70,6 +70,8 @@ def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_pyt
         else:
             o.write("#PBS -J 1-" + str(jnum) + "\n\n")
             # #o.write("#PBS -J 3-4 \n")
+        if run_after_job != None:
+            o.write("#PBS -W depend=afterok:" + str(run_after_job)+ ".power9.tau.ac.il\n\n")
         if dir != "":
             o.write("ls -land %s\n" % dir)
         o.write("id\n")

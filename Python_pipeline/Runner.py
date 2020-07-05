@@ -501,7 +501,7 @@ if __name__ == "__main__":
 	parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default=10000", required=False, default=10000)
 	parser.add_argument("-p", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'",
 						required=False, default="linear")
-	parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='tzachi@power9'", required=False, default="tzachi@power9")
+	parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='adistzachi@power9'", required=False, default="adistzachi@power9")
 	parser.add_argument("-w", "--overwrite", type=str, help="overwrite? Y/N, default='N'", required=False, default="N")
 	parser.add_argument("-L", "--log_folder", type=str, help="Folder path to write .log file in. defaults to --output_dir", default=None)
 	args = parser.parse_args()

@@ -257,8 +257,8 @@ def create_parser():
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=2", required=False, default=2)
     parser.add_argument("-c", "--coverage", type=int, help="coverage cut-off for statistics, default=10000",
                         required=False, default=10000)
-    parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='tzachi@power9'",
-                        required=False, default="tzachi@power9")
+    parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='adistzachi@power9'",
+                        required=False, default="adistzachi@power9")
     parser.add_argument("-p", "--protocol", type=str,
                         help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'",
                         required=False, default="linear")
