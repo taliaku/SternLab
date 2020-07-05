@@ -28,7 +28,7 @@ def _omit_file(filename):
 
 
 class TestProjectRunner(unittest.TestCase):
-
+    @classmethod
     def setUpClass(self):
         self.output_dir = _assign_output_dir()
         log = pipeline_logger('TestProjectRunner', self.output_dir)
