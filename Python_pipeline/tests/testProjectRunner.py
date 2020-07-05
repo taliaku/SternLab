@@ -56,8 +56,6 @@ class TestProjectRunner(unittest.TestCase):
     def test_files_in_dir(self):
         output_files = _get_relevant_file_names(self.output_dir)
         example_files = _get_relevant_file_names(self.example_output)
-        print(output_files)
-        print(example_files)
         missing_files = []
         for dir, files in example_files.items():
             for file in files:
