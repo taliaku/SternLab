@@ -35,6 +35,8 @@ def _create_new_logger(logger, log_file):
 def pipeline_logger(logger_name, log_folder=None):
     # create logger
     if log_folder is not None:
+        if not os.path.exists(log_folder):
+            os.mkdir(log_folder)
         log_file = os.path.join(log_folder, '.log')
     else:
         log_file = None
