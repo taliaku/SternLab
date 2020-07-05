@@ -14,10 +14,11 @@ from utils.pbs_jobs import USER_FOLDER_DICT
 def _assign_output_dir():
     username = getpass.getuser()
     user_folder = USER_FOLDER_DICT[username]
-    testing_folder = os.path.join(user_folder, 'testing')
-    if not os.path.exists(testing_folder):
-        os.mkdir(testing_folder)
-    return f"{user_folder}/testing/TestProjectRunner-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}"
+    testing_path = os.path.join(user_folder, 'testing')
+    if not os.path.exists(testing_path):
+        os.mkdir(testing_path)
+    output_dir_name = f"TestProjectRunner-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}"
+    return os.path.join(testing_path, output_dir_name)
 
 
 def _omit_file(filename):
@@ -30,7 +31,7 @@ def _omit_file(filename):
 class TestProjectRunner(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        #TODO: purge output dir if it's overcrowded..?
+        #TODO?: purge output dir if it's overcrowded..?
         self.output_dir = _assign_output_dir()
         log = pipeline_logger('TestProjectRunner', self.output_dir)
         log.info('Starting TestProjectRunner!')
