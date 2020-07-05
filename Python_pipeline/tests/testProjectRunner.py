@@ -55,6 +55,8 @@ class TestProjectRunner(unittest.TestCase):
                         'AggregatedSummary.csv does not match example..!')
 
 
+
 if __name__ == '__main__':
-    test = TestProjectRunner()
-    test.assertAggregatedSummaryIsEqual()
+    unittest.main()
+    #test = TestProjectRunner()
+    #test.assertAggregatedSummaryIsEqual()
