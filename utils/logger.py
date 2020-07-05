@@ -12,11 +12,14 @@ def _logger_already_exists(logger, log_file):
     return return_value
 
 def _create_new_logger(logger, log_file):
+
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to info
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     # create file handler and set level to debug
+    if not os.path.exists(log_file):
+        os.mknod(log_file)
     fh = logging.FileHandler(log_file)
     fh.setLevel(logging.DEBUG)
     # create formatter
