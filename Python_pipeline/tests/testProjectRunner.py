@@ -15,7 +15,7 @@ class TestProjectRunner(unittest.TestCase):
 
     def __init__(self):
         super().__init__()
-        self.output_dir = f'/tmp/TestProjectRunner-{datetime.datetime.now()}'
+        self.output_dir = f"/tmp/TestProjectRunner-{datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')}"
         log = pipeline_logger('TestProjectRunner', self.output_dir)
         log.info('Starting TestProjectRunner!')
         input_dir = '/sternadi/home/volume3/ita/pipelineTester/small_data_samples/'
