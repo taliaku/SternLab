@@ -19,6 +19,7 @@ def _create_new_logger(logger, log_file):
     ch.setLevel(logging.INFO)
     # create file handler and set level to debug
     if not os.path.exists(log_file):
+        print(log_file)
         os.mknod(log_file)
     fh = logging.FileHandler(log_file)
     fh.setLevel(logging.DEBUG)
