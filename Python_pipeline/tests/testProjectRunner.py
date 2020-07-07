@@ -21,7 +21,7 @@ def _assign_output_dir():
     os.mkdir(output_dir_path)
     return output_dir_path
 
-def _omit_file(filename):
+def _is_pbs_log(filename):
     if filename.find("tau.ac.il") == -1:
         return False
     else:
@@ -30,7 +30,7 @@ def _omit_file(filename):
 def _get_relevant_file_names(path):
     ret = {}
     for dirpath, dirnames, filenames in os.walk(path):
-        relevant_file_names = [file for file in filenames if not _omit_file(file)]
+        relevant_file_names = [file for file in filenames if not _is_pbs_log(file)]
         relative_path = os.path.relpath(dirpath, path)
         ret[relative_path] = relevant_file_names
     return ret
@@ -56,9 +56,6 @@ class TestProjectRunner(unittest.TestCase):
     def test_files_in_dir(self):
         output_files = _get_relevant_file_names(self.output_dir)
         example_files = _get_relevant_file_names(self.example_output)
-        #print(output_files)
-        #print("___!!!!____!!!____!!!_____________")
-        #print(example_files)
         missing_files = []
         missing_dirs = []
         for dir, files in example_files.items():
