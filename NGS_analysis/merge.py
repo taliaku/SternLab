@@ -1,9 +1,8 @@
 
 
 import os.path
-import sys
 import os
-import pbs_jobs
+from utils import pbs_jobs
 import argparse
 
 

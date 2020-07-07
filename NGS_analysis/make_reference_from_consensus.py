@@ -1,11 +1,9 @@
 #! /usr/local/python_anaconda/bin/python3.4
-import sys, gzip
 from Bio import SeqIO,Seq
 from Bio.Seq import MutableSeq
-from Bio.SeqRecord import SeqRecord
 from optparse import OptionParser
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 def replace_base(row, mut_reference):
     mut_reference[int(row["Pos"])-1]=row["Base"]

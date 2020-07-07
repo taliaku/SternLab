@@ -14,7 +14,7 @@ from time import sleep
 from FITS_analysis import fits_fitness_united
 from FITS_analysis import fits_mutation_united
 from FITS_analysis import fits_parameters_pos
-from pbs_jobs import create_array_pbs_cmd
+from utils.pbs_jobs import create_array_pbs_cmd
 
 
 def checkKey(dict, key):

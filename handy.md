@@ -12,7 +12,7 @@
 
 **Cool qstat aliases:**
 * To get job description: qstat -f <JobID>
-* To get a job array progress by each array entry: qstat -f <JobID[]>
+* To get a job array progress by each array entry: `qstat -f <JobID[]>`
 * To get all computational nodes for all jobs running: `for job in `qstat | grep username | cut -f1 -d.`; do echo  $job; qstat -f $job | grep host;  done`
 * **-a** Display all jobs in any status (running, queued, held)
 * **-r** Display all running or suspended jobs
@@ -23,6 +23,7 @@
 * **-f job_id**  Display detailed information about a specific job
 * **-xf job_id**,
 * **-xu user_id** Display status information for finished jobs (within the past 7 days). This option is only available in the newer version of PBS.
+* To get details on jobs running as part of an ARRAY on PBS: `qstat -t <JobID>[]`
 <br/><br/>
 
 **Predefined variables:**
@@ -38,11 +39,11 @@ $PBS_JOBNAME       The job name
 $PBS_ENVIRONMENT   The PBS enviromental variables
 $PBS_O_WORKDIR     The working directory from where you ran qsub
 ```
-**Here are a few useful qalter commands:**
+**Our queues:**
 ------
-
-ENTER HERE
-
+our PBS architecture is composed of two main queues:
+* `adis` - main queue. most of the jobs go to this queue.
+* `adis-long` - uses up to 20% of `adis` resources and is intended to long jobs that require a running time of more than a few days (but flexible) 
 <br/><br/>
 	
 **Our nodes:**
@@ -94,6 +95,15 @@ Or name the log files by the ID of the job, and have them created in your design
 The best solution is to add your username to 'get_cmdfile_dir' under 'pbs_jobs.py'. This way you can create a folder in which all job outputs are
 saved by date and job alias. 
 
+**How to run a PBS job ARRAY:**<br/>
+PBS jobs array is simply a way of sumbitting a batch of jobs together. The adventage of using a batch array is mostly in queueing time due to faster scheduling of the PBS queue system. <br\>
+in order to run an array you need to link the index of the array to your scripts\software etc. this is done in the following way:<br/>
+* add J option with the range of the array (starting with 1 and not 0 !!!).
+```
+#PBS -J START-END
+```
+* use `$PBS_ARRAY_INDEX` environment variable when calling your script\software.
+
 **How to enter cluster interactive mode:** Here, you have two options:
 Enter by submitting a job to cluster interative mode: 
 ```
@@ -134,8 +144,11 @@ Please see screen main useful commands below:
 Also, If you press the arrow down key stroke, you may tell whether you are on a screen or not (if the display blinks – then you are in a screen)
 
 
-**To check which modules are available:** modules avail
+**To check which modules are available:** `modules avail`. use `module load <module_name>` to load your module.
 
+**How to contact HPC team?**<br/>
+
+https://helpdesk.tau.ac.il/Login.jsp
 
 **Tips from HPC team:**
 * Use intel's compilers (icc for c and icpc for c++) instead of gcc and g++ (more effective). The icc and icpc equivalent to gcc > 6.0 are available in /powerapps/share/intel/parallel_studio_xe_2018/bin/ 

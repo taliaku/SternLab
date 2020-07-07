@@ -1,10 +1,8 @@
 import PAML_utilities
 import os
 import seqFileTools
-import pbs_runners
-import pbs_jobs
+from utils import pbs_jobs
 import file_utilities
-from os import path
 from optparse import OptionParser
 
 

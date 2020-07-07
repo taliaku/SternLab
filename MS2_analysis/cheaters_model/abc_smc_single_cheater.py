@@ -39,7 +39,7 @@ def simulation(parameter_list):
                    'del':{'wt':parameter_list[1], 'del':0, 'syn':0}, 
                    'syn':{'wt':0, 'del':0, 'syn':0}}
         triple_payoff_matrix = {'wt':1, 'del':1, 'syn':1}
-        model_data = simulate(payoff_matrix=payoff_matrix, triple_payoff_matrix=triple_payoff_matrix, passages=MAX_PASSAGE, syn_initial_count=0)
+        model_data = simulate(payoff_matrix=payoff_matrix, triple_payoff_matrix=triple_payoff_matrix, passages=MAX_PASSAGE, syn_initial_count=0, iterations_within_passages=2)
         return model_data
     else:
         return np.inf
