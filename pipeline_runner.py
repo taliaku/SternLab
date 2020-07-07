@@ -18,7 +18,6 @@ def main(args):
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     pipeline_path = os.path.join(dir_path, 'pipeline', 'runner.pl')
-    pipeline_path = "/sternadi/home/volume1/shared/SternLab/pipeline/runner.pl"
 
     NGS_or_Cirseq = args.NGS_or_Cirseq
 
