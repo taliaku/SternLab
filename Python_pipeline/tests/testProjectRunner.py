@@ -31,7 +31,7 @@ def _get_relevant_file_names(path):
     ret = {}
     for dirpath, dirnames, filenames in os.walk(path):
         relevant_file_names = [file for file in filenames if not _omit_file(file)]
-        relative_path = os.path.relpath(path, dirpath)
+        relative_path = os.path.relpath(dirpath, path)
         ret[relative_path] = relevant_file_names
     return ret
 
@@ -56,11 +56,20 @@ class TestProjectRunner(unittest.TestCase):
     def test_files_in_dir(self):
         output_files = _get_relevant_file_names(self.output_dir)
         example_files = _get_relevant_file_names(self.example_output)
+        #print(output_files)
+        #print("___!!!!____!!!____!!!_____________")
+        #print(example_files)
         missing_files = []
+        missing_dirs = []
         for dir, files in example_files.items():
+            #TODO: test this part.
+            if dir not in output_files.keys():
+                missing_dirs.append(dir)
+                continue
             for file in files:
                 if file not in output_files[dir]:
                     missing_files.append(os.path.join(dir, file))
+        self.assertTrue(len(missing_dirs) == 0, f"Uh oh! These directories were not created: {missing_dirs}")
         self.assertTrue(len(missing_files) == 0, f"Whah! Looks like we are missing these files: {missing_files}")
 
     def test_aggregated_summary(self):
