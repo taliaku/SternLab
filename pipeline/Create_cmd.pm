@@ -13,7 +13,8 @@ sub create_cmd_file {
     
     open OUT, ">$file_name" or die "create_cmd_file: cannot open file $file_name\n";
     print OUT "#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n";
-    print OUT "#PBS -q adistzachi@power9\n";
+    print OUT '#PBS -q adistzachi@power9';
+    print OUT "\n";
 
     print OUT "#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH \n";
     print OUT "#PBS -N $alias\n";
