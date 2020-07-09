@@ -3,7 +3,7 @@ import os
 import sys
 import pandas as pd
 from matplotlib import pyplot as plt
-from Python_pipeline.Join import wrangle_freqs_df
+from Join import wrangle_freqs_df
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.logger import pipeline_logger
 from utils.pbs_jobs import create_pbs_cmd
