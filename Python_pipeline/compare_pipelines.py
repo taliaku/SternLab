@@ -23,12 +23,13 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
     perl_output_path = _get_perl_output_path(output_folder)
     python_output_path = _get_python_output_path(output_folder)
     perl_runner_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'pipeline_runner.py')
-    perl_runner_cmd = f"python {perl_runner_path} -i {input_data_folder} -o {perl_output_path} -r {reference_file} -NGS_or_Cirseq 1"
+    perl_runner_cmd = f"python {perl_runner_path} -i {input_data_folder} -o {perl_output_path} -r {reference_file} " \
+                      f"-NGS_or_Cirseq 1"
     input_dir_name = os.path.basename(os.path.normpath(input_data_folder))  # python pipeline needs this..
     # TODO: call python pipeline in a way that makes sense
     python_runner_cmd = f"python Python_pipeline/Runner.py -i {os.path.join(input_data_folder, input_dir_name[:2])} " \
                         f"-o {python_output_path} -r {reference_file} -m RS"
-    cmds = perl_runner_cmd + python_runner_cmd
+    cmds = perl_runner_cmd + "\n" + python_runner_cmd
     cmd_file_path = os.path.join(output_folder, 'compare_pipelines.cmd')
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmds)
     return cmd_file_path
