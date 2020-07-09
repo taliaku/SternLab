@@ -9,7 +9,7 @@ from utils.logger import pipeline_logger
 from utils.pbs_jobs import create_pbs_cmd
 from utils.runner_utils import submit_wait_and_log
 
-#TODO: run testProjectRunner from power (to make sure the merge didnt break anything) and then try to run this thing.
+#TODO: make this run!
 
 def _get_python_output_path(output_folder):
     return os.path.join(output_folder, 'python_output')
@@ -128,10 +128,10 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--input_data_folder",
                         help="Fasta files to run both pipelines on",
                         required=True)
-    parser.add_argument("-r", "--reference_file",
-                        required=True)
     parser.add_argument("-o", "--output_folder",
                         help="Where you want the output files to go",
+                        required=True)
+    parser.add_argument("-r", "--reference_file",
                         required=True)
     args = parser.parse_args()
     main(args)
