@@ -47,8 +47,7 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
 
 
 def get_single_freq_file_path(path, freq_file_suffix):
-    freq_files = [f for f in os.listdir(path) if f.find(freq_file_suffix)]
-    print(freq_files)
+    freq_files = [f for f in os.listdir(path) if f.find(freq_file_suffix) != -1]
     if len(freq_files) == 0:
         raise Exception(f"Could not find file containing {freq_file_suffix} file in {path} !")
     elif len(freq_files) > 1:
