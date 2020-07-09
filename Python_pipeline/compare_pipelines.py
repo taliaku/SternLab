@@ -48,6 +48,7 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
 
 def get_single_freq_file_path(path, freq_file_suffix):
     freq_files = [f for f in os.listdir(path) if f.find(freq_file_suffix)]
+    print(freq_files)
     if len(freq_files) == 0:
         raise Exception(f"Could not find file containing {freq_file_suffix} file in {path} !")
     elif len(freq_files) > 1:
@@ -128,11 +129,13 @@ def main(args):
     input_data_folder = args.input_data_folder
     output_folder = args.output_folder
     reference_file = args.reference_file
+    just_analyze = args.just_analyze
     alias = 'ComparePipelines'
     log = pipeline_logger(alias, output_folder)
-    log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
-    compare_cmd_path = create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias)
-    submit_wait_and_log(compare_cmd_path, log, alias)
+    if not just_analyze:
+        log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
+        compare_cmd_path = create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias)
+        submit_wait_and_log(compare_cmd_path, log, alias)
     log.info(f"Analyzing data...")
     alias = 'ComparePipelines-AnalyzeData'
     analyze_cmd_path = create_analyze_data_cmdfile(output_folder, alias)
@@ -150,5 +153,7 @@ if __name__ == '__main__':
                         required=True)
     parser.add_argument("-r", "--reference_file",
                         required=True)
+    parser.add_argument("-j", "--just_analyze", default=False,
+                        help='True will skip the pipelines and just analyze the output. default is False.')
     args = parser.parse_args()
     main(args)
