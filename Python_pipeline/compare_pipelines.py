@@ -20,14 +20,16 @@ def _get_perl_output_path(output_folder):
 
 
 def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias):
+    sternlab_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     perl_output_path = _get_perl_output_path(output_folder)
     python_output_path = _get_python_output_path(output_folder)
-    perl_runner_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'pipeline_runner.py')
+    perl_runner_path = os.path.join(sternlab_dir, 'pipeline_runner.py')
     perl_runner_cmd = f"python {perl_runner_path} -i {input_data_folder} -o {perl_output_path} -r {reference_file} " \
                       f"-NGS_or_Cirseq 1"
     input_dir_name = os.path.basename(os.path.normpath(input_data_folder))  # python pipeline needs this..
     # TODO: call python pipeline in a way that makes sense
-    python_runner_cmd = f"python Python_pipeline/Runner.py -i {os.path.join(input_data_folder, input_dir_name[:2])} " \
+    python_runner_path = os.path.join(sternlab_dir, 'Python_pipeline', 'Runner.py')
+    python_runner_cmd = f"python {python_runner_path} -i {os.path.join(input_data_folder, input_dir_name[:2])} " \
                         f"-o {python_output_path} -r {reference_file} -m RS"
     cmds = perl_runner_cmd + "\n" + python_runner_cmd
     cmd_file_path = os.path.join(output_folder, 'compare_pipelines.cmd')
@@ -95,7 +97,7 @@ def create_analyze_data_cmdfile(output_folder, alias):
     cmd_file_path = os.path.join(output_folder, 'analyze_data.cmd')
     this_module = os.path.basename(os.path.normpath(os.path.abspath(__file__)))[:-3]
     output_folder_string = '"' + output_folder + '"'
-    cmd = f"python -c 'from {this_module} import analyze_data; analyze_data({output_folder_string})'"
+    cmd = f"cd {output_folder}; python -c 'from {this_module} import analyze_data; analyze_data({output_folder_string})'"
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmd)
     return cmd_file_path
 
