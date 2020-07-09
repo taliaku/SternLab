@@ -134,4 +134,5 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--reference_file",
                         required=True)
     args = parser.parse_args()
+    print(args)
     main(args)
