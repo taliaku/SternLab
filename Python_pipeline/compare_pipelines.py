@@ -110,7 +110,10 @@ def analyze_data(output_folder):
     print(f"There are {len(mismatching_bases)} mismatching bases!")
 
 
-def main(input_data_folder, output_folder, reference_file):
+def main(args):
+    input_data_folder = args.input_data_folder
+    output_folder = args.output_folder
+    reference_file = args.reference_file
     alias = 'ComparePipelines'
     log = pipeline_logger(alias, output_folder)
     log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
@@ -134,5 +137,4 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--reference_file",
                         required=True)
     args = parser.parse_args()
-    print(args)
     main(args)
