@@ -98,7 +98,7 @@ def create_analyze_data_cmdfile(output_folder, alias):
     return cmd_file_path
 
 
-def analyze_data(output_folder)
+def analyze_data(output_folder):
     """
     This function is called by PBS via the cmdfile created by create_analyze_data_cmdfile
     """
