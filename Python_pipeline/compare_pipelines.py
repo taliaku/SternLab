@@ -12,17 +12,26 @@ from utils.runner_utils import submit_wait_and_log
 
 #TODO: make this run!
 
-def _get_python_output_path(output_folder):
-    return os.path.join(output_folder, 'python_output')
+def _create_python_output_folder(output_folder):
+    python_output_path = os.path.join(output_folder, 'python_output')
+    if not os.path.exists(python_output_path):
+        os.mkdir(python_output_path)
+    return python_output_path
 
 
-def _get_perl_output_path(output_folder):
-    return os.path.join(output_folder, 'perl_output')
+def _create_perl_output_folder(output_folder):
+    perl_output_path = os.path.join(output_folder, 'perl_output')
+    if not os.path.exists(perl_output_path):
+        os.mkdir(perl_output_path)
+        perl_tmp_folder = os.path.join(perl_output_path, 'tmp')
+        if not os.path.exists(perl_tmp_folder):
+            os.mkdir(perl_tmp_folder) # seems like this is required by the pipeline..
+    return perl_output_path
 
 
 def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias):
-    perl_output_path = _get_perl_output_path(output_folder)
-    python_output_path = _get_python_output_path(output_folder)
+    perl_output_path = _create_perl_output_folder(output_folder)
+    python_output_path = _create_python_output_folder(output_folder)
     perl_runner_path = os.path.join(STERNLAB_PATH, 'pipeline_runner.py')
     perl_runner_cmd = f"python {perl_runner_path} -i {input_data_folder} -o {perl_output_path} -r {reference_file} " \
                       f"-NGS_or_Cirseq 1"
@@ -30,7 +39,7 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
     # TODO: call python pipeline in a way that makes sense
     python_runner_path = os.path.join(STERNLAB_PATH, 'Python_pipeline', 'Runner.py')
     python_runner_cmd = f"python {python_runner_path} -i {os.path.join(input_data_folder, input_dir_name[:2])} " \
-                        f"-o {python_output_path} -r {reference_file} -m RS"
+                        f"-o {python_output_path} -r {reference_file} -m RS -L {output_folder}"
     cmds = perl_runner_cmd + "\n" + python_runner_cmd
     cmd_file_path = os.path.join(output_folder, 'compare_pipelines.cmd')
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmds)
@@ -40,9 +49,9 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
 def get_single_freq_file_path(path, freq_file_suffix):
     freq_files = [f for f in os.listdir(path) if f.find(freq_file_suffix)]
     if len(freq_files) == 0:
-        raise (ValueError, f"Could not find file containing {freq_file_suffix} file in {path} !")
+        raise Exception(f"Could not find file containing {freq_file_suffix} file in {path} !")
     elif len(freq_files) > 1:
-        raise (ValueError, f"Found more than one file containing '{freq_file_suffix}' in {path}..!")
+        raise Exception(f"Found more than one file containing '{freq_file_suffix}' in {path}..!")
     return os.path.join(path, freq_files[0])
 
 
@@ -67,9 +76,9 @@ def get_perl_freqs(perl_output_path):
 
 
 def get_freqs_data(output_folder):
-    python_output_path = _get_python_output_path(output_folder)
+    python_output_path = _create_python_output_folder(output_folder)
     py_df = get_python_freqs(python_output_path)
-    perl_output_path = _get_perl_output_path(output_folder)
+    perl_output_path = _create_perl_output_folder(output_folder)
     pe_df = get_perl_freqs(perl_output_path)
     data = {'py': py_df, 'pe': pe_df}
     return data
@@ -115,6 +124,10 @@ def analyze_data(output_folder):
     print(f"There are {len(mismatching_bases)} mismatching bases!")
 
 
+def make_silly_preparations(output_folder):
+    python_path =
+
+
 def main(args):
     input_data_folder = args.input_data_folder
     output_folder = args.output_folder
@@ -122,6 +135,7 @@ def main(args):
     alias = 'ComparePipelines'
     log = pipeline_logger(alias, output_folder)
     log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
+    make_silly_preparations(output_folder)
     compare_cmd_path = create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias)
     submit_wait_and_log(compare_cmd_path, log, alias)
     log.info(f"Analyzing data...")
