@@ -124,10 +124,6 @@ def analyze_data(output_folder):
     print(f"There are {len(mismatching_bases)} mismatching bases!")
 
 
-def make_silly_preparations(output_folder):
-    python_path =
-
-
 def main(args):
     input_data_folder = args.input_data_folder
     output_folder = args.output_folder
@@ -135,7 +131,6 @@ def main(args):
     alias = 'ComparePipelines'
     log = pipeline_logger(alias, output_folder)
     log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
-    make_silly_preparations(output_folder)
     compare_cmd_path = create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias)
     submit_wait_and_log(compare_cmd_path, log, alias)
     log.info(f"Analyzing data...")
