@@ -120,7 +120,7 @@ def analyze_data(output_folder):
     zero_rank_data = {key: df[df['rank'] == 0] for key, df in data.items()}
     plot_coverage(zero_rank_data['py'], zero_rank_data['pe'], output_folder)
     joined = data['pe'].join(data['py'], rsuffix='_py', lsuffix='_pe')
-    joined.to_csv(os.path.join(output_folder, 'mismatching_bases.csv'))
+    joined.to_csv(os.path.join(output_folder, 'data.csv'))
 
 
 def main(args):
