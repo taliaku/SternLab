@@ -91,7 +91,7 @@ def run_project(pipeline_path, input_dir, dir_path, ref_genome, mode, task, star
         p = '$((PBS_ARRAY_INDEX*2))-2'
         o = '$((PBS_ARRAY_INDEX*2))-1'
         gmem = 7
-
+    gmem = gmem * 1000000 
     array = create_array(samples_list)
     cmd1 = 'declare -a SAMPLENAMES\n'
     cmd2 = 'SAMPLENAMES=' + array + "\n\n"

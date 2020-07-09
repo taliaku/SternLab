@@ -9,7 +9,7 @@ from utils.logger import pipeline_logger
 from utils.pbs_jobs import create_pbs_cmd
 from utils.runner_utils import submit_wait_and_log
 
-#TODO: rebase shared_sternlab onto compare_pipelines and make this run!
+#TODO: run testProjectRunner from power (to make sure the merge didnt break anything) and then try to run this thing.
 
 def _get_python_output_path(output_folder):
     return os.path.join(output_folder, 'python_output')
