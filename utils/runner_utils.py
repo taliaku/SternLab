@@ -61,6 +61,7 @@ def create_array(files_list):
 
 def submit_wait_and_log(cmdfile, logger, job_name):
 	job_id = submit(cmdfile)
+	print(job_id)
 	logger.info(f"Started {job_name} with job id: {job_id}")
 	elapsed_time = Sleep(job_name, job_id)
 	time_suffix = _get_time_suffix(elapsed_time)
