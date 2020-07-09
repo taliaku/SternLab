@@ -119,9 +119,8 @@ def analyze_data(output_folder):
     data = get_freqs_data(output_folder)
     zero_rank_data = {key: df[df['rank'] == 0] for key, df in data.items()}
     plot_coverage(zero_rank_data['py'], zero_rank_data['pe'], output_folder)
-    mismatching_bases = _get_mismatching_bases(zero_rank_data)
-    mismatching_bases.to_csv('mismatching_bases.csv')
-    print(f"There are {len(mismatching_bases)} mismatching bases!")
+    joined = data['pe'].join(data['py'], rsuffix='_py', lsuffix='_pe')
+    joined.to_csv(os.path.join(output_folder, 'mismatching_bases.csv'))
 
 
 def main(args):
