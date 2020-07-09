@@ -29,7 +29,7 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, n
         if queue == 'gpu':
             o.write(f"#PBS -l select=ngpus={ngpus}\n")
         else:    
-            o.write(f"#PBS -l select=ncpus={ncpus}:mem={gmem*10000000}\n")
+            o.write(f"#PBS -l select=ncpus={ncpus}:mem={gmem*100000000}\n")
 
         if jnum:
            if jnum != 1:

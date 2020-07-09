@@ -97,7 +97,8 @@ def create_analyze_data_cmdfile(output_folder, alias):
     cmd_file_path = os.path.join(output_folder, 'analyze_data.cmd')
     this_module = os.path.basename(os.path.normpath(os.path.abspath(__file__)))[:-3]
     output_folder_string = '"' + output_folder + '"'
-    cmd = f"cd {STERNLAB_PATH}; python -c 'from {this_module} import analyze_data; analyze_data({output_folder_string})'"
+    cmd = f"cd {os.path.join(STERNLAB_PATH, 'Python_pipeline')}; python -c " \
+          f"'from {this_module} import analyze_data; analyze_data({output_folder_string})'"
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmd)
     return cmd_file_path
 
