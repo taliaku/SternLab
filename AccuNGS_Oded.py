@@ -49,7 +49,7 @@ def main():
     #     output_dir = d + "/q30_3UTR"
     #     cmd = "python /sternadi/home/volume1/shared/SternLab/pipeline_runner.py -i %s -o %s -r /sternadi/home/volume3/okushnir/" \
     #           "AccuNGS/180503_OST_FINAL_03052018/merged/HRVB14_from_pWR3.26_1-7212.fasta -NGS_or_Cirseq 2 -rep 2  -q 30" % (d, output_dir)
-    #     pbs_runners.script_runner(cmd, alias="pipeline_d")
+    #     pbs_runners.script_runner(cmd, job_name="pipeline_d")
 
     #5th analyze the freqs
         # add mutation types

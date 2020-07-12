@@ -5,50 +5,15 @@ import sys
 import glob
 import time
 from utils.logger import pipeline_logger
+from utils.pbs_jobs import submit
+
 
 def check_queue(queue):
-	allowed_queues = ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long", "tzachi@power9", 'adistzachi'] 
+	allowed_queues = ["inf", "hugemem", "pup-interactive", "parallel", "adis", "adis-long", 'adistzachi@power9']
 	if queue not in allowed_queues:
 		raise Exception(f"Sorry but queue must be one of {allowed_queues}, not '{queue}'")
 
-#TODO: merge duplicate code with pbs_jobs
-def create_pbs_cmd(cmdfile, alias, jnum, gmem, cmds, queue, load_python=True):
-	with open(cmdfile, 'w') as o:
-		o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
-		o.write("#PBS -q %s\n" % queue)
-		o.write("#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH \n")
-		o.write("#PBS -N "+ alias+"\n")
-		o.write("#PBS -o %s\n" % "/".join(cmdfile.split("/")[:-1]))
-		o.write("#PBS -e %s\n" % "/".join(cmdfile.split("/")[:-1]))
-		if gmem:
-			mem=gmem*1000
-			o.write("#PBS -l mem="+str(mem)+"mb\n")
-		if jnum:
-			if jnum != 1:
-				o.write("#PBS -J 1-"+str(jnum)+"\n\n")
-		o.write("id\n")
-		o.write("date\n")
-		o.write("hostname\n")
-		if load_python:
-			o.write("module load python/python-anaconda3.2019.7\n")       
-		o.write("\n")
-		o.write(cmds)
-		o.write("\n")
-		o.write("date\n")
-	o.close()
-
-def submit(cmdfile):
-	log = pipeline_logger()
-	cmd = "/opt/pbs/bin/qsub " + cmdfile
-	result = os.popen(cmd).read()
-	if 'power' in result:
-		return result.split(".")[0]
-	else:
-		log.error(f"{cmdfile} was not submitted")	
-
-def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='adistzachi'):
-	log = pipeline_logger()
-	log.info(f"Starting {alias} with job id: {job_id}")
+def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=3, queue='adistzachi'):
 	start_time = time.time()
 	i = 0
 	if job_id[-2:]=='[]': # grep doesn't like these..
@@ -64,10 +29,10 @@ def Sleep (alias, job_id, sleep_max=1200000, sleep_quantum=10, queue='adistzachi
 			time.sleep(1)
 		i += sleep_quantum
 		qstat_result = os.popen(qstat_command).read()
-	if len(qstat_result) > 0: 
-		raise Exception(alias + " stage was not completed. Max sleep time reached\n")
 	sys.stdout.write("\n")
-	log.info(f"{alias} Done.")
+	if len(qstat_result) > 0:
+		raise Exception(alias + " stage was not completed. Max sleep time reached\n")
+	return elapsed_time
 
 def FindFilesInDir(dir_path, file_type):
 	file_path = dir_path + "/*" + file_type
@@ -92,3 +57,20 @@ def create_array(files_list):
 			array += " "
 	array += ')'
 	return array
+
+
+def submit_wait_and_log(cmdfile, logger, job_name):
+	job_id = submit(cmdfile) 	#TODO: give a meaningful error when this fails.
+	logger.info(f"Started {job_name} with job id: {job_id}")
+	elapsed_time = Sleep(job_name, job_id)
+	time_suffix = _get_time_suffix(elapsed_time)
+	logger.info(f"Done {job_name} in {elapsed_time} {time_suffix}")
+
+
+def _get_time_suffix(elapsed_time):
+	time_suffix = 'seconds'
+	if int(elapsed_time[:2]) > 0:
+		time_suffix = 'hours'
+	elif int(elapsed_time[3:5]) > 0:
+		time_suffix = 'minutes'
+	return time_suffix

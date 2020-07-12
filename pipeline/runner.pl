@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 
 use strict;
-use lib '/sternadi/home/volume1/shared/SternLab/pipeline';
+#TODO: remove hard coded paths....
+use lib '/sternadi/home/volume3/ita/shared_sternlab/pipeline';
 use Create_cmd;
 
 
@@ -36,7 +37,7 @@ die "usage pipeline_runner.pl  <input directory with fastq.gz files> <output dir
 " unless (scalar(@ARGV)>=5);
 
 
-my $current_version_path = '/sternadi/home/volume1/shared/SternLab/pipeline';
+my $current_version_path = '/sternadi/home/volume3/ita/shared_sternlab/pipeline';
 my $in_dir = $ARGV[0];
 
 $in_dir.="/" unless ($in_dir =~ /\/$/);

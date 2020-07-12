@@ -47,7 +47,24 @@ def create_ref_seq (ref_FilePath):
 		else:
 			raise Exception("Found a non valid DNA letter in position " + ref_genome[i+1] + " of the reference genome\n")
 		
-	return REF_GENOME	
+	return REF_GENOME
+
+
+def wrangle_freqs_df(data):
+	data = pd.DataFrame.groupby(data, level=[0, 1, 2]).sum()
+	data["frequency"] = round(data["base_counter"] / data["coverage"], 6)
+	data["probability"] = round(1 - np.power(10, np.log10(1 - data["frequency"] + 1e-07) * (data["coverage"] + 1)), 2)
+	# Get ranks
+	pd.DataFrame.reset_index(data, level=[0, 1, 2], inplace=True)
+	pd.DataFrame.sort_values(data, by=['ref_position', 'frequency', 'base'], ascending=[True, False, False],
+							 inplace=True)
+	data["coverage_to_set_rank"] = np.where(data["coverage"] > 0, 1, 0)
+	data["rank"] = (pd.Series.cumsum(pd.Series(data["coverage_to_set_rank"])) - 1) % 5
+	del data["coverage_to_set_rank"]
+	# Create freqs file
+	pd.DataFrame.set_index(data, keys="ref_position", inplace=True)
+	return data
+
 
 def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Minimal_insertion_coverage = 1):
 	file_type = ".freqs"
@@ -60,18 +77,7 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Minimal_insertion_c
 			df = pd.read_csv(path, sep= '\t', index_col = [0, 1, 2], usecols=[0, 1, 2, 3, 4])
 		dfs.append(df)
 	data = pd.concat(dfs)
-
-	data = pd.DataFrame.groupby(data, level = [0, 1, 2]).sum()
-	data["frequency"] = round(data["base_counter"] / data["coverage"],6)     
-	data["probability"] = round(1 - np.power(10,np.log10(1-data["frequency"]+1e-07)*(data["coverage"]+1)),2)
-	#Get ranks
-	pd.DataFrame.reset_index(data, level = [0,1,2], inplace = True)
-	pd.DataFrame.sort_values(data, by = ['ref_position', 'frequency', 'base'], ascending = [True, False, False], inplace = True)
-	data["coverage_to_set_rank"] = np.where(data["coverage"] > 0, 1, 0)
-	data["rank"] = (pd.Series.cumsum(pd.Series(data["coverage_to_set_rank"])) - 1) % 5
-	del data["coverage_to_set_rank"]
-	#Create freqs file
-	pd.DataFrame.set_index(data, keys = "ref_position" , inplace = True)
+	data = wrangle_freqs_df(data)
 	csv_file_path = dir_path + "/" + sample_basename_pattern + "merge.freqs.csv"
 	try:
 		with open(csv_file_path, 'w') as csv_file:

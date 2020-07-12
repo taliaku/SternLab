@@ -1,0 +1,15 @@
+#!/bin/bash
+#PBS -S /bin/bash
+#PBS -j oe
+#PBS -r y
+#PBS -q adis
+#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH 
+#PBS -N script
+#PBS -l mem=2000mb
+id
+date
+hostname
+
+echo "~/.local/bin/phydms_comprehensive /sternadi/home/volume1/sternadi/CVB3_RG/phydms/res /sternadi/home/volume1/sternadi/CVB3_RG/alignments/cvb3_p1.fa /sternadi/home/volume1/sternadi/CVB3_RG/p1_meanprefs.csv --tree /sternadi/home/volume1/sternadi/CVB3_RG/alignments/cvb3_p1.fa.phy_phyml_tree.txt --brlen "scale""
+~/.local/bin/phydms_comprehensive /sternadi/home/volume1/sternadi/CVB3_RG/phydms/res /sternadi/home/volume1/sternadi/CVB3_RG/alignments/cvb3_p1.fa /sternadi/home/volume1/sternadi/CVB3_RG/p1_meanprefs.csv --tree /sternadi/home/volume1/sternadi/CVB3_RG/alignments/cvb3_p1.fa.phy_phyml_tree.txt --brlen "scale"
+date
