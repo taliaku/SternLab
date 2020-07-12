@@ -81,7 +81,7 @@ def phyml_runner(alignment, alias = "phyml", phylip=True):
     alignment = check_filename(alignment)
     if phylip == False:
         alignment = convert_fasta_to_phylip(alignment)
-    cmdfile = pbs_jobs.get_cmdfile_dir("phyml", alias); tnum = 1; gmem = 2
+    cmdfile = pbs_jobs.get_cmdfile_dir("phyml", alias); tnum = 1; gmem = 20000000
     cmds = "/sternadi/home/volume1/shared/tools/PhyML/PhyML_3.0_linux64 -i %s -b 0 -o n" % alignment
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
@@ -179,7 +179,7 @@ def prank_runner(sequence, alignment=None, alias = "prank"):
     sequence = check_filename(sequence)
     alignment = check_filename(alignment, Truefile=False)
     cmds = "/powerapps/share/bin/prank -d=%s -o=%s -F" % (sequence, alignment)
-    cmdfile = pbs_jobs.get_cmdfile_dir("prank_alignment", alias); tnum=1; gmem=1
+    cmdfile = pbs_jobs.get_cmdfile_dir("prank_alignment", alias); tnum=1; gmem=1000000
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
@@ -204,7 +204,7 @@ def prank_codon_runner(sequence, alignment=None, alias = "prank_codon", tree=Non
     else:
         tree = check_filename(tree)
         cmds = "/powerapps/share/bin/prank -d=%s -t=%s -o=%s -F -codon" % (sequence, tree, alignment)
-    cmdfile = pbs_jobs.get_cmdfile_dir("prank_alignment", alias); tnum=1; gmem=5
+    cmdfile = pbs_jobs.get_cmdfile_dir("prank_alignment", alias); tnum=1; gmem=500000
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
@@ -230,7 +230,7 @@ def prank_runner_with_tree(sequence, tree, alignment=None, alias = "prank"):
     return job_id
 
 
-def njTree_runner(alignment, tree=None, alias = "njTree"):
+def njTree_runner(alignment, tree=None, alias = "njTree",  run_after_job=None):
     """
     run neighbors-joining tree on cluster
     :param alignment: alignment file path
@@ -240,13 +240,13 @@ def njTree_runner(alignment, tree=None, alias = "njTree"):
     """
     if tree == None:
         tree = alignment.split(".")[0] + ".tree"
-    alignment = check_filename(alignment)
+    alignment = check_filename(alignment, Truefile=False)
     tree = check_filename(tree, Truefile=False)
     cmdfile = pbs_jobs.get_cmdfile_dir("njTree", alias); tnum=1; gmem=2
     cmds = "/sternadi/home/volume1/shared/tools/phylogenyCode/programs/treeUtil/njTreeJCdist -i %s -o %s -an"\
            % (alignment, tree)
     dir = "/sternadi/home/volume1/shared/tools/phylogenyCode/programs/treeUtil/"
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -287,7 +287,7 @@ def sampling_runner(alignment, amount, sampled_file=None, alias = "sampling", al
         alphabet = "an"
         print("alphabet type is wrong - changed to default - nucleotides - an")
     output_file = check_filename(sampled_file, Truefile=False)
-    cmdfile = pbs_jobs.get_cmdfile_dir("njTree", alias); tnum=1; gmem=5
+    cmdfile = pbs_jobs.get_cmdfile_dir("njTree", alias); tnum=1; gmem=500000000
     if random:
         cmds = "/sternadi/home/volume1/shared/tools/phylogenyCode/programs/sampling/sampling -i %s -n %s -o %s -%s -r" \
                % (alignment, amount, sampled_file, alphabet)
@@ -440,10 +440,8 @@ def blast_output6_runner(seqfile, dbfile, outfile, alias = "blast", task="megabl
     if outfile != None:
         outfile = check_filename(outfile, Truefile=False)
     cmdfile = pbs_jobs.get_cmdfile_dir("blast_cmd", alias); tnum = 1; gmem = 2
-    cmds = "/sternadi/home/volume1/shared/tools/ncbi-blast-2.2.30+/bin/blastn"\
-                + " -query %s -task {task} -out %s -db %s -outfmt '6 sseqid qseqid qstart qend qstrand sstart send sstrand length btop' " \
-                  "-num_alignments 100 -dust no -soft_masking F -perc_identity 85 -evalue 1e-7"\
-                  % (seqfile, outfile, dbfile)
+    cmds = f"/sternadi/home/volume1/shared/tools/ncbi-blast-2.2.30+/bin/blastn -query {seqfile} -task {task} -out {outfile} -db {dbfile} " \
+           f"-outfmt '6 sseqid qseqid qstart qend qstrand sstart send sstrand length btop evalue pident'  -perc_identity 100 -gapopen 1 -gapextend 2"
 
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
