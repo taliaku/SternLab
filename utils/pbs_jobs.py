@@ -129,3 +129,20 @@ def assign_cmdfile_path(cmdname, alias):
             os.system("mkdir %s" % tmp_dir)
         cmdname = tmp_dir + "/" + cmdname
     return cmdname
+
+
+def check_killed_daily():
+    username = getpass.getuser()
+    if username not in USER_FOLDER_DICT.keys():
+        return
+    tmp_dir = USER_FOLDER_DICT[username]
+    if not os.path.exists(tmp_dir):
+        return
+    date = datetime.datetime.today().strftime('%Y-%m')
+    tmp_dir = os.path.join(tmp_dir, date)
+    os.chdir(tmp_dir)
+    process = subprocess.getoutput('find ./* -maxdepth 1 -mtime -1 | grep OU | xargs grep --include "*OU" kill')    # get all files that had SIG KILL that day
+    return process
+
+
+
