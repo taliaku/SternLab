@@ -1014,7 +1014,7 @@ def kraken2_runner(db_location, input_file, output_file, input_file_2=None, alia
         input_file = f"--paired {input_file} {input_file_2}"    # paired reads
 
 
-    cmdfile = pbs_jobs.get_cmdfile_dir("kraken_cmd", alias)
+    cmdfile = pbs_jobs.assign_cmdfile_path("kraken_cmd", alias)
     cmds = f"/davidb/local/software/kraken2/kraken2-2.0.8-beta/kraken2 --db {db_location} {threads} --use-names\
      {comprassed} {input_file} --output {output_file} --report {output_file.split('.')[0] + '_report.tab'}"
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, ncpus=ncpus, cmds=cmds, queue=queue, gmem=gmem)
@@ -1080,7 +1080,7 @@ def nextstrain_runner(running_dir, queue, alias='nextstrain', ncpus=8, gmem=4):
     """
     run nextstrain on server. a sanke make file should be presented in the runnning dir
     """
-    cmdfile = pbs_jobs.get_cmdfile_dir("nextstrain_cmd", alias)
+    cmdfile = pbs_jobs.assign_cmdfile_path("nextstrain_cmd", alias)
     cmds = f"module load python/python-anaconda3.2019.10\n\
             module load mafft/7.450\n\
             module load iqtree/iqtree-1.6.12\n\
