@@ -29,13 +29,15 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, n
         if queue == 'gpu':
             o.write(f"#PBS -l select=ngpus={ngpus}\n")
         else:    
-            o.write(f"#PBS -l select=ncpus={ncpus}:mem={gmem*100000000}\n")
+            o.write(f"#PBS -l select=ncpus={ncpus}:mem={gmem}gb\n")
 
         if jnum:
            if jnum != 1:
                o.write("#PBS -J 1-"+str(jnum)+"\n\n")
-        if run_after_job != None:
+        if run_after_job != None and 'adi' in queue:
             o.write("#PBS -W depend=afterok:" + str(run_after_job)+ ".power9.tau.ac.il\n\n")
+        if run_after_job != None and 'dudu' in queue:
+            o.write("#PBS -W depend=afterok:" + str(run_after_job)+ ".power8.tau.ac.il\n\n")
     
         if dir != "":
             o.write("ls -land %s\n" % dir)
