@@ -322,7 +322,7 @@ def calculate_read_id_contribution (READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_C
 						average_q_score = read_id_base_call_qscore/read_id_base_call_counter
 						
 						if (average_q_score >= q_score) and (read_id_base_call_counter >= num_of_repeats) and \
-							((num_of_repeats >= 1) or (num_of_repeats == 1 and len(READ_ID_BASE_CALL_COUNTER[ref_position]) == 1)):
+							((num_of_repeats > 1) or (num_of_repeats == 1 and len(READ_ID_BASE_CALL_COUNTER[ref_position]) == 1)):
 
 							if ref_position not in TOTAL_BASE_CALL_COUNTER:
 								TOTAL_BASE_CALL_COUNTER[ref_position] = [0, 0, 0, 0, 0, 0] #TOTAL_BASE_CALL_COUNTER[ref_position] = [Total_counter, A_counter, C_counter, G_counter, T_counter, -_counter] 

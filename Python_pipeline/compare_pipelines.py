@@ -39,7 +39,7 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
     # TODO: call python pipeline in a way that makes sense
     python_runner_path = os.path.join(STERNLAB_PATH, 'Python_pipeline', 'Runner.py')
     python_runner_cmd = f"python {python_runner_path} -i {os.path.join(input_data_folder, input_dir_name[:2])} " \
-                        f"-o {python_output_path} -r {reference_file} -m RS -L {output_folder}"
+                        f"-o {python_output_path} -r {reference_file} -m RS -L {output_folder} -x 1"
     cmds = perl_runner_cmd + "\n" + python_runner_cmd
     cmd_file_path = os.path.join(output_folder, 'compare_pipelines.cmd')
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmds)
