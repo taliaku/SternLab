@@ -480,7 +480,6 @@ def main(args):
 			os.system("zip " + dir_path + "/OutputFiles.zip " + dir_path + "/*.part* " + dir_path + "/*.OU")
 			os.system("rm -rf " + dir_path + "/*.part* " + dir_path + "/*.OU")
 
-	log.info("END OF PIPELINE RUN")
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
