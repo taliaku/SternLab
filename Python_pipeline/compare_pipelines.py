@@ -99,8 +99,8 @@ def get_freqs_data(output_folder):
 
 def plot_coverage(py_df, pe_df, output_folder):
     plt.figure(figsize=(20,10))
-    plt.bar(pe_df.index, pe_df['coverage'], label='perl pipeline')
-    plt.bar(py_df.index, py_df['coverage'], label='python pipeline')
+    plt.bar(pe_df.index.get_level_values('ref_position'), pe_df['coverage'], label='perl pipeline')
+    plt.bar(py_df.index.get_level_values('ref_position'), py_df['coverage'], label='python pipeline')
     plt.xlabel('ref_position')
     plt.ylabel('coverage')
     plt.title('Pipeline Coverage: perl vs python')
