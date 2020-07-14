@@ -1,9 +1,12 @@
 import argparse
 import os
+import subprocess
 import sys
 import pandas as pd
 from matplotlib import pyplot as plt
 from Join import wrangle_freqs_df
+
+
 STERNLAB_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(STERNLAB_PATH)
 from utils.logger import pipeline_logger
@@ -29,17 +32,27 @@ def _create_perl_output_folder(output_folder):
     return perl_output_path
 
 
+def _get_python_runner_flags(input_data_folder, output_folder):
+    ret = {}
+    input_dir_name = os.path.basename(os.path.normpath(input_data_folder))
+    ret['i'] = os.path.join(input_data_folder, input_dir_name[:2])
+    ret['o'] = _create_python_output_folder(output_folder)
+    ret['runner_path'] = os.path.join(STERNLAB_PATH, 'Python_pipeline', 'Runner.py')
+    return ret
+
+
 def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias):
     perl_output_path = _create_perl_output_folder(output_folder)
-    python_output_path = _create_python_output_folder(output_folder)
     perl_runner_path = os.path.join(STERNLAB_PATH, 'pipeline_runner.py')
-    perl_runner_cmd = f"python {perl_runner_path} -i {input_data_folder} -o {perl_output_path} -r {reference_file} " \
+    python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
+    perl_runner_cmd = f"python {perl_runner_path} -i {python_runner_flags['o']} -o {perl_output_path} -r {reference_file} " \
                       f"-NGS_or_Cirseq 1"
-    input_dir_name = os.path.basename(os.path.normpath(input_data_folder))  # python pipeline needs this..
-    # TODO: call python pipeline in a way that makes sense
-    python_runner_path = os.path.join(STERNLAB_PATH, 'Python_pipeline', 'Runner.py')
-    python_runner_cmd = f"python {python_runner_path} -i {os.path.join(input_data_folder, input_dir_name[:2])} " \
-                        f"-o {python_output_path} -r {reference_file} -m RS -L {output_folder} -x 1"
+    """ 
+    the input for perl_runner_cmd is the output of python_runner_cmd because the python pipeline first created
+    the fastq files which both pipelines use.
+    """
+    python_runner_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
+                        f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} -x 1 -s 1"
     cmds = perl_runner_cmd + "\n" + python_runner_cmd
     cmd_file_path = os.path.join(output_folder, 'compare_pipelines.cmd')
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmds)
@@ -123,6 +136,14 @@ def analyze_data(output_folder):
     joined.to_csv(os.path.join(output_folder, 'data.csv'))
 
 
+def merge_fastq_files(input_data_folder, output_folder, reference_file):
+    """ Merge fastq files using the python_runner """
+    python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
+    merge_fastq_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
+                      f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} -x 1 -s 0 -e 0"
+    subprocess.run(merge_fastq_cmd.split(), stdout=subprocess.PIPE)
+
+
 def main(args):
     input_data_folder = args.input_data_folder
     output_folder = args.output_folder
@@ -132,6 +153,7 @@ def main(args):
     log = pipeline_logger(alias, output_folder)
     if not just_analyze:
         log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
+        merge_fastq_files(input_data_folder=input_data_folder, output_folder=output_folder, reference_file=reference_file)
         compare_cmd_path = create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias)
         submit_wait_and_log(compare_cmd_path, log, alias)
     log.info(f"Analyzing data...")
