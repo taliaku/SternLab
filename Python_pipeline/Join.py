@@ -6,6 +6,7 @@ import glob
 import os
 import numpy as np
 
+# TODO- why duplicated 5 times?
 def FindFilesInDir(dir_path, file_type):
 	file_path = dir_path + "/*" + file_type
 	list_of_files = sorted(glob.glob(file_path))
@@ -17,7 +18,8 @@ def FindFilesInDir(dir_path, file_type):
 				raise Exception("Unexpected error, some of the " + file_type + " files in " + dir_path + " are empty\n")
 
 	return list_of_files
-	
+
+# TODO- why duplicated with BaseCall.create_ref_seq() ?
 def create_ref_seq (ref_FilePath):	
 	try:
 		with open(ref_FilePath, 'rt') as ref_file:
@@ -45,7 +47,7 @@ def create_ref_seq (ref_FilePath):
 		if ref_genome[i] in ['A','C','G','T']:
 			REF_GENOME[float(i+1)] = [ref_genome[i]]
 		else:
-			raise Exception("Found a non valid DNA letter in position " + ref_genome[i+1] + " of the reference genome\n")
+			raise Exception("Found a non valid DNA letter [{}] in position [{}] of the reference genome".format(ref_genome[i], i+1))
 		
 	return REF_GENOME
 
