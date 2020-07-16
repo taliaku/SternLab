@@ -66,6 +66,9 @@ def summarize_stats (dir_path, sample_basename_pattern, freqs_file_path, Coverag
 				mutation_data = freqs_data[(freqs_data["rank"] != 0) & (freqs_data["coverage"] > Coverage) & (freqs_data["probability"] >= PROBABILITY_LIMIT)]
 				print(f"Sum of Mutations: {len(mutation_data)}")
 				o.write(f"Sum of Mutations: {len(mutation_data)}")
+
+				# TODO- integrate primerID statistics from primerID_counter.py
+
 			except:
 				print("\nWarning. Unable to summarize pipeline statistics, or cannot open or write to file " + pipeline_summary + "\n")
 		else:
