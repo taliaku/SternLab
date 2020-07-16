@@ -1,18 +1,54 @@
+from Bio import SeqIO
+
+### quality thresholds ###
+freq_threshold = 1e-3
+coverage_threshold = 100
+prob_threshold = 0.95
+
+
+### subtype-C gene/proteins coordinates ###
+
+ET86_length= 9031
+# genes
 gag_ET86_interval = (170, 1684)
 pol_ET86_interval = (1456, 4488)
+env_ET86_interval = (5637, 8196)
+# proteins
 IN_ET86_interval = (3619, 4483)
 PR_ET86_interval = ()
-RT_ET86_interval = (1939, 3619)
+RT_ET86_interval = (1939, 3619) # 592 AA after gag start?
 RT_short_ET86_interval = (1939, 2629) # 230 aa's
-env_ET86_interval = (5637, 8196)
-ET86_length= 9031
 
+# get_ET86_region()
+ET86_ref_path = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_input/reference/ET86.gb'
+coor_by_ref =  SeqIO.read(ET86_ref_path, 'gb')
+coor_by_ref_anno = {x.qualifiers['note'][-1]: x for x in coor_by_ref.features}
+def get_ET86_region(position):
+    # Ultra-hack:
+    for fname, feature in coor_by_ref_anno.items():
+        if int(position) in feature.location and feature.type == 'protein':
+            return fname
+
+    for fname, feature in coor_by_ref_anno.items():
+        if int(position) in feature.location and feature.type == 'gene':
+            return fname
+
+    return None
+
+
+# HXB2
 gag_HXB2_interval = (790, 2292)
 pol_HXB2_interval = (2085, 5096)
+RT_HXB2_interval = (2554, ~3870) # 588 AA after gag start?
 env_HXB2_interval = (6225, 8795)
+
+
+### patients\samples data ###
 
 orig_patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
 orig_selected_patients = ['13003','15664','16207','22097','22763','22828','26892','29447','31254','47939']
+# orig_patients_ordered_by_mr=['29447','29219','22763','15664','26892','22097','31254','16207','19937','28545','47939','13003','28841','34253','22828','17339','12796']
+orig_patients_ordered_by_mr=[29447,19937,31254,16207,15664,29219,22763,22828,17339,22097,26892,13003,34253,28545,47939,12796,28841]
 
 orig_samples= ['100888_S14','130945_S2','504185_S29','504190_S34','504194_S38','504198_S42','504202_S46','504206_S50','504210_S54','504215_S59','504221_S65','504226_S70','504231_S75','79504_S23','83476_S27','84864_S47','TASPX100926_S26','X145364_S75','X83354_S92','105090_S50','504181_S25','504186_S30','504191_S35','504195_S39','504199_S43','504203_S47','504207_S51','504211_S55','504217_S61','504223_S67','504227_S71','504233_S77','81065_S64','84298_S2','87415_S75','TASPX119494_S74','X145656_S76','X84335_S20','105094_S45','504182_S26','504188_S32','504192_S36','504196_S40','504200_S44','504204_S48','504208_S52','504212_S56','504218_S62','504224_S68','504228_S72','504234_S78','83351_S15','84434_S32','TASPX100702_S59','X100748_S73','X160138_S81','X84434_S3','105257_S39','504184_S28','504189_S33','504193_S37','504197_S41','504201_S45','504205_S49','504209_S53','504214_S58','504220_S64','504225_S69','504230_S74','504235_S79','83456_S87','84785_S56','TASPX100711_S29','X145364-R_S95','X83322_S89','X84994_S90']
 orig_excluded_samples = ('X84335_S20', '504214_S58', '504184_S28', '504186_S30', '84864_S47', '504206_S50', '504190_S34', '504191_S35','504192_S36', '504198_S42', 'X84434_S3', 'X145364-R_S95')
@@ -30,6 +66,10 @@ control_chosen_patients = ['24277', '6773', '26755', '4956', '7965', '8992', '22
 
 control_bl_samples = ['X112003','X121017','X117597','X84355','X84469','X117607','X117659','X160394','X84772','X88373','81003','X105416','X105500','X83676','X84641','X105289','X117547','X135606','79578','X94731','X101706','X105130','X96465','X84990','X84505','79649','78486','X119113','X88273','X122207','X117890','81088']
 control_fl_samples = ['X117807','X135623','X165309','X96026','X122107','X161610','X165273','X165290','X83348','X101530','X102662','X105350','X105354','X128277','X130823','X160433','X165276','X178870','X83744','X96051','X122054','X122087','X122061','X111406','X88469','X108456','78292','X132700','X111489','X108262','X160392','X87707']
+
+zn_patients_ordered_by_mr=['p7','p10','p4','p5','p3','p11','p2','p9','p1','p8','p6']
+
+### subtype-C synonymous positions analysis ###
 
 # Adequte positions for MR analysis according to ZN (synonymous unconserved positions - filtering details below)
 # TODO- produce this array per patient

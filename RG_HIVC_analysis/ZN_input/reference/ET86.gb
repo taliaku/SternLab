@@ -28,8 +28,14 @@ FEATURES             Location/Qualifiers
                      /note="GAG p17/p24/NCp7/p6"
      gene            1456..4488
                      /note="pol"
-     protein         1456..4488
-                     /note="protease/RT/RNAseH/integrase"
+     protein         1456..1938
+                     /note="protease - approx."
+     protein         1939..2629
+                     /note="RT"
+     protein         2630..3618
+                     /note="RNAseH - approx."
+     protein         3619..4483
+                     /note="IN"
      protein         4433..5011
                      /note="VIF"
      protein         4951..5241
