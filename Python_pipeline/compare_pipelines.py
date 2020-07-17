@@ -108,13 +108,6 @@ def plot_coverage(py_df, pe_df, output_folder):
     plt.savefig(os.path.join(output_folder, 'coverage.png'))
 
 
-def _get_mismatching_bases(zero_rank_data):
-    joined = zero_rank_data['pe'].join(zero_rank_data['py'], rsuffix='_py', lsuffix='_pe')
-    joined.dropna(subset=['ref_base_py', 'ref_base_pe'], inplace=True)
-    mismatching_bases = joined[joined.base_py != joined.base_pe]
-    return mismatching_bases
-
-
 def create_analyze_data_cmdfile(output_folder, alias):
     cmd_file_path = os.path.join(output_folder, 'analyze_data.cmd')
     this_module = os.path.basename(os.path.normpath(os.path.abspath(__file__)))[:-3]
@@ -130,8 +123,7 @@ def analyze_data(output_folder):
     This function is called by PBS via the cmdfile created by create_analyze_data_cmdfile
     """
     data = get_freqs_data(output_folder)
-    zero_rank_data = {key: df[df['rank'] == 0] for key, df in data.items()}
-    plot_coverage(zero_rank_data['py'], zero_rank_data['pe'], output_folder)
+    plot_coverage(py_df=data['py'], pe_df=data['pe'], output_folder=output_folder)
     joined = data['pe'].join(data['py'], rsuffix='_py', lsuffix='_pe', how='outer')
     joined.to_csv(os.path.join(output_folder, 'data.csv'))
 
