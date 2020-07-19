@@ -97,17 +97,6 @@ def get_freqs_data(output_folder):
     return data
 
 
-def plot_coverage(py_df, pe_df, output_folder):
-    plt.figure(figsize=(20,10))
-    plt.bar(pe_df.index.get_level_values('ref_position'), pe_df['coverage'], label='perl pipeline')
-    plt.bar(py_df.index.get_level_values('ref_position'), py_df['coverage'], label='python pipeline')
-    plt.xlabel('ref_position')
-    plt.ylabel('coverage')
-    plt.title('Pipeline Coverage: perl vs python')
-    plt.legend()
-    plt.savefig(os.path.join(output_folder, 'coverage.png'))
-
-
 def create_analyze_data_cmdfile(output_folder, alias):
     cmd_file_path = os.path.join(output_folder, 'analyze_data.cmd')
     this_module = os.path.basename(os.path.normpath(os.path.abspath(__file__)))[:-3]
@@ -118,14 +107,72 @@ def create_analyze_data_cmdfile(output_folder, alias):
     return cmd_file_path
 
 
+def _apply_invert_deletions(row, col):
+    if row.base == '-':
+        return row[col] * -1
+    else:
+        return row[col]
+
+
+def plot_indels(data, output_folder):
+    df = data.copy()
+    plt.figure(figsize=(20,10))
+    df['base_counter_pe'] = df.apply(lambda row: _apply_invert_deletions(row, 'base_counter_pe'), axis=1)
+    df['base_counter_py'] = df.apply(lambda row: _apply_invert_deletions(row, 'base_counter_py'), axis=1)
+    indels_pe = df[(df.ref_base_pe == '-') | (df.base == '-')]
+    indels_py = df[(df.ref_base_py == '-') | (df.base == '-')]
+    plt.plot(indels_pe.index, indels_pe.base_counter_pe, label=f'perl indels', alpha=0.5)
+    plt.plot(indels_py.index, indels_py.base_counter_py, label=f'python indels', alpha=0.5)
+    plt.xlabel('ref_position')
+    plt.ylabel(' deletions <-- base counter --> insertions')
+    plt.title('Indels Coverage: perl vs python (positive is insertion, negative is deletion)')
+    plt.legend()
+    plt.savefig(os.path.join(output_folder, 'indels.svg'))
+
+
+def drop_indels(df):
+    return df[(df.base != '-') & (df.ref_base_pe != '-') & (df.ref_base_py != '-')].copy()
+
+
+def plot_coverage_diff(data, output_folder):
+    noindels = drop_indels(data)
+    plt.figure(figsize=(20,10))
+    noindels.fillna(0, inplace=True)
+    noindels['cov_diff'] = noindels.coverage_pe - noindels.coverage_py
+    plt.plot(noindels.index, noindels['cov_diff'])
+    plt.xlabel('ref_position')
+    plt.ylabel('coverage difference')
+    plt.title('Coverage Difference - perl minus python (excluding indels)')
+    plt.savefig(os.path.join(output_folder, 'coverage_diff.svg'))
+
+
+def plot_mutations(data, output_folder):
+    noindels = drop_indels(data)
+    mutations = noindels[(noindels['rank_pe'] > 0) | (noindels['rank_py'] > 0)]
+    for base in ['A', 'C', 'G', 'T']:
+        plt.figure(figsize=(20, 10))
+        mutated_bases = mutations[
+            (mutations.base == base) & ((mutations.frequency_pe > 0) | (mutations.frequency_py > 0))]
+        plt.scatter(mutated_bases.index, mutated_bases.frequency_pe, alpha=0.5, label='perl pipeline')
+        plt.scatter(mutated_bases.index, mutated_bases.frequency_py, alpha=0.5, label='python pipeline')
+        plt.title(f'X > {base} Mutation Frequency')
+        plt.legend()
+        plt.savefig(os.path.join(output_folder, f'mutations_{base}.svg'))
+
+
 def analyze_data(output_folder):
     """
     This function is called by PBS via the cmdfile created by create_analyze_data_cmdfile
     """
+    analysis_folder = os.path.join(output_folder, 'analysis')
+    if not os.path.isdir(analysis_folder):
+        os.mkdir(analysis_folder)
     data = get_freqs_data(output_folder)
-    plot_coverage(py_df=data['py'], pe_df=data['pe'], output_folder=output_folder)
-    joined = data['pe'].join(data['py'], rsuffix='_py', lsuffix='_pe', how='outer')
-    joined.to_csv(os.path.join(output_folder, 'data.csv'))
+    df = data['pe'].join(data['py'], rsuffix='_py', lsuffix='_pe', how='outer')
+    plot_indels(data=df, output_folder=analysis_folder)
+    plot_coverage_diff(data=df, output_folder=analysis_folder)
+    plot_mutations(data=df, output_folder=analysis_folder)
+    df.to_csv(os.path.join(analysis_folder, 'data.csv'))
 
 
 def merge_fastq_files(input_data_folder, output_folder, reference_file):
