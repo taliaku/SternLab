@@ -64,7 +64,7 @@ def wrangle_freqs_df(data):
 	data["rank"] = (pd.Series.cumsum(pd.Series(data["coverage_to_set_rank"])) - 1) % 5
 	del data["coverage_to_set_rank"]
 	# Create freqs file
-	pd.DataFrame.set_index(data, keys="ref_position", inplace=True)
+	pd.DataFrame.set_index(data, keys=["ref_position", "base"], inplace=True)
 	return data
 
 
