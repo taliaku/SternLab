@@ -21,7 +21,6 @@ from utils.logger import pipeline_logger
 from utils.pbs_jobs import create_pbs_cmd
 from utils.runner_utils import submit_wait_and_log
 
-#TODO: make this run!
 
 def _create_python_output_folder(output_folder):
     python_output_path = os.path.join(output_folder, 'python_output')
