@@ -1,3 +1,9 @@
+"""
+This script takes an input folder containing fastq files, merges them according to the new pipeline and than runs both
+the perl (old) and python (new) pipeline and outputs a joined dataset containing both as well as several visualisations
+to help understand the main differences between the outputs.
+"""
+
 import argparse
 import os
 import subprocess
@@ -213,6 +219,7 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--reference_file",
                         required=True)
     parser.add_argument("-j", "--just_analyze", default=False,
-                        help='True will skip the pipelines and just analyze the output. default is False.')
+                        help='True will skip the pipelines and just analyze the output. Mostly used for debugging. '
+                             'default is False.')
     args = parser.parse_args()
     main(args)
