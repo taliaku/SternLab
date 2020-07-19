@@ -1,7 +1,9 @@
 """
-This script takes an input folder containing fastq files, merges them according to the new pipeline and than runs both
-the perl (old) and python (new) pipeline and outputs a joined dataset containing both as well as several visualisations
-to help understand the main differences between the outputs.
+This script takes an input folder containing fastq files, merges them using the new pipeline and than runs both
+the perl (old) and python (new) pipeline.
+In the output folder there will be the outputs of both pipelines as well as a log file under .log.
+Under the 'analysis' folder a joined dataset of both output data will be created as well as several visualisations
+showing some main differences between the outputs.
 """
 
 import argparse
@@ -108,7 +110,7 @@ def create_analyze_data_cmdfile(output_folder, alias):
     this_module = os.path.basename(os.path.normpath(os.path.abspath(__file__)))[:-3]
     output_folder_string = '"' + output_folder + '"'
     cmd = f"cd {os.path.join(STERNLAB_PATH, 'Python_pipeline')}; python -c " \
-          f"'from {this_module} import analyze_data; analyze_data({output_folder_string})'"
+          f"'from {this_module} import analyze_data; analyze_data({output_folder_string})'" # <- dirty hack for PBS
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmd)
     return cmd_file_path
 
@@ -211,7 +213,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input_data_folder",
-                        help="Fasta files to run both pipelines on",
+                        help="A folder containing the fasta files to run both pipelines on.",
                         required=True)
     parser.add_argument("-o", "--output_folder",
                         help="Where you want the output files to go",
@@ -219,7 +221,7 @@ if __name__ == '__main__':
     parser.add_argument("-r", "--reference_file",
                         required=True)
     parser.add_argument("-j", "--just_analyze", default=False,
-                        help='True will skip the pipelines and just analyze the output. Mostly used for debugging. '
-                             'default is False.')
+                        help='True will skip running the pipelines and just analyze the output. '
+                             'Mostly used for debugging. default is False. When True input_data_folder is ignored.')
     args = parser.parse_args()
     main(args)
