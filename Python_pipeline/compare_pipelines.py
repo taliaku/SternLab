@@ -168,7 +168,7 @@ def analyze_data(output_folder):
     if not os.path.isdir(analysis_folder):
         os.mkdir(analysis_folder)
     data = get_freqs_data(output_folder)
-    df = data['pe'].join(data['py'], rsuffix='_py', lsuffix='_pe', how='outer')
+    df = data['pe'].join(data['py'], rsuffix='_py', lsuffix='_pe', how='outer').reset_index().set_index('ref_position')
     plot_indels(data=df, output_folder=analysis_folder)
     plot_coverage_diff(data=df, output_folder=analysis_folder)
     plot_mutations(data=df, output_folder=analysis_folder)
