@@ -44,13 +44,12 @@ def create_ref_seq (ref_FilePath):
 	REF_GENOME = {}
 	ref_genome_length = len(ref_genome)
 	for i in range(ref_genome_length):
-		if ref_genome[i] in ['A','C','G','T']:
+		if ref_genome[i] in ['A','C','G','T','N']:
 			REF_GENOME[float(i+1)] = [ref_genome[i]]
 		else:
 			raise Exception("Found a non valid DNA letter [{}] in position [{}] of the reference genome".format(ref_genome[i], i+1))
 		
-	return REF_GENOME
-
+	return REF_GENOME	
 
 def wrangle_freqs_df(data):
 	data = pd.DataFrame.groupby(data, level=[0, 1, 2]).sum()
@@ -92,7 +91,7 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Minimal_insertion_c
 	data = data.drop_duplicates("ref_position")
 	pd.DataFrame.set_index(data, keys = "ref_position", inplace = True)
 	#Get indexes of insertions with <= minimal coverage to get a "cleaner" consensus ref
-	InsertionCoverageIndex = data[(data['coverage'] <= Minimal_insertion_coverage) & (data['ref_base'] == "-")].index
+	InsertionCoverageIndex = data[(data['coverage'] <= Minimal_insertion_coverage) & (data['ref_base'] == "-") & (data['base'] != "-")].index
 	data.drop(InsertionCoverageIndex, inplace=True)
 
 	#Create dataframe of original ref
@@ -105,7 +104,7 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Minimal_insertion_c
 	pd.DataFrame.rename_axis(consensus_df, "ref_position", inplace = True)
 	pd.DataFrame.sort_index(consensus_df, inplace = True)
 	consensus_df["base_consensus"] = np.where(consensus_df["coverage"] > 0, consensus_df["base"], consensus_df["ref_base_x"])
-	indels_consensus = ''.join(consensus_df["base_consensus"].values).replace('-','')
+	indels_consensus = ''.join(consensus_df["base_consensus"].values).replace('-','N')  #replace deletions with N to allow blast against new consensus
 	consensus_file_path = dir_path + "/" + sample_basename_pattern + "consensus_with_indels.fasta"
 	try:
 		with open(consensus_file_path, 'w') as consensus_file:
@@ -115,10 +114,12 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Minimal_insertion_c
 		raise Exception("Unexpected error, cannot write into file " + consensus_file_path + "\n")
 
 	#Create consensus without insertions to stay in frame with original ref
+	consensus_df["base_consensus_N"] = np.where(consensus_df["base_consensus"] == '-', "N", consensus_df["base_consensus"])  # replaces deletions with N to stay in frame
 	consensus_df["base_consensus"] = np.where(consensus_df["base_consensus"] == '-', consensus_df["ref_base_x"], consensus_df["base_consensus"])  # ignores deletions, leaves original ref base
-	InsertionIndex = consensus_df[consensus_df['ref_base_y'] == "-"].index	#removes insertions
+	InsertionIndex = consensus_df[(consensus_df['ref_base_x'] != "N") & (consensus_df['ref_base_y'] == "-") & (consensus_df['base'] != "-")].index	#removes insertions
 	consensus_df.drop(InsertionIndex, inplace=True)
 	no_indels_consensus = ''.join(consensus_df["base_consensus"].values)
+	N_indels_consensus = ''.join(consensus_df["base_consensus_N"].values)
 	consensus_file_path = dir_path + "/" + sample_basename_pattern + "consensus_without_indels.fasta"
 	try:
 		with open(consensus_file_path, 'w') as consensus_file:
@@ -126,6 +127,23 @@ def JoinFreqs(dir_path, sample_basename_pattern, REF_GENOME, Minimal_insertion_c
 			consensus_file.write(no_indels_consensus)
 	except:
 		raise Exception("Unexpected error, cannot write into file " + consensus_file_path + "\n")
+
+	consensus_N_file_path = dir_path + "/" + sample_basename_pattern + "consensus_with_N_indels.fasta"
+	try:
+		with open(consensus_N_file_path, 'w') as consensus_file:
+			consensus_file.write(">" + os.path.basename(consensus_N_file_path).split(".fasta")[0] + "\n")
+			consensus_file.write(N_indels_consensus)
+	except:
+		raise Exception("Unexpected error, cannot write into file " + consensus_N_file_path + "\n")
+
+	Number_of_insertions = len(indels_consensus)-len(REF_GENOME)
+	Number_of_deletions = indels_consensus.count('N')
+
+	pipeline_summary = dir_path + "/Summary.txt"
+	with open(pipeline_summary, "a") as o:
+		o.write("Insertions and deletions count:\n")
+		o.write("Total number of insertions: {}\n".format(Number_of_insertions))
+		o.write("Total number of deletions: {}\n\n".format(Number_of_deletions))
 
 def links_between_mutations(dir_path, sample_basename_pattern, min_value = 1):
 	file_type = ".good_mutations"
