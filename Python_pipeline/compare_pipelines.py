@@ -162,6 +162,8 @@ def plot_mutations(data, output_folder):
             (mutations.base == base) & ((mutations.frequency_pe > 0) | (mutations.frequency_py > 0))]
         plt.scatter(mutated_bases.index, mutated_bases.frequency_pe, alpha=0.5, label='perl pipeline')
         plt.scatter(mutated_bases.index, mutated_bases.frequency_py, alpha=0.5, label='python pipeline')
+        plt.xlabel('ref_position')
+        plt.ylabel('frequency')
         plt.title(f'X > {base} Mutation Frequency')
         plt.legend()
         plt.savefig(os.path.join(output_folder, f'mutations_{base}.png'))
