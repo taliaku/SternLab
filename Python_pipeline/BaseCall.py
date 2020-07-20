@@ -79,6 +79,10 @@ def create_ref_seq (ref_FilePath):
 	for i in range(ref_genome_length):
 		if ref_genome[i] in ['A','C','G','T']:
 			REF_GENOME[i+1] = ref_genome[i]
+		elif ref_genome[i] == 'N':
+			# pipeline's Join creates consensus with '-' marked as N's, for compatabilty with Blast
+			# TODO- is this compatible with exteranl reference files?
+			REF_GENOME[i+1] = '-'
 		else:
 			raise Exception("Found a non valid DNA letter [{}] in position [{}] of the reference genome".format(ref_genome[i], i+1))
 		
@@ -208,13 +212,14 @@ def create_read_id_seq_qscore (read_id, read_start, read_end, ref_start, ref_end
 				Base = mutation[k+Seq_pair_position] 
 				if (mode == "SeqtoRef") and (strand == "minus") and (Base != "-") and (Base != "N"):  #NextSeq sometimes gives N base calling. Pipeline ignores N base later in calculate_read_id_contribution.
 					Base = REVERSE_COMPLEMENT_BASES.get(Base)	
-				
-				if mutation[k+Ref_pair_position] in ['A','C','G','T']: #mutation or deletion, NOT insertion
+			           
+				if mutation[k+Ref_pair_position] in ['A','C','G','T','N']: #mutation or deletion, NOT insertion #Maybe
 					if ref_counter not in READ_ID_BASE_CALL_COUNTER:
 						READ_ID_BASE_CALL_COUNTER[ref_counter] = {}
 					if Base not in READ_ID_BASE_CALL_COUNTER[ref_counter]:
 						READ_ID_BASE_CALL_COUNTER[ref_counter][Base] = [0,0,[]]     #READ_ID_BASE_CALL_COUNTER[ref_counter][Base] = [counter, q_score_sum, [mutation_positions]]
 					READ_ID_BASE_CALL_COUNTER[ref_counter][Base][counter] += 1
+					
 					if mutation[k+Seq_pair_position] == "-":    #deletion	
 						if (mode == "ReftoSeq") and (strand == "minus"):		
 							y = k
@@ -234,11 +239,13 @@ def create_read_id_seq_qscore (read_id, read_start, read_end, ref_start, ref_end
 						READ_ID_BASE_CALL_COUNTER[ref_counter][Base][q_score_sum] += q_score 	#assigning min q-score for deletions
 						READ_ID_BASE_CALL_COUNTER[ref_counter][Base][mutation_positions].append(deletion_counter)
 						READ_ID_DOUBLE_POSITION_COUNTER = double_position_counter(deletion_counter, READ_ID_DOUBLE_POSITION_COUNTER, ref_counter)
+					
 					else:	#mutation
 						READ_ID_BASE_CALL_COUNTER[ref_counter][Base][q_score_sum] += READ_ID_QSCORE.get(read_counter)
 						READ_ID_BASE_CALL_COUNTER[ref_counter][Base][mutation_positions].append(read_counter)
 						READ_ID_DOUBLE_POSITION_COUNTER = double_position_counter(read_counter, READ_ID_DOUBLE_POSITION_COUNTER, ref_counter)
 						read_counter += read_counter_direction 
+					
 					ref_counter += ref_counter_direction 
 					gap = 0
 					
@@ -257,7 +264,10 @@ def create_read_id_seq_qscore (read_id, read_start, read_end, ref_start, ref_end
 						ref_gap_counter = ref_counter-1
 					else:	#(mode == "SeqtoRef") and (strand == "minus")
 						ref_gap_counter = ref_counter
-					gap_counter = str(ref_gap_counter) + "." + str(gap) 
+					if gap < 10:
+						gap_counter = str(ref_gap_counter) + ".0" + str(gap) 
+					else:
+						gap_counter = str(ref_gap_counter) + "." + str(gap) 
 					if gap_counter not in READ_ID_BASE_CALL_COUNTER:
 						READ_ID_BASE_CALL_COUNTER[gap_counter] = {}
 					if Base not in READ_ID_BASE_CALL_COUNTER[gap_counter]:
@@ -270,7 +280,7 @@ def create_read_id_seq_qscore (read_id, read_start, read_end, ref_start, ref_end
 					deletion = 0
 				
 				else:	
-					raise Exception("Unexpected error, base in reference genome is not A,C,G or T\n")	
+					raise Exception("Unexpected error, base in reference genome is not A,C,G,T or N\n")
 
 				k += 2
     
@@ -327,7 +337,7 @@ def calculate_read_id_contribution (READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_C
 							if ref_position not in TOTAL_BASE_CALL_COUNTER:
 								TOTAL_BASE_CALL_COUNTER[ref_position] = [0, 0, 0, 0, 0, 0] #TOTAL_BASE_CALL_COUNTER[ref_position] = [Total_counter, A_counter, C_counter, G_counter, T_counter, -_counter] 
 							Base_position = BASE_POSITION.get(base)
-							TOTAL_BASE_CALL_COUNTER[ref_position][Base_position] += 1
+							TOTAL_BASE_CALL_COUNTER[ref_position][Base_position] += 1	
 							TOTAL_BASE_CALL_COUNTER[ref_position][counter] += 1 
 							Total_base_counter_per_read_id += 1 
 							if len(READ_ID_BASE_CALL_COUNTER[ref_position][base][mutation_positions]) > 0:
