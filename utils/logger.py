@@ -1,6 +1,6 @@
 import os
 import logging
-import git
+import subprocess
 
 
 def _logger_already_exists(logger, log_file):
@@ -31,7 +31,7 @@ def _create_new_logger(logger, log_file):
     # add ch & fh to logger
     logger.addHandler(ch)
     logger.addHandler(fh)
-    git_sha = git.Repo(search_parent_directories=True).head.object.hexsha
+    git_sha = subprocess.check_output("git rev-parse HEAD".split()).strip()
     logger.info(f'Log started! Outputing to: {log_file}')
     logger.debug(f'git sha: {git_sha}')
     return logger
