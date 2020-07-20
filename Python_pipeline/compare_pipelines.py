@@ -19,7 +19,7 @@ STERNLAB_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(STERNLAB_PATH)
 from utils.logger import pipeline_logger
 from utils.pbs_jobs import create_pbs_cmd
-from utils.runner_utils import submit_wait_and_log
+from utils.runner_utils import submit_wait_and_log, FindFilesInDir
 
 
 def _create_python_output_folder(output_folder):
@@ -54,6 +54,8 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
     python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
     perl_runner_cmd = f"python {perl_runner_path} -i {python_runner_flags['o']} -o {perl_output_path} -r {reference_file} " \
                       f"-NGS_or_Cirseq 1"
+    if len(FindFilesInDir(input_data_folder, '.gz')) > 0:
+        perl_runner_cmd = perl_runner_cmd + " -t z"
     """
     the input for perl_runner_cmd is the output of python_runner_cmd because the python pipeline first created
     the fastq files which both pipelines use.
