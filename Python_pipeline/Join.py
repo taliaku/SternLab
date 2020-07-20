@@ -191,7 +191,8 @@ def main(args):
 		if "L00" in find_files[0]:
 			sample_basename_pattern = os.path.basename(find_files[0].split("L00")[0])
 		else:
-			raise Exception("Unexpected error, was not able to find a common path for sample name. Unable to perform Join step\n")
+			sample_basename_pattern = os.path.basename(find_files[0].split("merged")[0])
+			#raise Exception("Unexpected error, was not able to find a common path for sample name. Unable to perform Join step\n")
 	else:
 		raise Exception("Unexpected error, was not able to find *part1.fasta files in directory " + dir_path + ". Unable to perform Join step\n")
 
