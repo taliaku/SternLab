@@ -1,5 +1,7 @@
 import os
 import logging
+import git
+
 
 def _logger_already_exists(logger, log_file):
     if logger.hasHandlers(): # If logger exists, just return the existing logger.
@@ -29,7 +31,9 @@ def _create_new_logger(logger, log_file):
     # add ch & fh to logger
     logger.addHandler(ch)
     logger.addHandler(fh)
+    git_sha = git.Repo(search_parent_directories=True).head.object.hexsha
     logger.info(f'Log started! Outputing to: {log_file}')
+    logger.debug(f'git sha: {git_sha}')
     return logger
 
 def pipeline_logger(logger_name, log_folder=None):
