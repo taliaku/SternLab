@@ -54,7 +54,7 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
     python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
     perl_runner_cmd = f"python {perl_runner_path} -i {python_runner_flags['o']} -o {perl_output_path} -r {reference_file} " \
                       f"-NGS_or_Cirseq 1"
-    """ 
+    """
     the input for perl_runner_cmd is the output of python_runner_cmd because the python pipeline first created
     the fastq files which both pipelines use.
     """
@@ -134,7 +134,7 @@ def plot_indels(data, output_folder):
     plt.ylabel(' deletions <-- base counter --> insertions')
     plt.title('Indels Coverage: perl vs python (positive is insertion, negative is deletion)')
     plt.legend()
-    plt.savefig(os.path.join(output_folder, 'indels.svg'))
+    plt.savefig(os.path.join(output_folder, 'indels.png'))
 
 
 def drop_indels(df):
@@ -150,7 +150,7 @@ def plot_coverage_diff(data, output_folder):
     plt.xlabel('ref_position')
     plt.ylabel('coverage difference')
     plt.title('Coverage Difference - perl minus python (excluding indels)')
-    plt.savefig(os.path.join(output_folder, 'coverage_diff.svg'))
+    plt.savefig(os.path.join(output_folder, 'coverage_diff.png'))
 
 
 def plot_mutations(data, output_folder):
@@ -164,7 +164,7 @@ def plot_mutations(data, output_folder):
         plt.scatter(mutated_bases.index, mutated_bases.frequency_py, alpha=0.5, label='python pipeline')
         plt.title(f'X > {base} Mutation Frequency')
         plt.legend()
-        plt.savefig(os.path.join(output_folder, f'mutations_{base}.svg'))
+        plt.savefig(os.path.join(output_folder, f'mutations_{base}.png'))
 
 
 def analyze_data(output_folder):
