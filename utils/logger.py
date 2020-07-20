@@ -31,9 +31,9 @@ def _create_new_logger(logger, log_file):
     # add ch & fh to logger
     logger.addHandler(ch)
     logger.addHandler(fh)
-    git_sha = subprocess.check_output("git rev-parse HEAD".split()).strip()
+    #git_sha = subprocess.check_output("git rev-parse HEAD".split()).strip() #TODO: fix this.
     logger.info(f'Log started! Outputing to: {log_file}')
-    logger.debug(f'git sha: {git_sha}')
+    #logger.debug(f'git sha: {git_sha}')
     return logger
 
 def pipeline_logger(logger_name, log_folder=None):
