@@ -187,6 +187,7 @@ def main(args):
 
 	find_files = FindFilesInDir(dir_path, ".part1.fasta")
 	if len(find_files) > 0:
+		#TODO: why is this next line here?!
 		if "L00" in find_files[0]:
 			sample_basename_pattern = os.path.basename(find_files[0].split("L00")[0])
 		else:
