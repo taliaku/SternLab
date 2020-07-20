@@ -48,12 +48,14 @@ def _get_python_runner_flags(input_data_folder, output_folder):
     return ret
 
 
-def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias):
+def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias, pipeline_arguments):
     perl_output_path = _create_perl_output_folder(output_folder)
     perl_runner_path = os.path.join(STERNLAB_PATH, 'pipeline_runner.py')
     python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
-    perl_runner_cmd = f"python {perl_runner_path} -i {python_runner_flags['o']} -o {perl_output_path} -r {reference_file} " \
-                      f"-NGS_or_Cirseq 1"
+    perl_runner_cmd = f"python {perl_runner_path} -i {python_runner_flags['o']} -o {perl_output_path} " \
+                      f"-r {reference_file} -NGS_or_Cirseq 1 -rep {pipeline_arguments['repeats']} " \
+                      f"-ev {pipeline_arguments['evalue']} -b {pipeline_arguments['blast']} " \
+                      f"-q {pipeline_arguments['q_score']}"
     if len(FindFilesInDir(input_data_folder, '.gz')) > 0:
         perl_runner_cmd = perl_runner_cmd + " -t z"
     """
@@ -61,7 +63,9 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
     the fastq files which both pipelines use.
     """
     python_runner_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
-                        f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} -x 1 -s 1"
+                        f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} " \
+                        f"-x {pipeline_arguments['repeats']}  -v {pipeline_arguments['evalue']} " \
+                        f"-d {pipeline_arguments['blast']} -q {pipeline_arguments['q_score']} -s 1"
     cmds = perl_runner_cmd + "\n" + python_runner_cmd
     cmd_file_path = os.path.join(output_folder, 'compare_pipelines.cmd')
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmds)
@@ -199,12 +203,18 @@ def main(args):
     output_folder = args.output_folder
     reference_file = args.reference_file
     just_analyze = args.just_analyze
+    pipeline_arguments = {'blast': args.blast,
+                          'evalue': args.evalue,
+                          'repeats': args.repeats,
+                          'q_score': args.q_score}
     alias = 'ComparePipelines'
     log = pipeline_logger(alias, output_folder)
     if not just_analyze:
         log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
         merge_fastq_files(input_data_folder=input_data_folder, output_folder=output_folder, reference_file=reference_file)
-        compare_cmd_path = create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias)
+        compare_cmd_path = create_runners_cmdfile(input_data_folder=input_data_folder, output_folder=output_folder,
+                                                  reference_file=reference_file, alias=alias,
+                                                  pipeline_arguments=pipeline_arguments)
         submit_wait_and_log(compare_cmd_path, log, alias)
     log.info(f"Analyzing data...")
     alias = 'ComparePipelines-AnalyzeData'
@@ -226,5 +236,12 @@ if __name__ == '__main__':
     parser.add_argument("-j", "--just_analyze", default=False,
                         help='True will skip running the pipelines and just analyze the output. '
                              'Mostly used for debugging. default is False. When True input_data_folder is ignored.')
+    parser.add_argument("-b", "--blast", type=int, help="% blast id, default=85", default=85)
+    parser.add_argument("-ev", "--evalue", type=float, help="E value for blast, default=1e-7", required=False,
+                        default=1e-7)
+    parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=1", required=False, default=1)
+    parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
+
+
     args = parser.parse_args()
     main(args)
