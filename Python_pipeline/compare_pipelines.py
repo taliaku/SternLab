@@ -190,11 +190,13 @@ def analyze_data(output_folder):
     df.to_csv(os.path.join(analysis_folder, 'data.csv'))
 
 
-def merge_fastq_files(input_data_folder, output_folder, reference_file):
+def merge_fastq_files(input_data_folder, output_folder, reference_file, pipeline_arguments):
     """ Merge fastq files using the python_runner """
     python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
     merge_fastq_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
-                      f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} -x 1 -s 0 -e 0"
+                      f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} -s 0 -e 0 " \
+                      f"-x {pipeline_arguments['repeats']}  -v {pipeline_arguments['evalue']} " \
+                      f"-d {pipeline_arguments['blast']} -q {pipeline_arguments['q_score']} "
     subprocess.run(merge_fastq_cmd.split(), stdout=subprocess.PIPE)
 
 
@@ -211,7 +213,8 @@ def main(args):
     log = pipeline_logger(alias, output_folder)
     if not just_analyze:
         log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
-        merge_fastq_files(input_data_folder=input_data_folder, output_folder=output_folder, reference_file=reference_file)
+        merge_fastq_files(input_data_folder=input_data_folder, output_folder=output_folder,
+                          reference_file=reference_file, pipeline_arguments=pipeline_arguments)
         compare_cmd_path = create_runners_cmdfile(input_data_folder=input_data_folder, output_folder=output_folder,
                                                   reference_file=reference_file, alias=alias,
                                                   pipeline_arguments=pipeline_arguments)
