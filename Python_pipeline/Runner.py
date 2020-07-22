@@ -157,7 +157,7 @@ def Blast (dir_path, ref_genome, task, mode, e_value, ID_blast, queue, log):
 	if len(blast_files) != len(input_fasta_files):
 		raise Exception("Unexpected error, number of blast output files " + str(len(blast_files)) + " does not match number of input fasta files " + str(len(input_fasta_files)) + "\n")
 
-def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue, log):
+def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue, log, please_remove_multiple_mapping):
 	alias = "BaseCalling"
 	script_path = pipeline_dir + "/BaseCall.py"
 
@@ -176,7 +176,8 @@ def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode,
 	array = create_array(input_blast_files)
 	cmd1 = 'declare -a FILENAMES\n'
 	cmd2 = 'FILENAMES=' + array + "\n\n"
-	cmd3 = "python " + script_path + " -f ${FILENAMES[" + index + "]} -r " + ref_genome + " -q " + str(q_score) + " -x " + str(min_num_repeats) + " -m " + mode + " -p " + Protocol
+	cmd3 = "python " + script_path + " -f ${FILENAMES[" + index + "]} -r " + ref_genome + " -q " + str(q_score) + " -x " \
+		   + str(min_num_repeats) + " -m " + mode + " -p " + Protocol + + " pr " + please_remove_multiple_mapping
 	cmds = cmd1 + cmd2 + cmd3
 
 	cmdfile = dir_path + "/BaseCalling.cmd"
@@ -354,6 +355,8 @@ def main(args):
 		if min_num_repeats > 2:
 			log.warning("Running pipeline with min number of repeats bigger than 2")
 
+	please_remove_multiple_mapping = args.please_remove_multiple_mapping
+
 	Min_Num_reads_per_file = 10000
 	Max_Num_reads_per_file = 40000
 	Num_reads_per_file = args.num_reads
@@ -462,7 +465,7 @@ def main(args):
 				raise Exception("Unexpected error, freqs files were found in directory " + dir_path + ". Cannot run BaseCall. To re-write add -w Y to command line\n")
 			elif len(freqs_files) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.freqs* " + dir_path + "/*.good* " + dir_path + "/*.NonContributing")
-			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue, log)
+			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue, log, please_remove_multiple_mapping)
 
 		if stage == 4:
 			file_type = "merge.freqs.csv"
@@ -503,6 +506,7 @@ if __name__ == "__main__":
 	parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='adistzachi@power9'", required=False, default="adistzachi@power9")
 	parser.add_argument("-w", "--overwrite", type=str, help="overwrite? Y/N, default='N'", required=False, default="N")
 	parser.add_argument("-L", "--log_folder", type=str, help="Folder path to write .log file in. defaults to --output_dir", default=None)
+	parser.add_argument("-pr", "--please_remove_multiple_mapping", default=True)
 	args = parser.parse_args()
 	main(args)
 

@@ -13,8 +13,6 @@ import sys
 import pandas as pd
 from matplotlib import pyplot as plt
 from Join import wrangle_freqs_df
-
-
 STERNLAB_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(STERNLAB_PATH)
 from utils.logger import pipeline_logger
@@ -65,7 +63,7 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
     python_runner_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
                         f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} " \
                         f"-x {pipeline_arguments['repeats']}  -v {pipeline_arguments['evalue']} " \
-                        f"-d {pipeline_arguments['blast']} -q {pipeline_arguments['q_score']} -s 1"
+                        f"-d {pipeline_arguments['blast']} -q {pipeline_arguments['q_score']} -s 1 -pr False"
     cmds = perl_runner_cmd + "\n" + python_runner_cmd
     cmd_file_path = os.path.join(output_folder, 'compare_pipelines.cmd')
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmds)
@@ -115,7 +113,7 @@ def create_analyze_data_cmdfile(output_folder, alias):
     this_module = os.path.basename(os.path.normpath(os.path.abspath(__file__)))[:-3]
     output_folder_string = '"' + output_folder + '"'
     cmd = f"cd {os.path.join(STERNLAB_PATH, 'Python_pipeline')}; python -c " \
-          f"'from {this_module} import analyze_data; analyze_data({output_folder_string})'" # <- dirty hack for PBS
+          f"'from {this_module} import analyze_data; analyze_data({output_folder_string})'"  # <- dirty hack for PBS
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmd)
     return cmd_file_path
 
@@ -129,7 +127,7 @@ def _apply_invert_deletions(row, col):
 
 def plot_indels(data, output_folder):
     df = data.copy()
-    plt.figure(figsize=(20,10))
+    plt.figure(figsize=(20, 10))
     df['base_counter_pe'] = df.apply(lambda row: _apply_invert_deletions(row, 'base_counter_pe'), axis=1)
     df['base_counter_py'] = df.apply(lambda row: _apply_invert_deletions(row, 'base_counter_py'), axis=1)
     indels_pe = df[(df.ref_base_pe == '-') | (df.base == '-')]
@@ -149,7 +147,7 @@ def drop_indels(df):
 
 def plot_coverage_diff(data, output_folder):
     noindels = drop_indels(data)
-    plt.figure(figsize=(20,10))
+    plt.figure(figsize=(20, 10))
     noindels.fillna(0, inplace=True)
     noindels['cov_diff'] = noindels.coverage_pe - noindels.coverage_py
     plt.plot(noindels.index, noindels['cov_diff'])
@@ -244,7 +242,5 @@ if __name__ == '__main__':
                         default=1e-7)
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=1", required=False, default=1)
     parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
-
-
     args = parser.parse_args()
     main(args)
