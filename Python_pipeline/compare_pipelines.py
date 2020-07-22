@@ -46,7 +46,8 @@ def _get_python_runner_flags(input_data_folder, output_folder):
     return ret
 
 
-def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias, pipeline_arguments):
+def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias, pipeline_arguments,
+                           please_remove_double_mapping):
     perl_output_path = _create_perl_output_folder(output_folder)
     perl_runner_path = os.path.join(STERNLAB_PATH, 'pipeline_runner.py')
     python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
@@ -203,6 +204,7 @@ def main(args):
     output_folder = args.output_folder
     reference_file = args.reference_file
     just_analyze = args.just_analyze
+    please_remove_double_mapping = args.please_remove_double_mapping
     pipeline_arguments = {'blast': args.blast,
                           'evalue': args.evalue,
                           'repeats': args.repeats,
@@ -215,7 +217,8 @@ def main(args):
                           reference_file=reference_file, pipeline_arguments=pipeline_arguments)
         compare_cmd_path = create_runners_cmdfile(input_data_folder=input_data_folder, output_folder=output_folder,
                                                   reference_file=reference_file, alias=alias,
-                                                  pipeline_arguments=pipeline_arguments)
+                                                  pipeline_arguments=pipeline_arguments,
+                                                  please_remove_double_mapping=please_remove_double_mapping)
         submit_wait_and_log(compare_cmd_path, log, alias)
     log.info(f"Analyzing data...")
     alias = 'ComparePipelines-AnalyzeData'
@@ -242,5 +245,6 @@ if __name__ == '__main__':
                         default=1e-7)
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=1", required=False, default=1)
     parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
+    parser.add_argument("-pr", "--please_remove_double_mapping", default=True)
     args = parser.parse_args()
     main(args)
