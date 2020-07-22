@@ -354,12 +354,8 @@ def main(args):
 			log.warning("Running pipeline with min number of repeats less than 2")
 		if min_num_repeats > 2:
 			log.warning("Running pipeline with min number of repeats bigger than 2")
-	print(f"args.please_remove_multiple_mapping: {args.please_remove_multiple_mapping} with type: "
-		  f"{type(args.please_remove_multiple_mapping)}")
-	if args.please_remove_multiple_mapping:
-		please_remove_multiple_mapping = 'True'
-	else:
-		please_remove_multiple_mapping = 'False'
+
+	please_remove_multiple_mapping = args.please_remove_multiple_mapping
 
 	Min_Num_reads_per_file = 10000
 	Max_Num_reads_per_file = 40000
