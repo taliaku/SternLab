@@ -47,11 +47,11 @@ def _get_python_runner_flags(input_data_folder, output_folder):
 
 
 def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias, pipeline_arguments,
-                           please_remove_double_mapping, pipelines_to_skip):
+                           please_remove_double_mapping, stages):
     python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
     perl_runner_cmd = ""
     python_runner_cmd = ""
-    if 'perl' not in pipelines_to_skip:
+    if 'perl' in stages:
         perl_output_path = _create_perl_output_folder(output_folder)
         perl_runner_path = os.path.join(STERNLAB_PATH, 'pipeline_runner.py')
         perl_runner_cmd = f"python {perl_runner_path} -i {python_runner_flags['o']} -o {perl_output_path} " \
@@ -64,7 +64,7 @@ def create_runners_cmdfile(input_data_folder, output_folder, reference_file, ali
     the input for perl_runner_cmd is the output of python_runner_cmd because the python pipeline first created
     the fastq files which both pipelines use.
     """
-    if 'python' not in pipelines_to_skip:
+    if 'python' in stages:
         python_runner_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
                             f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} " \
                             f"-x {pipeline_arguments['repeats']}  -v {pipeline_arguments['evalue']} " \
@@ -208,7 +208,7 @@ def main(args):
     input_data_folder = args.input_data_folder
     output_folder = args.output_folder
     reference_file = args.reference_file
-    pipelines_to_skip = args.pipelines_to_skip
+    stages = args.stages
     if args.please_remove_double_mapping:
         please_remove_double_mapping = "True"
     else:
@@ -219,13 +219,13 @@ def main(args):
                           'q_score': args.q_score}
     alias = 'ComparePipelines'
     log = pipeline_logger(alias, output_folder)
-    if not ('perl' in pipelines_to_skip and 'python' in pipelines_to_skip):
+    if 'perl' in stages or 'python' in stages:
         log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
         merge_fastq_files(input_data_folder=input_data_folder, output_folder=output_folder,
                           reference_file=reference_file, pipeline_arguments=pipeline_arguments)
         compare_cmd_path = create_runners_cmdfile(input_data_folder=input_data_folder, output_folder=output_folder,
                                                   reference_file=reference_file, alias=alias,
-                                                  pipeline_arguments=pipeline_arguments, pipelines_to_skip=pipelines_to_skip,
+                                                  pipeline_arguments=pipeline_arguments, stages=stages,
                                                   please_remove_double_mapping=please_remove_double_mapping)
         submit_wait_and_log(compare_cmd_path, log, alias)
     log.info(f"Analyzing data...")
@@ -245,9 +245,9 @@ if __name__ == '__main__':
                         required=True)
     parser.add_argument("-r", "--reference_file",
                         required=True)
-    parser.add_argument("-s", "--pipelines_to_skip", default=None,
-                        help='A list containing any of [perl, python] or None.'
-                             'Mostly used for debugging. default is None.')
+    parser.add_argument("-s", "--stages", default=['perl', 'python', 'analysis'],
+                        help="A list containing any of ['perl', 'python', 'analysis'] default is all of them. "
+                             "Mostly used for debugging.")
     parser.add_argument("-b", "--blast", type=int, help="% blast id, default=85", default=85)
     parser.add_argument("-ev", "--evalue", type=float, help="E value for blast, default=1e-7", required=False,
                         default=1e-7)

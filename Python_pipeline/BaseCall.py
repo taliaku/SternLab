@@ -529,7 +529,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 			if please_remove_multiple_mapping:
 				READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter = \
 				remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter)
-			del READ_ID_DOUBLE_POSITION_COUNTER
+				del READ_ID_DOUBLE_POSITION_COUNTER
 
 			#For each read_id in the blast file calculate contribution based on q-score in READ_ID_BASE_CALL_COUNTER.
 			#Summarize results in TOTAL_BASE_CALL_COUNTER.
