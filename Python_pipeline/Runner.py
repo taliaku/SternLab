@@ -177,7 +177,7 @@ def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode,
 	cmd1 = 'declare -a FILENAMES\n'
 	cmd2 = 'FILENAMES=' + array + "\n\n"
 	cmd3 = "python " + script_path + " -f ${FILENAMES[" + index + "]} -r " + ref_genome + " -q " + str(q_score) + " -x " \
-		   + str(min_num_repeats) + " -m " + mode + " -p " + Protocol + " pr " + please_remove_multiple_mapping
+		   + str(min_num_repeats) + " -m " + mode + " -p " + Protocol + " -pr " + please_remove_multiple_mapping
 	cmds = cmd1 + cmd2 + cmd3
 
 	cmdfile = dir_path + "/BaseCalling.cmd"
