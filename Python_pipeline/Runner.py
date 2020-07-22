@@ -177,7 +177,7 @@ def BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode,
 	cmd1 = 'declare -a FILENAMES\n'
 	cmd2 = 'FILENAMES=' + array + "\n\n"
 	cmd3 = "python " + script_path + " -f ${FILENAMES[" + index + "]} -r " + ref_genome + " -q " + str(q_score) + " -x " \
-		   + str(min_num_repeats) + " -m " + mode + " -p " + Protocol + + " pr " + please_remove_multiple_mapping
+		   + str(min_num_repeats) + " -m " + mode + " -p " + Protocol + " pr " + please_remove_multiple_mapping
 	cmds = cmd1 + cmd2 + cmd3
 
 	cmdfile = dir_path + "/BaseCalling.cmd"
@@ -355,7 +355,10 @@ def main(args):
 		if min_num_repeats > 2:
 			log.warning("Running pipeline with min number of repeats bigger than 2")
 
-	please_remove_multiple_mapping = args.please_remove_multiple_mapping
+	if args.please_remove_multiple_mapping:
+		please_remove_multiple_mapping = 'True'
+	else:
+		please_remove_multiple_mapping = 'False'
 
 	Min_Num_reads_per_file = 10000
 	Max_Num_reads_per_file = 40000
