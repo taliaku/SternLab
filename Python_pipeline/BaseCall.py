@@ -528,7 +528,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 				READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter = \
 				remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter)
 				del READ_ID_DOUBLE_POSITION_COUNTER
-			
+
 			#For each read_id in the blast file calculate contribution based on q-score in READ_ID_BASE_CALL_COUNTER. 
 			#Summarize results in TOTAL_BASE_CALL_COUNTER.
 			READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_COUNTER, Total_base_counter_per_read_id = \
@@ -611,7 +611,7 @@ def main(args):
 		if Protocol not in ["L", "l", "linear", "C", "c", "circular"]:
 			raise Exception("Unexpected error, for linear library prep protocol type 'linear' or 'L', for circular library prep protocol type 'circular' or 'C'\n") 
 	please_remove_multiple_mapping = args.please_remove_multiple_mapping
-	BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, min_num_repeats, q_score, mode, Protocol, please_remove_multiple_mapping)
+	BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, min_num_repeats, q_score, mode, Protocol, please_remove_multiple_mapping=please_remove_multiple_mapping)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
