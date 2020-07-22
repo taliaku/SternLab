@@ -209,8 +209,6 @@ def main(args):
     output_folder = args.output_folder
     reference_file = args.reference_file
     stages = args.stages
-    if not set(stages).issubset(('perl', 'python', 'analysis')):
-        raise Exception("stages must be a list of any of ['perl','python','analysis']")
     if args.please_remove_double_mapping:
         please_remove_double_mapping = "True"
     else:
