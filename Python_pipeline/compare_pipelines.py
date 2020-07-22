@@ -228,10 +228,11 @@ def main(args):
                                                   pipeline_arguments=pipeline_arguments, stages=stages,
                                                   please_remove_double_mapping=please_remove_double_mapping)
         submit_wait_and_log(compare_cmd_path, log, alias)
-    log.info(f"Analyzing data...")
-    alias = 'ComparePipelines-AnalyzeData'
-    analyze_cmd_path = create_analyze_data_cmdfile(output_folder, alias)
-    submit_wait_and_log(analyze_cmd_path, log, alias)
+    if 'analysis' in stages:
+        log.info(f"Analyzing data...")
+        alias = 'ComparePipelines-AnalyzeData'
+        analyze_cmd_path = create_analyze_data_cmdfile(output_folder, alias)
+        submit_wait_and_log(analyze_cmd_path, log, alias)
     log.info("Done.")
 
 
