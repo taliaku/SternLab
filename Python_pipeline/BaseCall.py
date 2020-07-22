@@ -297,7 +297,8 @@ def create_supporting_data_files(blast_FilePath):
 	return good_reads_file, good_mutations_file, stats_file, frequencies_file, Non_contributing_file
 
 def remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter, counter = 0, mapping_positions = 1):
-	for read_position in READ_ID_DOUBLE_POSITION_COUNTER:		
+	print("remove_multiple_mapping!!!")
+	for read_position in READ_ID_DOUBLE_POSITION_COUNTER:
 		count = READ_ID_DOUBLE_POSITION_COUNTER[read_position][counter]
 		if count > 1:
 			double_mapping_counter += 1
@@ -446,6 +447,7 @@ def get_record(ReadLines, RowNum, mode):
 	return read_record_split, read_id
 
 def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protocol, counter = 0, plus_counter = 1, minus_counter = 2, quality_line = 3, please_remove_multiple_mapping=True):
+	print("BaseCall!!!!!!!!!!!")
 	try:
 		with open(blast_FilePath,'rt') as read_records:
 			ReadLines = read_records.readlines()
