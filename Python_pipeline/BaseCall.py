@@ -471,6 +471,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 	RowNum = 0
 	while RowNum < Lines:
 		read_record_split, read_id = get_record(ReadLines, RowNum, mode)
+		print(f"read_id: {read_id}, counter: {counter}")
 		number_of_matchs = READ_IDS_VALUES[read_id][counter]
 		number_of_plus_matches = READ_IDS_VALUES[read_id][plus_counter]
 		number_of_minus_matches = READ_IDS_VALUES[read_id][minus_counter]
