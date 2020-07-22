@@ -254,6 +254,6 @@ if __name__ == '__main__':
                         default=1e-7)
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=1", required=False, default=1)
     parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
-    parser.add_argument("-pr", "--please_remove_double_mapping", default=True)
+    parser.add_argument("-pr", "--please_remove_double_mapping", default=False)
     args = parser.parse_args()
     main(args)
