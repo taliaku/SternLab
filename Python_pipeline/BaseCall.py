@@ -479,8 +479,8 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 		if number_of_matchs not in MATCH_STATISTICS:
 			MATCH_STATISTICS[number_of_matchs] = 0
 		MATCH_STATISTICS[number_of_matchs] += 1
-		enter_this_if = True if please_remove_multiple_mapping == "Y" else False  #TODO: remove this hack when done.
-		if enter_this_if or (number_of_matchs >= num_of_repeats) and (
+		always_enter_this_if = True if please_remove_multiple_mapping == "N" else False  #TODO: remove this hack when done.
+		if always_enter_this_if or (number_of_matchs >= num_of_repeats) and (
 				(Protocol in ["C", "c", "circular"]) or (
 					Protocol in ["L", "l", "linear"] and num_of_repeats == 2 and number_of_plus_matches == 1 and
 					number_of_minus_matches == 1
