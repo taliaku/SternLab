@@ -14,6 +14,8 @@ def _logger_already_exists(logger, log_file):
     return return_value
 
 def _create_new_logger(logger, log_file):
+    for handler in logging.root.handlers[:]:  # the logger sometimes doesn't write the log files and this may help...
+        logging.root.removeHandler(handler)   # TODO: does it help?
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to info
     ch = logging.StreamHandler()
@@ -31,9 +33,12 @@ def _create_new_logger(logger, log_file):
     # add ch & fh to logger
     logger.addHandler(ch)
     logger.addHandler(fh)
-    #git_sha = subprocess.check_output("git rev-parse HEAD".split()).strip() #TODO: fix this.
     logger.info(f'Log started! Outputing to: {log_file}')
-    #logger.debug(f'git sha: {git_sha}')
+    try:
+        git_sha = subprocess.check_output("git rev-parse HEAD".split()).strip()  # TODO: fix this.
+        logger.debug(f'git sha: {git_sha}')
+    except:
+        logger.debug(f"couldn't get git sha. Is this a git directory? {os.getcwd()}")
     return logger
 
 def pipeline_logger(logger_name, log_folder=None):
