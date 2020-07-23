@@ -37,6 +37,7 @@ def _create_new_logger(logger, log_file):
     # get the git hash of this directory.
     git_hash = subprocess.check_output(["git", "describe", "--always"], cwd=os.path.dirname(__file__)).strip().decode()
     logger.debug(f"git hash: {git_hash}")
+
     return logger
 
 def pipeline_logger(logger_name, log_folder=None):
