@@ -207,7 +207,7 @@ def analyze_data(output_folder):
     plot_indels(data=df, output_folder=analysis_folder)
     plot_coverage_diff(data=df, output_folder=analysis_folder)
     plot_mutations(data=df, output_folder=analysis_folder)
-    plot_frequency_comparison(data=df, output_folder=output_folder)
+    plot_frequency_comparison(data=df, output_folder=analysis_folder)
     df.to_csv(os.path.join(analysis_folder, 'data.csv'))
 
 
