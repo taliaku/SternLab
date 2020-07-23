@@ -135,7 +135,6 @@ def set_plots_size_params(size):
     plt.rc('xtick', labelsize=size)                  # fontsize of the tick labels
     plt.rc('ytick', labelsize=size)                  # fontsize of the tick labels
     plt.rc('legend', fontsize=size)                  # legend fontsize
-    plt.rcParams["figure.figsize"] = (size, size/2)  # size of the figure
 
 
 def plot_indels(data, output_folder):
@@ -144,6 +143,7 @@ def plot_indels(data, output_folder):
     df['base_counter_py'] = df.apply(lambda row: _apply_invert_deletions(row, 'base_counter_py'), axis=1)
     indels_pe = df[(df.ref_base_pe == '-') | (df.base == '-')]
     indels_py = df[(df.ref_base_py == '-') | (df.base == '-')]
+    plt.figure(figsize=(20, 10))
     plt.plot(indels_pe.index, indels_pe.base_counter_pe, label=f'perl indels', alpha=0.5)
     plt.plot(indels_py.index, indels_py.base_counter_py, label=f'python indels', alpha=0.5)
     plt.xlabel('ref_position')
@@ -161,6 +161,7 @@ def plot_coverage_diff(data, output_folder):
     noindels = drop_indels(data)
     noindels.fillna(0, inplace=True)
     noindels['cov_diff'] = noindels.coverage_pe - noindels.coverage_py
+    plt.figure(figsize=(20, 10))
     plt.plot(noindels.index, noindels['cov_diff'])
     plt.xlabel('ref_position')
     plt.ylabel('coverage difference')
@@ -174,6 +175,7 @@ def plot_mutations(data, output_folder):
     for base in ['A', 'C', 'G', 'T']:
         mutated_bases = mutations[
             (mutations.base == base) & ((mutations.frequency_pe > 0) | (mutations.frequency_py > 0))]
+        plt.figure(figsize=(20, 10))
         plt.scatter(mutated_bases.index, mutated_bases.frequency_pe, alpha=0.5, label='perl pipeline')
         plt.scatter(mutated_bases.index, mutated_bases.frequency_py, alpha=0.5, label='python pipeline')
         plt.xlabel('ref_position')
@@ -187,6 +189,7 @@ def plot_frequency_comparison(data, output_folder):
     noindels = drop_indels(data)
     noindels = noindels[(noindels.coverage_py > 5) | (noindels.coverage_pe > 5)]
     noindels.fillna(0, inplace=True)
+    plt.figure(figsize=(20, 10))
     plt.scatter(noindels.frequency_pe, noindels.frequency_py)
     plt.xlabel('frequency in perl pipeline')
     plt.ylabel('frequency in python pipeline')
