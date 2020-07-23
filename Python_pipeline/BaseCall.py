@@ -479,7 +479,8 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 		if number_of_matchs not in MATCH_STATISTICS:
 			MATCH_STATISTICS[number_of_matchs] = 0
 		MATCH_STATISTICS[number_of_matchs] += 1
-		if (number_of_matchs >= num_of_repeats) and (
+		enter_this_if = True if please_remove_multiple_mapping == "Y" else False  #TODO: remove this hack when done.
+		if enter_this_if or (number_of_matchs >= num_of_repeats) and (
 				(Protocol in ["C", "c", "circular"]) or (
 					Protocol in ["L", "l", "linear"] and num_of_repeats == 2 and number_of_plus_matches == 1 and
 					number_of_minus_matches == 1
@@ -530,10 +531,10 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 						raise Exception("Unexpected error, next_read_id " + next_read_id + " does not match read_id " + read_id + "\n")						
 
 			#For each read_id remove positions that were mapped more than once from contributing base calls
-			if please_remove_multiple_mapping == "Y":  #TODO: this doesn't seem to do anything....
-				READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter = \
-				remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter)
-				del READ_ID_DOUBLE_POSITION_COUNTER
+			#if please_remove_multiple_mapping == "Y":  #TODO: this doesn't seem to do anything....
+			READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter = \
+			remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter)
+			del READ_ID_DOUBLE_POSITION_COUNTER
 
 			#For each read_id in the blast file calculate contribution based on q-score in READ_ID_BASE_CALL_COUNTER. 
 			#Summarize results in TOTAL_BASE_CALL_COUNTER.
