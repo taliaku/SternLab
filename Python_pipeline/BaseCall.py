@@ -530,7 +530,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 						raise Exception("Unexpected error, next_read_id " + next_read_id + " does not match read_id " + read_id + "\n")						
 
 			#For each read_id remove positions that were mapped more than once from contributing base calls
-			if please_remove_multiple_mapping == "Y":
+			if please_remove_multiple_mapping == "Y":  #TODO: this doesn't seem to do anything....
 				READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter = \
 				remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter)
 				del READ_ID_DOUBLE_POSITION_COUNTER
