@@ -245,7 +245,7 @@ if __name__ == '__main__':
                         required=True)
     parser.add_argument("-s", "--stages", default=['perl', 'python', 'analysis'],
                         help="A list containing any of ['perl', 'python', 'analysis'] default is all of them.")
-    parser.add_argument("-b", "--blast", type=int, help="% blast id, default=85", default=85)
+    parser.add_argument("-b", "--blast", type=int, help=" percent blast id, default=85", default=85)
     parser.add_argument("-ev", "--evalue", type=float, help="E value for blast, default=1e-7", required=False,
                         default=1e-7)
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=1", required=False, default=1)
