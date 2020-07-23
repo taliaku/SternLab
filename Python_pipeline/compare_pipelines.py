@@ -46,24 +46,30 @@ def _get_python_runner_flags(input_data_folder, output_folder):
     return ret
 
 
-def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias, pipeline_arguments):
-    perl_output_path = _create_perl_output_folder(output_folder)
-    perl_runner_path = os.path.join(STERNLAB_PATH, 'pipeline_runner.py')
+def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias, pipeline_arguments,
+                           please_remove_double_mapping, stages):
     python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
-    perl_runner_cmd = f"python {perl_runner_path} -i {python_runner_flags['o']} -o {perl_output_path} " \
-                      f"-r {reference_file} -NGS_or_Cirseq 1 -rep {pipeline_arguments['repeats']} " \
-                      f"-ev {pipeline_arguments['evalue']} -b {pipeline_arguments['blast']} " \
-                      f"-q {pipeline_arguments['q_score']}"
-    if len(FindFilesInDir(input_data_folder, '.gz')) > 0:
-        perl_runner_cmd = perl_runner_cmd + " -t z"
+    perl_runner_cmd = ""
+    python_runner_cmd = ""
+    if 'perl' in stages:
+        perl_output_path = _create_perl_output_folder(output_folder)
+        perl_runner_path = os.path.join(STERNLAB_PATH, 'pipeline_runner.py')
+        perl_runner_cmd = f"python {perl_runner_path} -i {python_runner_flags['o']} -o {perl_output_path} " \
+                          f"-r {reference_file} -NGS_or_Cirseq 1 -rep {pipeline_arguments['repeats']} " \
+                          f"-ev {pipeline_arguments['evalue']} -b {pipeline_arguments['blast']} " \
+                          f"-q {pipeline_arguments['q_score']}"
+        if len(FindFilesInDir(input_data_folder, '.gz')) > 0:
+            perl_runner_cmd = perl_runner_cmd + " -t z"
     """
     the input for perl_runner_cmd is the output of python_runner_cmd because the python pipeline first created
     the fastq files which both pipelines use.
     """
-    python_runner_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
-                        f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} " \
-                        f"-x {pipeline_arguments['repeats']}  -v {pipeline_arguments['evalue']} " \
-                        f"-d {pipeline_arguments['blast']} -q {pipeline_arguments['q_score']} -s 1"
+    if 'python' in stages:
+        python_runner_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
+                            f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} " \
+                            f"-x {pipeline_arguments['repeats']}  -v {pipeline_arguments['evalue']} " \
+                            f"-d {pipeline_arguments['blast']} -q {pipeline_arguments['q_score']} -s 1 " \
+                            f"-pr {please_remove_double_mapping}"
     cmds = perl_runner_cmd + "\n" + python_runner_cmd
     cmd_file_path = os.path.join(output_folder, 'compare_pipelines.cmd')
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmds)
@@ -113,7 +119,7 @@ def create_analyze_data_cmdfile(output_folder, alias):
     this_module = os.path.basename(os.path.normpath(os.path.abspath(__file__)))[:-3]
     output_folder_string = '"' + output_folder + '"'
     cmd = f"cd {os.path.join(STERNLAB_PATH, 'Python_pipeline')}; python -c " \
-          f"'from {this_module} import analyze_data; analyze_data({output_folder_string})'" # <- dirty hack for PBS
+          f"'from {this_module} import analyze_data; analyze_data({output_folder_string})'"  # <- dirty hack for PBS
     create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmd)
     return cmd_file_path
 
@@ -139,6 +145,7 @@ def set_plots_size_params(size):
 
 def plot_indels(data, output_folder):
     df = data.copy()
+    plt.figure(figsize=(20, 10))
     df['base_counter_pe'] = df.apply(lambda row: _apply_invert_deletions(row, 'base_counter_pe'), axis=1)
     df['base_counter_py'] = df.apply(lambda row: _apply_invert_deletions(row, 'base_counter_py'), axis=1)
     indels_pe = df[(df.ref_base_pe == '-') | (df.base == '-')]
@@ -159,6 +166,7 @@ def drop_indels(df):
 
 def plot_coverage_diff(data, output_folder):
     noindels = drop_indels(data)
+    plt.figure(figsize=(20, 10))
     noindels.fillna(0, inplace=True)
     noindels['cov_diff'] = noindels.coverage_pe - noindels.coverage_py
     plt.figure(figsize=(20, 10))
@@ -228,25 +236,28 @@ def main(args):
     input_data_folder = args.input_data_folder
     output_folder = args.output_folder
     reference_file = args.reference_file
-    just_analyze = args.just_analyze
+    stages = args.stages
+    please_remove_double_mapping = args.please_remove_double_mapping
     pipeline_arguments = {'blast': args.blast,
                           'evalue': args.evalue,
                           'repeats': args.repeats,
                           'q_score': args.q_score}
     alias = 'ComparePipelines'
     log = pipeline_logger(alias, output_folder)
-    if not just_analyze:
+    if 'perl' in stages or 'python' in stages:
         log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
         merge_fastq_files(input_data_folder=input_data_folder, output_folder=output_folder,
                           reference_file=reference_file, pipeline_arguments=pipeline_arguments)
         compare_cmd_path = create_runners_cmdfile(input_data_folder=input_data_folder, output_folder=output_folder,
                                                   reference_file=reference_file, alias=alias,
-                                                  pipeline_arguments=pipeline_arguments)
+                                                  pipeline_arguments=pipeline_arguments, stages=stages,
+                                                  please_remove_double_mapping=please_remove_double_mapping)
         submit_wait_and_log(compare_cmd_path, log, alias)
-    log.info(f"Analyzing data...")
-    alias = 'ComparePipelines-AnalyzeData'
-    analyze_cmd_path = create_analyze_data_cmdfile(output_folder, alias)
-    submit_wait_and_log(analyze_cmd_path, log, alias)
+    if 'analysis' in stages:
+        log.info(f"Analyzing data...")
+        alias = 'ComparePipelines-AnalyzeData'
+        analyze_cmd_path = create_analyze_data_cmdfile(output_folder, alias)
+        submit_wait_and_log(analyze_cmd_path, log, alias)
     log.info("Done.")
 
 
@@ -260,15 +271,13 @@ if __name__ == '__main__':
                         required=True)
     parser.add_argument("-r", "--reference_file",
                         required=True)
-    parser.add_argument("-j", "--just_analyze", default=False,
-                        help='True will skip running the pipelines and just analyze the output. '
-                             'Mostly used for debugging. default is False. When True input_data_folder is ignored.')
-    parser.add_argument("-b", "--blast", type=int, help="% blast id, default=85", default=85)
+    parser.add_argument("-s", "--stages", default=['perl', 'python', 'analysis'],
+                        help="A list containing any of ['perl', 'python', 'analysis'] default is all of them.")
+    parser.add_argument("-b", "--blast", type=int, help=" percent blast id, default=85", default=85)
     parser.add_argument("-ev", "--evalue", type=float, help="E value for blast, default=1e-7", required=False,
                         default=1e-7)
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=1", required=False, default=1)
     parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
-
-
+    parser.add_argument("-pr", "--please_remove_double_mapping", default='N', help='input can be Y or N, default is N')
     args = parser.parse_args()
     main(args)

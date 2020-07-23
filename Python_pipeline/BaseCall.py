@@ -297,7 +297,8 @@ def create_supporting_data_files(blast_FilePath):
 	return good_reads_file, good_mutations_file, stats_file, frequencies_file, Non_contributing_file
 
 def remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter, counter = 0, mapping_positions = 1):
-	for read_position in READ_ID_DOUBLE_POSITION_COUNTER:		
+	print("remove_multiple_mapping!!!")
+	for read_position in READ_ID_DOUBLE_POSITION_COUNTER:
 		count = READ_ID_DOUBLE_POSITION_COUNTER[read_position][counter]
 		if count > 1:
 			double_mapping_counter += 1
@@ -445,7 +446,8 @@ def get_record(ReadLines, RowNum, mode):
 			
 	return read_record_split, read_id
 
-def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protocol, counter = 0, plus_counter = 1, minus_counter = 2, quality_line = 3):
+def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score, mode, Protocol, counter = 0, plus_counter = 1, minus_counter = 2, quality_line = 3, please_remove_multiple_mapping=True):
+	print("BaseCall!!!!!!!!!!!")
 	try:
 		with open(blast_FilePath,'rt') as read_records:
 			ReadLines = read_records.readlines()
@@ -477,10 +479,15 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 		if number_of_matchs not in MATCH_STATISTICS:
 			MATCH_STATISTICS[number_of_matchs] = 0
 		MATCH_STATISTICS[number_of_matchs] += 1
-		
-		if (number_of_matchs >= num_of_repeats) and ((Protocol in ["C", "c", "circular"]) \
-		 		or (Protocol in ["L", "l", "linear"] and num_of_repeats == 2 and number_of_plus_matches == 1 and number_of_minus_matches == 1) \
-				or (Protocol in ["L", "l", "linear"] and num_of_repeats == 1 and number_of_plus_matches < 2 and number_of_minus_matches < 2)):
+		enter_this_if = True if please_remove_multiple_mapping == "Y" else False  #TODO: remove this hack when done.
+		if enter_this_if or (number_of_matchs >= num_of_repeats) and (
+				(Protocol in ["C", "c", "circular"]) or (
+					Protocol in ["L", "l", "linear"] and num_of_repeats == 2 and number_of_plus_matches == 1 and
+					number_of_minus_matches == 1
+				)
+				or (Protocol in ["L", "l", "linear"] and num_of_repeats == 1 and number_of_plus_matches < 2 and
+					number_of_minus_matches < 2)
+		):
 			if read_id in READ_IDS_VALUES:
 				Quality_line = READ_IDS_VALUES[read_id][quality_line]
 			else:
@@ -524,10 +531,11 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 						raise Exception("Unexpected error, next_read_id " + next_read_id + " does not match read_id " + read_id + "\n")						
 
 			#For each read_id remove positions that were mapped more than once from contributing base calls
+			#if please_remove_multiple_mapping == "Y":  #TODO: this doesn't seem to do anything....
 			READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter = \
 			remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter)
 			del READ_ID_DOUBLE_POSITION_COUNTER
-			
+
 			#For each read_id in the blast file calculate contribution based on q-score in READ_ID_BASE_CALL_COUNTER. 
 			#Summarize results in TOTAL_BASE_CALL_COUNTER.
 			READ_ID_BASE_CALL_COUNTER, TOTAL_BASE_CALL_COUNTER, Total_base_counter_per_read_id = \
@@ -609,8 +617,8 @@ def main(args):
 	else:
 		if Protocol not in ["L", "l", "linear", "C", "c", "circular"]:
 			raise Exception("Unexpected error, for linear library prep protocol type 'linear' or 'L', for circular library prep protocol type 'circular' or 'C'\n") 
-			
-	BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, min_num_repeats, q_score, mode, Protocol)
+	please_remove_multiple_mapping = args.please_remove_multiple_mapping
+	BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, min_num_repeats, q_score, mode, Protocol, please_remove_multiple_mapping=please_remove_multiple_mapping)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -621,5 +629,6 @@ if __name__ == "__main__":
 	parser.add_argument("-m", "--blast_mode", type=str, help="mode for blast, for Seq to Ref blast type SR, sr or SeqtoRef, for Ref to Seq blast type RS, rs or ReftoSeq, default = 'SeqtoRef'",
 						required=False, default="SeqtoRef")
 	parser.add_argument("-p", "--protocol", type=str, help="Library prep protocol is linear = 'L', 'l' or 'linear', or circular = 'C', 'c' or 'circular'. Default='linear'", required=False, default="linear")
+	parser.add_argument("-pr", "--please_remove_multiple_mapping", default=True)
 	args = parser.parse_args()
 	main(args)
