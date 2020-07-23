@@ -465,7 +465,8 @@ def main(args):
 				raise Exception("Unexpected error, freqs files were found in directory " + dir_path + ". Cannot run BaseCall. To re-write add -w Y to command line\n")
 			elif len(freqs_files) > 0 and overwrite in ["Y","y"]:
 				os.system("rm -rf " + dir_path + "/*.freqs* " + dir_path + "/*.good* " + dir_path + "/*.NonContributing")
-			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue, log, please_remove_multiple_mapping)
+			BaseCall(pipeline_dir, dir_path, ref_genome, min_num_repeats, q_score, mode, Protocol, queue, log=log,
+					 please_remove_multiple_mapping=please_remove_multiple_mapping)
 
 		if stage == 4:
 			file_type = "merge.freqs.csv"
@@ -506,7 +507,7 @@ if __name__ == "__main__":
 	parser.add_argument("-u", "--queue", type=str, help="queue to run pipeline, default='adistzachi@power9'", required=False, default="adistzachi@power9")
 	parser.add_argument("-w", "--overwrite", type=str, help="overwrite? Y/N, default='N'", required=False, default="N")
 	parser.add_argument("-L", "--log_folder", type=str, help="Folder path to write .log file in. defaults to --output_dir", default=None)
-	parser.add_argument("-pr", "--please_remove_multiple_mapping", default=True)
+	parser.add_argument("-pr", "--please_remove_multiple_mapping", default='Y', help='input can be Y or N, default is Y')
 	args = parser.parse_args()
 	main(args)
 

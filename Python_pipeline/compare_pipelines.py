@@ -209,10 +209,7 @@ def main(args):
     output_folder = args.output_folder
     reference_file = args.reference_file
     stages = args.stages
-    if args.please_remove_double_mapping:
-        please_remove_double_mapping = "True"
-    else:
-        please_remove_double_mapping = "False"
+    please_remove_double_mapping = args.please_remove_double_mapping
     pipeline_arguments = {'blast': args.blast,
                           'evalue': args.evalue,
                           'repeats': args.repeats,
@@ -254,6 +251,6 @@ if __name__ == '__main__':
                         default=1e-7)
     parser.add_argument("-x", "--repeats", type=int, help="number of repeats, default=1", required=False, default=1)
     parser.add_argument("-q", "--q_score", type=int, help="Q-score cutoff, default=30", required=False, default=30)
-    parser.add_argument("-pr", "--please_remove_double_mapping", default=False)
+    parser.add_argument("-pr", "--please_remove_double_mapping", default='N', help='input can be Y or N, default is N')
     args = parser.parse_args()
     main(args)
