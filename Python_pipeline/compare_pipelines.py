@@ -131,6 +131,18 @@ def _apply_invert_deletions(row, col):
         return row[col]
 
 
+def set_plots_size_params(size):
+    # Adapted from https://stackoverflow.com/questions/3899980/how-to-change-the-font-size-on-a-matplotlib-plot
+    bigger = size * 1.2
+    slightly_bigger = size * 1.1
+    plt.rc('font', size=size)                        # controls default text sizes
+    plt.rc('axes', titlesize=bigger)                 # fontsize of the axes title
+    plt.rc('axes', labelsize=slightly_bigger)        # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=size)                  # fontsize of the tick labels
+    plt.rc('ytick', labelsize=size)                  # fontsize of the tick labels
+    plt.rc('legend', fontsize=size)                  # legend fontsize
+
+
 def plot_indels(data, output_folder):
     df = data.copy()
     plt.figure(figsize=(20, 10))
@@ -138,6 +150,7 @@ def plot_indels(data, output_folder):
     df['base_counter_py'] = df.apply(lambda row: _apply_invert_deletions(row, 'base_counter_py'), axis=1)
     indels_pe = df[(df.ref_base_pe == '-') | (df.base == '-')]
     indels_py = df[(df.ref_base_py == '-') | (df.base == '-')]
+    plt.figure(figsize=(20, 10))
     plt.plot(indels_pe.index, indels_pe.base_counter_pe, label=f'perl indels', alpha=0.5)
     plt.plot(indels_py.index, indels_py.base_counter_py, label=f'python indels', alpha=0.5)
     plt.xlabel('ref_position')
@@ -156,6 +169,7 @@ def plot_coverage_diff(data, output_folder):
     plt.figure(figsize=(20, 10))
     noindels.fillna(0, inplace=True)
     noindels['cov_diff'] = noindels.coverage_pe - noindels.coverage_py
+    plt.figure(figsize=(20, 10))
     plt.plot(noindels.index, noindels['cov_diff'])
     plt.xlabel('ref_position')
     plt.ylabel('coverage difference')
@@ -167,9 +181,9 @@ def plot_mutations(data, output_folder):
     noindels = drop_indels(data)
     mutations = noindels[(noindels['rank_pe'] > 0) | (noindels['rank_py'] > 0)]
     for base in ['A', 'C', 'G', 'T']:
-        plt.figure(figsize=(20, 10))
         mutated_bases = mutations[
             (mutations.base == base) & ((mutations.frequency_pe > 0) | (mutations.frequency_py > 0))]
+        plt.figure(figsize=(20, 10))
         plt.scatter(mutated_bases.index, mutated_bases.frequency_pe, alpha=0.5, label='perl pipeline')
         plt.scatter(mutated_bases.index, mutated_bases.frequency_py, alpha=0.5, label='python pipeline')
         plt.xlabel('ref_position')
@@ -177,6 +191,18 @@ def plot_mutations(data, output_folder):
         plt.title(f'X > {base} Mutation Frequency')
         plt.legend()
         plt.savefig(os.path.join(output_folder, f'mutations_{base}.png'))
+
+
+def plot_frequency_comparison(data, output_folder):
+    noindels = drop_indels(data)
+    noindels = noindels[(noindels.coverage_py > 5) | (noindels.coverage_pe > 5)]
+    noindels.fillna(0, inplace=True)
+    plt.figure(figsize=(20, 10))
+    plt.scatter(noindels.frequency_pe, noindels.frequency_py)
+    plt.xlabel('frequency in perl pipeline')
+    plt.ylabel('frequency in python pipeline')
+    plt.title("Frequency Python vs Perl where coverage > 5")
+    plt.savefig(os.path.join(output_folder, 'frequency_comparison.png'))
 
 
 def analyze_data(output_folder):
@@ -188,9 +214,11 @@ def analyze_data(output_folder):
         os.mkdir(analysis_folder)
     data = get_freqs_data(output_folder)
     df = data['pe'].join(data['py'], rsuffix='_py', lsuffix='_pe', how='outer').reset_index().set_index('ref_position')
+    set_plots_size_params(20)
     plot_indels(data=df, output_folder=analysis_folder)
     plot_coverage_diff(data=df, output_folder=analysis_folder)
     plot_mutations(data=df, output_folder=analysis_folder)
+    plot_frequency_comparison(data=df, output_folder=analysis_folder)
     df.to_csv(os.path.join(analysis_folder, 'data.csv'))
 
 
