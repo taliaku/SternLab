@@ -14,6 +14,8 @@ def _logger_already_exists(logger, log_file):
     return return_value
 
 def _create_new_logger(logger, log_file):
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to info
     ch = logging.StreamHandler()
