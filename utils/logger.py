@@ -54,3 +54,19 @@ def pipeline_logger(logger_name, log_folder=None):
             raise ValueError("First instance of logger must be initiated with an output file!")
         logger = _create_new_logger(logger, log_file)
     return logger
+
+
+def aggregate_logs(log_folder, log):
+    # TODO: agg all logs in subfolders. stop if log as 'aggregated' in its name.
+    pass
+
+
+def run_with_logger(function_to_run, log_name, log_folder):
+    # maybe run mains through something like this to log exceptions and agg logs.
+    log = pipeline_logger(logger_name=log_name, log_folder=log_folder)
+    try:
+        function_to_run
+    except Exception as e:
+        log.error(e)
+    finally:
+        aggregate_logs(log_folder, log)
