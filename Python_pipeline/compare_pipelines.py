@@ -253,6 +253,8 @@ def main(args):
                             f"-pr {please_remove_double_mapping}"
         subprocess.run(python_runner_cmd.split(), stdout=subprocess.PIPE)
     if 'analysis' in stages:
+        # note that this will only work if both perl and python output already exist.
+        # There is no guarantee that the perl command is done except for the fact that the python is way slower...!
         log.info(f"Analyzing data...")
         alias = 'ComparePipelines-AnalyzeData'
         analyze_cmd_path = create_analyze_data_cmdfile(output_folder, alias)
