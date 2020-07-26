@@ -16,7 +16,7 @@ from Join import wrangle_freqs_df
 STERNLAB_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(STERNLAB_PATH)
 from utils.logger import pipeline_logger
-from utils.pbs_jobs import create_pbs_cmd
+from utils.pbs_jobs import create_pbs_cmd, submit
 from utils.runner_utils import submit_wait_and_log, FindFilesInDir
 
 
@@ -46,33 +46,22 @@ def _get_python_runner_flags(input_data_folder, output_folder):
     return ret
 
 
-def create_runners_cmdfile(input_data_folder, output_folder, reference_file, alias, pipeline_arguments,
-                           please_remove_double_mapping, stages):
-    python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
-    perl_runner_cmd = ""
-    python_runner_cmd = ""
-    if 'perl' in stages:
-        perl_output_path = _create_perl_output_folder(output_folder)
-        perl_runner_path = os.path.join(STERNLAB_PATH, 'pipeline_runner.py')
-        perl_runner_cmd = f"python {perl_runner_path} -i {python_runner_flags['o']} -o {perl_output_path} " \
-                          f"-r {reference_file} -NGS_or_Cirseq 1 -rep {pipeline_arguments['repeats']} " \
-                          f"-ev {pipeline_arguments['evalue']} -b {pipeline_arguments['blast']} " \
-                          f"-q {pipeline_arguments['q_score']}"
-        if len(FindFilesInDir(input_data_folder, '.gz')) > 0:
-            perl_runner_cmd = perl_runner_cmd + " -t z"
+def create_perl_runner_cmdfile(input_data_folder, output_folder, reference_file, alias, pipeline_arguments,
+                               python_runner_flags):
+    perl_output_path = _create_perl_output_folder(output_folder)
+    perl_runner_path = os.path.join(STERNLAB_PATH, 'pipeline_runner.py')
+    perl_runner_cmd = f"python {perl_runner_path} -i {python_runner_flags['o']} -o {perl_output_path} " \
+                      f"-r {reference_file} -NGS_or_Cirseq 1 -rep {pipeline_arguments['repeats']} " \
+                      f"-ev {pipeline_arguments['evalue']} -b {pipeline_arguments['blast']} " \
+                      f"-q {pipeline_arguments['q_score']}"
+    if len(FindFilesInDir(input_data_folder, '.gz')) > 0:
+        perl_runner_cmd = perl_runner_cmd + " -t z"
     """
     the input for perl_runner_cmd is the output of python_runner_cmd because the python pipeline first created
     the fastq files which both pipelines use.
     """
-    if 'python' in stages:
-        python_runner_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
-                            f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} " \
-                            f"-x {pipeline_arguments['repeats']}  -v {pipeline_arguments['evalue']} " \
-                            f"-d {pipeline_arguments['blast']} -q {pipeline_arguments['q_score']} -s 1 " \
-                            f"-pr {please_remove_double_mapping}"
-    cmds = perl_runner_cmd + "\n" + python_runner_cmd
     cmd_file_path = os.path.join(output_folder, 'compare_pipelines.cmd')
-    create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=cmds)
+    create_pbs_cmd(cmdfile=cmd_file_path, alias=alias, cmds=perl_runner_cmd)
     return cmd_file_path
 
 
@@ -222,9 +211,8 @@ def analyze_data(output_folder):
     df.to_csv(os.path.join(analysis_folder, 'data.csv'))
 
 
-def merge_fastq_files(input_data_folder, output_folder, reference_file, pipeline_arguments):
+def merge_fastq_files(input_data_folder, output_folder, reference_file, pipeline_arguments, python_runner_flags):
     """ Merge fastq files using the python_runner """
-    python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
     merge_fastq_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
                       f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} -s 0 -e 0 " \
                       f"-x {pipeline_arguments['repeats']}  -v {pipeline_arguments['evalue']} " \
@@ -246,13 +234,24 @@ def main(args):
     log = pipeline_logger(alias, output_folder)
     if 'perl' in stages or 'python' in stages:
         log.info(f"Comparing pipelines on data from {input_data_folder} and outputting to {output_folder}")
+        python_runner_flags = _get_python_runner_flags(input_data_folder=input_data_folder, output_folder=output_folder)
         merge_fastq_files(input_data_folder=input_data_folder, output_folder=output_folder,
-                          reference_file=reference_file, pipeline_arguments=pipeline_arguments)
-        compare_cmd_path = create_runners_cmdfile(input_data_folder=input_data_folder, output_folder=output_folder,
-                                                  reference_file=reference_file, alias=alias,
-                                                  pipeline_arguments=pipeline_arguments, stages=stages,
-                                                  please_remove_double_mapping=please_remove_double_mapping)
-        submit_wait_and_log(compare_cmd_path, log, alias)
+                          reference_file=reference_file, pipeline_arguments=pipeline_arguments,
+                          python_runner_flags=python_runner_flags)
+    if 'perl' in stages:
+        perl_runner_cmd = create_perl_runner_cmdfile(input_data_folder=input_data_folder, output_folder=output_folder,
+                                                     reference_file=reference_file, alias=alias,
+                                                     pipeline_arguments=pipeline_arguments,
+                                                     python_runner_flags=python_runner_flags)
+        job_id = submit(perl_runner_cmd)
+        log.info(f"Started perl pipeline with job id: {job_id}")
+    if 'python' in stages:
+        python_runner_cmd = f"python {python_runner_flags['runner_path']} -i {python_runner_flags['i']} " \
+                            f"-o {python_runner_flags['o']} -r {reference_file} -m RS -L {output_folder} " \
+                            f"-x {pipeline_arguments['repeats']}  -v {pipeline_arguments['evalue']} " \
+                            f"-d {pipeline_arguments['blast']} -q {pipeline_arguments['q_score']} -s 1 " \
+                            f"-pr {please_remove_double_mapping}"
+        subprocess.run(python_runner_cmd.split(), stdout=subprocess.PIPE)
     if 'analysis' in stages:
         log.info(f"Analyzing data...")
         alias = 'ComparePipelines-AnalyzeData'
