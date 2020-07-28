@@ -336,8 +336,8 @@ sub base_call {
     my @files_blast=glob("$out_dir*.blast");
     my @files_freqs=glob("$out_dir*.freqs");
 
-    print "Waiting for 20 seconds for files to appear... \n"
-    sleep(20)
+    print "Waiting for 20 seconds for files to appear... \n";
+    sleep(20);
     
     if (scalar(@files_freqs)!=scalar(@files_blast) ) {
 	   print ERR "number of blast output files ".scalar(@files_blast) ." not compatible with number of freqs files created: ".scalar(@files_freqs).
