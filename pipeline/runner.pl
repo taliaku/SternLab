@@ -4,6 +4,7 @@ use strict;
 #TODO: remove hard coded paths....
 use lib '/sternadi/home/volume3/ita/shared_sternlab/pipeline';
 use Create_cmd;
+$|++;
 
 
 #########################################################################
@@ -85,9 +86,7 @@ else {
     die "min number of repeats should be either 1 or bigger, it is now $min_num_repeats\n";
 }
 
-print "Sleeping for 20 secs";
-sleep(20);
-print "Slept?";
+
 
 # default quality cutoff per base is 23 in CirCeq and 30 in NGS
 my $q_cutoff=30;
@@ -338,12 +337,16 @@ sub base_call {
     my @files_blast=glob("$out_dir*.blast");
     my @files_freqs=glob("$out_dir*.freqs");
 
+    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
     print "Waiting for 20 seconds for files to appear... \n";
     sleep(20);
-    
+    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
+    print "Waiting another 20 seconds for files to appear... \n";
+    sleep(20);
+    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
+
     if (scalar(@files_freqs)!=scalar(@files_blast) ) {
-	   print ERR "number of blast output files ".scalar(@files_blast) ." not compatible with number of freqs files created: ".scalar(@files_freqs).
-                 " - Waiting for 20 seconds. \n";
+	   print ERR "number of blast output files ".scalar(@files_blast) ." not compatible with number of freqs files created: ".scalar(@files_freqs). "\n";
     }
 
     if (scalar @files_freqs == 0) {
