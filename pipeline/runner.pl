@@ -344,6 +344,12 @@ sub base_call {
     print "Waiting another 20 seconds for files to appear... \n";
     sleep(20);
     print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
+    sleep(20);
+    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
+    sleep(20);
+    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
+    sleep(20);
+    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
 
     if (scalar(@files_freqs)!=scalar(@files_blast) ) {
 	   print ERR "number of blast output files ".scalar(@files_blast) ." not compatible with number of freqs files created: ".scalar(@files_freqs). "\n";
