@@ -127,12 +127,14 @@ def main(args):
 
     start_stage = args.start
     if start_stage is not None:
-        if int(start_stage) not in [0, 1, 2, 3, 4, 5, 6]:
+        start_stage = int(start_stage)
+        if start_stage not in [0, 1, 2, 3, 4, 5, 6]:
             raise Exception("Unexpected error, start_stage " + start_stage + " is not a valid value\n")
 
     end_stage = args.end
     if end_stage is not None:
-        if int(end_stage) not in [0, 1, 2, 3, 4, 5, 6]:
+        end_stage = int(end_stage)
+        if end_stage not in [0, 1, 2, 3, 4, 5, 6]:
             raise Exception("Unexpected error, end_stage is not a valid integer value between 0-6\n")
 
     if (start_stage is not None) and (end_stage is not None) and (int(start_stage) > int(end_stage)):
