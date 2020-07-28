@@ -7,6 +7,7 @@ use Create_cmd;
 $|++;
 
 
+
 #########################################################################
 # Pipeline running of raw read files (fastq.gz) to frequency files
 # Begins with an input direcory containing fastq.gz files
@@ -337,30 +338,15 @@ sub base_call {
     my @files_blast=glob("$out_dir*.blast");
     my @files_freqs=glob("$out_dir*.freqs");
 
-    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
-    print "Waiting for 20 seconds for files to appear... \n";
-    sleep(20);
-    @files_blast=glob("$out_dir*.blast");
-    @files_freqs=glob("$out_dir*.freqs");
-    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
-    print "Waiting another 20 seconds for files to appear... \n";
-    sleep(20);
-    @files_blast=glob("$out_dir*.blast");
-    @files_freqs=glob("$out_dir*.freqs");
-    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
-    sleep(20);
-    @files_blast=glob("$out_dir*.blast");
-    @files_freqs=glob("$out_dir*.freqs");
-    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
-    sleep(20);
-    @files_blast=glob("$out_dir*.blast");
-    @files_freqs=glob("$out_dir*.freqs");
-    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
-    sleep(20);
-    @files_blast=glob("$out_dir*.blast");
-    @files_freqs=glob("$out_dir*.freqs");
-    print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
-
+    my $sleep_counter=0
+    while (scalar(@files_freqs) < scalar(@files_blast) {
+        print "Waiting for freq files to appear... (".scalar(@files_freqs).",".scalar(@files_blast).")\n";
+        sleep(5);
+        $sleep_counter += 5;
+        @files_blast=glob("$out_dir*.blast");
+        @files_freqs=glob("$out_dir*.freqs");
+        last if ($sleep_counter > 120);
+    }
     if (scalar(@files_freqs)!=scalar(@files_blast) ) {
 	   print ERR "number of blast output files ".scalar(@files_blast) ." not compatible with number of freqs files created: ".scalar(@files_freqs). "\n";
     }
