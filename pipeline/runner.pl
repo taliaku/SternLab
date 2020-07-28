@@ -340,15 +340,25 @@ sub base_call {
     print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
     print "Waiting for 20 seconds for files to appear... \n";
     sleep(20);
+    @files_blast=glob("$out_dir*.blast");
+    @files_freqs=glob("$out_dir*.freqs");
     print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
     print "Waiting another 20 seconds for files to appear... \n";
     sleep(20);
+    @files_blast=glob("$out_dir*.blast");
+    @files_freqs=glob("$out_dir*.freqs");
     print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
     sleep(20);
+    @files_blast=glob("$out_dir*.blast");
+    @files_freqs=glob("$out_dir*.freqs");
     print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
     sleep(20);
+    @files_blast=glob("$out_dir*.blast");
+    @files_freqs=glob("$out_dir*.freqs");
     print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
     sleep(20);
+    @files_blast=glob("$out_dir*.blast");
+    @files_freqs=glob("$out_dir*.freqs");
     print "number of blast output files: ".scalar(@files_blast) ." number of freqs files: ".scalar(@files_freqs). "\n";
 
     if (scalar(@files_freqs)!=scalar(@files_blast) ) {
