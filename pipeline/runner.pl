@@ -85,7 +85,9 @@ else {
     die "min number of repeats should be either 1 or bigger, it is now $min_num_repeats\n";
 }
 
-
+print "Sleeping for 20 secs";
+sleep(20);
+print "Slept?";
 
 # default quality cutoff per base is 23 in CirCeq and 30 in NGS
 my $q_cutoff=30;
