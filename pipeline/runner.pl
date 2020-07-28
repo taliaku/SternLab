@@ -337,7 +337,9 @@ sub base_call {
     my @files_freqs=glob("$out_dir*.freqs");
 
     if (scalar(@files_freqs)!=scalar(@files_blast) ) {
-	   print ERR "number of blast output files ".scalar(@files_blast) ." not compatible with number of freqs files created: ".scalar(@files_freqs)."\n";
+	   print ERR "number of blast output files ".scalar(@files_blast) ." not compatible with number of freqs files created: ".scalar(@files_freqs).
+                 " - Waiting for 20 seconds. \n";
+       sleep(20)
     }
 
     if (scalar @files_freqs == 0) {
