@@ -127,7 +127,7 @@ def main(args):
 
     start_stage = args.start
     if start_stage != None:
-        if not start_stage in [0, 1, 2, 3, 4, 5, 6]:
+        if start_stage not in [0, 1, 2, 3, 4, 5, 6]:
             raise Exception("Unexpected error, start_stage " + str(start_stage) + " is not a valid value\n")
 
     end_stage = args.end
