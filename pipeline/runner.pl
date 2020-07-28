@@ -339,7 +339,7 @@ sub base_call {
     my @files_freqs=glob("$out_dir*.freqs");
 
     my $sleep_counter=0
-    while ( scalar(@files_freqs) < scalar(@files_blast) ) {
+    while (scalar(@files_freqs)<scalar(@files_blast)) {
         print "Waiting for freq files to appear... (".scalar(@files_freqs). "," .scalar(@files_blast).")\n";
         sleep(5);
         $sleep_counter += 5;
