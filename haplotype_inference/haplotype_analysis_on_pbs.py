@@ -3,7 +3,8 @@ import os
 import sys
 STERNLAB_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(STERNLAB_PATH)
-from utils.pbs_jobs import create_pbs_cmd
+from utils.pbs_jobs import create_pbs_cmd, submit
+
 
 def main(args):
     output_dir = args.output_dir
@@ -29,6 +30,7 @@ def main(args):
     cmds = cmd1 + "\n" + cmd2 + "\n" + cmd3 + "\n" + cmd4
     create_pbs_cmd(cmdfile=cmd_path, alias='Haplotype-Analysis', jnum=num_of_jobs, gmem=7, cmds=cmds)
     submit(cmd_path)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
