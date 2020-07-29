@@ -14,7 +14,8 @@ USER_FOLDER_DICT = {"taliakustin": "/sternadi/home/volume1/taliakustin/temp",
                   'ita': '/sternadi/home/volume3/ita/logs'}
 
 
-def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "", load_python=True, jnum=False, run_after_job=None):
+def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "",
+                   load_python=True, jnum=False, run_after_job=None):
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
         o.write("#PBS -q %s\n" % queue)

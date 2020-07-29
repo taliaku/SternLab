@@ -1,11 +1,9 @@
-import itertools
-
 import sys
 import argparse
-
 import numpy as np
 import pandas as pd
 from scipy.stats import chi2_contingency, fisher_exact
+
 
 def main(args):
     input_x = args.position
