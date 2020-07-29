@@ -25,7 +25,7 @@ def main(args):
     cmd1 = f"python {variants_cmd} {blast_path} {mutations_path} $PBS_ARRAY_INDEX {freqs_path} > " \
            f"{variants_folder}/$PBS_ARRAY_INDEX.txt"
     cmd_path = os.path.join(output_dir, 'variants.cmd')
-    alias = 'Haplotype-Analysis - Getting Variants'
+    alias = 'Getting-Variants'
     create_pbs_cmd(cmdfile=cmd_path, alias=alias, jnum=num_of_jobs, gmem=7, cmds=cmd1)
     submit_wait_and_log(cmdfile=cmd_path, logger=log, job_name=alias)
     linked_pairs_path = os.path.join(output_dir, "linked_pairs.txt")
