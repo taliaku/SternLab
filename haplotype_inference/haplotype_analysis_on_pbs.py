@@ -1,13 +1,11 @@
 import argparse
 import os
 import sys
-
-from utils.logger import pipeline_logger
-from utils.runner_utils import submit_wait_and_log
-
 STERNLAB_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(STERNLAB_PATH)
-from utils.pbs_jobs import create_pbs_cmd, submit
+from utils.pbs_jobs import create_pbs_cmd
+from utils.logger import pipeline_logger
+from utils.runner_utils import submit_wait_and_log
 
 
 def main(args):
