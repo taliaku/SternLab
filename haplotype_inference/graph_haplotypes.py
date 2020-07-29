@@ -9,14 +9,14 @@ from utils.plotting import set_plots_size_params
 
 
 def plot_stretches_deep_dive(df, stretches, output_folder):
-    for stretch in stretches:
-        strech_df = df[df.Stretch == stretch]
-        strech_dist = round(strech_df.iloc[0, 4], 3)
+    for stretch in stretches.index:
+        stretch_df = df[df.Stretch == stretch]
+        stretch_dist = round(stretch_df.iloc[0, 4], 3)
         plt.figure(figsize=(20, 10))
-        strech_df.apply(lambda row: plt.plot((row['Pos1'], row['Pos2']), (row['Freq'], row['Freq']), 'C0'), axis=1)
+        stretch_df.apply(lambda row: plt.plot((row['Pos1'], row['Pos2']), (row['Freq'], row['Freq']), 'C0'), axis=1)
         plt.xlabel('Position')
         plt.ylabel('Frequency')
-        plt.title(f"Stretch {stretch} with meandist of {strech_dist} made of {stretches[stretch]} bubbles")
+        plt.title(f"Stretch {stretch} with meandist of {stretch_dist} made of {stretches[stretch]} bubbles")
         plt.savefig(os.path.join(output_folder, f'stretch_{stretch}.png'))
 
 

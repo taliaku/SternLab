@@ -18,6 +18,7 @@ def main(args):
     this_dir_path = os.path.dirname(os.path.abspath(__file__))
     variants_cmd = os.path.join(this_dir_path, 'variants_on_same_read.py')
     variants_folder = os.path.join(output_dir, 'variants')
+    os.makedirs(variants_folder, exist_ok=True)
     cmd1 = f"python {variants_cmd} {blast_path} {mutations_path} $PBS_ARRAY_INDEX {freqs_path} > " \
            f"{variants_folder}/$PBS_ARRAY_INDEX.txt"
     linked_pairs_path = os.path.join(output_dir, "linked_pairs.txt")
