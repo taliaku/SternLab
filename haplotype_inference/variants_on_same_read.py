@@ -3,6 +3,7 @@ import sys
 import argparse
 import numpy as np
 import pandas as pd
+import multiprocessing as mp
 from scipy.stats import fisher_exact
 
 
@@ -13,16 +14,15 @@ def main(args):
     output_folder = args.output_folder
     os.makedirs(output_folder, exist_ok=True)
     input_x = str(args.position)
-    output = {}
     if '-' in input_x:
         start_pos, end_pos = input_x.split('-')
-        for pos in range(int(start_pos), int(end_pos)):
-            output[pos] = get_variant(input_x=pos, freqs_file=freqs_file, blast_output=blast_output,
-                                      mutations_all=mutations_all)
+        pool = mp.Pool(processes=100)
+        results = {pos: pool.apply(get_variant, args=(pos, freqs_file, blast_output, mutations_all))
+                   for pos in range(int(start_pos), int(end_pos))}
     else:
-        output[input_x] = get_variant(input_x=int(input_x), freqs_file=freqs_file, blast_output=blast_output,
-                                      mutations_all=mutations_all)
-    for pos, output_strings in output.items():
+        results = {input_x: get_variant(input_x=int(input_x), freqs_file=freqs_file, blast_output=blast_output,
+                                        mutations_all=mutations_all)}
+    for pos, output_strings in results.items():
         if len(output_strings) != 0:
             with open(os.path.join(output_folder, f"{pos}.txt"), 'w') as text_file:
                 for line in output_strings.values():
@@ -30,7 +30,6 @@ def main(args):
 
 
 def get_variant(input_x, freqs_file, blast_output, mutations_all):
-
     freqs = pd.read_csv(freqs_file, sep="\t")
     freqs = freqs[freqs['Pos'] == np.round(freqs['Pos'])]  #remove insertions
     if (input_x < freqs["Pos"].min()) or (input_x > freqs["Pos"].max()):
