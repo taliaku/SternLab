@@ -16,7 +16,7 @@ def main(args):
     output = {}
     if '-' in input_x:
         start_pos, end_pos = input_x.split('-')
-        for pos in range(int(start_pos), int(end_pos)+1):
+        for pos in range(int(start_pos), int(end_pos)):
             output[pos] = get_variant(input_x=pos, freqs_file=freqs_file, blast_output=blast_output,
                                       mutations_all=mutations_all)
     else:
