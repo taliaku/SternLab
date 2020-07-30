@@ -28,7 +28,7 @@ def main(args):
         variants_cmd = os.path.join(this_dir_path, 'variants_on_same_read.py')
         os.makedirs(variants_folder, exist_ok=True)
         cmd1 = f"python {variants_cmd} -b {blast_path} -m {mutations_path} " \
-               f"-p $((PBS_ARRAY_INDEX*30))-$(((PBS_ARRAY_INDEX+1)*30)) -f {freqs_path} -o {variants_folder}"
+               f"-p $(((PBS_ARRAY_INDEX-1)*30))-$((PBS_ARRAY_INDEX*30)) -f {freqs_path} -o {variants_folder}"
         cmd_path = os.path.join(output_dir, 'variants.cmd')
         alias = 'Haplotype-Analysis:Getting-Variants'
         number_of_jobs = int(int(number_of_bases)/30)
