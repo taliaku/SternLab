@@ -12,7 +12,7 @@ def main(args):
     output_dir = args.output_dir
     os.makedirs(output_dir, exist_ok=True)
     input = args.input_dir
-    num_of_jobs = args.number_of_bases
+    number_of_bases = args.number_of_bases
     if args.skip_variants == "Y":
         skip_variants = True
     else:
@@ -31,7 +31,7 @@ def main(args):
                f"-p $((PBS_ARRAY_INDEX*100))-$(((PBS_ARRAY_INDEX+1)*100)) -f {freqs_path} -o {variants_folder}"
         cmd_path = os.path.join(output_dir, 'variants.cmd')
         alias = 'Haplotype-Analysis:Getting-Variants'
-        create_pbs_cmd(cmdfile=cmd_path, alias=alias, jnum=num_of_jobs/100, gmem=7, cmds=cmd1)
+        create_pbs_cmd(cmdfile=cmd_path, alias=alias, jnum=int(number_of_bases)/100, gmem=7, cmds=cmd1)
         submit_wait_and_log(cmdfile=cmd_path, logger=log, job_name=alias) #TODO: get % done by number of files made
     linked_pairs_path = os.path.join(output_dir, "linked_pairs.txt")
     cmd2 = f"cat {variants_folder}/*.txt > {linked_pairs_path}"
