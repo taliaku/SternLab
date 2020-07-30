@@ -1,21 +1,44 @@
+import os
 import sys
 import argparse
 import numpy as np
 import pandas as pd
-from scipy.stats import chi2_contingency, fisher_exact
+from scipy.stats import fisher_exact
 
 
 def main(args):
-    input_x = args.position
+    freqs_file = args.freqs_file
+    blast_output = args.blast_output
+    mutations_all = args.mutations_all
+    output_folder = args.output_folder
+    os.makedirs(output_folder, exist_ok=True)
+    input_x = str(args.position)
+    output = {}
+    if '-' in input_x:
+        start_pos, end_pos = input_x.split('-')
+        for pos in range(int(start_pos), int(end_pos)+1):
+            output[pos] = get_variant(input_x=pos, freqs_file=freqs_file, blast_output=blast_output,
+                                      mutations_all=mutations_all)
+    else:
+        output[input_x] = get_variant(input_x=int(input_x), freqs_file=freqs_file, blast_output=blast_output,
+                                      mutations_all=mutations_all)
+    for pos, output_strings in output.items():
+        if len(output_strings) != 0:
+            with open(os.path.join(output_folder, f"{pos}.txt"), 'w') as text_file:
+                for line in output_strings.values():
+                    print(line, file=text_file)
 
-    freqs = pd.read_csv(args.freqs_file, sep="\t")
+
+def get_variant(input_x, freqs_file, blast_output, mutations_all):
+
+    freqs = pd.read_csv(freqs_file, sep="\t")
     freqs = freqs[freqs['Pos'] == np.round(freqs['Pos'])]  #remove insertions
     if (input_x < freqs["Pos"].min()) or (input_x > freqs["Pos"].max()):
-        sys.exit()
+        return {}
 
-    all_mappings = pd.read_csv(args.blast_output, names=["read_id", "start", "end", 'read_start', 'read_end',
+    all_mappings = pd.read_csv(blast_output, names=["read_id", "start", "end", 'read_start', 'read_end',
                                                          'plus_or_minus', 'length', 'mutations'], sep="\t")
-    all_mutations = pd.read_csv(args.mutations_all, names=["pos", "read_id", "mutant", "read_positions"],
+    all_mutations = pd.read_csv(mutations_all, names=["pos", "read_id", "mutant", "read_positions"],
                                 skiprows=[0], dtype=str, sep="\t")
     all_mutations = all_mutations[all_mutations.pos != 'ref_pos']
     all_mutations['pos'] = all_mutations['pos'].astype(int)
@@ -25,8 +48,8 @@ def main(args):
 
     all_mutations = pd.merge(all_mutations, cons[["pos","Ref"]], on="pos")
     #Identify co-occurring variants up to max overlap length - 250 bases
-    variants_combinations=range(input_x+1, input_x+250)
-    
+    variants_combinations = range(input_x+1, input_x+250)
+    output_dict = {}
     for y in variants_combinations:
         x = input_x
         maps_for_two_pos = all_mappings[(all_mappings["start"] <= x) & (all_mappings["end"] >= y)]
@@ -41,17 +64,19 @@ def main(args):
         ct = pd.crosstab(merged[x_label], merged[y_label])
         if ct.shape == (2,2):
             fisher_test = fisher_exact(ct, alternative='greater')
-            print('\t'.join([str(x) for x in [x, y, fisher_test[0], fisher_test[1], ct[1][1]*1.0/(ct[0][0]+ct[0][1]+ct[1][0]+ct[1][1])]]))
+            output_dict[y] = '\t'.join([str(x) for x in [x, y, fisher_test[0], fisher_test[1], ct[1][1]*1.0/(ct[0][0]+ct[0][1]+ct[1][0]+ct[1][1])]])
         else:
-            print('\t'.join([str(x) for x in [x, y, 0.0, 1.0, 0.0]]))
+            output_dict[y] = '\t'.join([str(x) for x in [x, y, 0.0, 1.0, 0.0]])
+    return output_dict
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("blast_output",type=str, help="all BLAST output for this sample")
-    parser.add_argument("mutations_all", type=str, help="mutations_all.txt file (filtered from text)")
-    parser.add_argument("position", type=int, help="The position to consider pairs")
-    parser.add_argument("freqs_file", type=str, help="freqs file")
-    
+    parser.add_argument("-b", "--blast_output", type=str, help="all BLAST output for this sample")
+    parser.add_argument("-m", "--mutations_all", type=str, help="mutations_all.txt file (filtered from text)")
+    parser.add_argument("-p", "--position", help="The position to consider pairs, entering a range like '30-100' would "
+                                                 "iterate over all positions in range")
+    parser.add_argument("-f", "--freqs_file", type=str, help="freqs file")
+    parser.add_argument("-o", "--output_folder", type=str, help="where to output files")
     args = parser.parse_args(sys.argv[1:])
     main(args)
