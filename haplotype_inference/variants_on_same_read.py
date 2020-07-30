@@ -17,11 +17,11 @@ def main(args):
     if '-' in input_x:
         start_pos, end_pos = input_x.split('-')
         pool = mp.Pool(processes=100)
-        results = {pos: pool.apply(get_variant, args=(pos, freqs_file, blast_output, mutations_all))
+        results = {pos: pool.apply(get_variant, args=(pos, freqs_file, blast_output, mutations_all, output_folder))
                    for pos in range(int(start_pos), int(end_pos))}
     else:
         results = {input_x: get_variant(input_x=int(input_x), freqs_file=freqs_file, blast_output=blast_output,
-                                        mutations_all=mutations_all)}
+                                        mutations_all=mutations_all, output_folder=output_folder)}
     for pos, output_strings in results.items():
         if len(output_strings) != 0:
             with open(os.path.join(output_folder, f"{pos}.txt"), 'w') as text_file:
@@ -29,7 +29,9 @@ def main(args):
                     print(line, file=text_file)
 
 
-def get_variant(input_x, freqs_file, blast_output, mutations_all):
+def get_variant(input_x, freqs_file, blast_output, mutations_all, output_folder):
+    with open(os.path.join(output_folder, f"{input_x}.test"), 'w') as text_file:
+        print(f"started variant {input_x}", file=text_file)
     freqs = pd.read_csv(freqs_file, sep="\t")
     freqs = freqs[freqs['Pos'] == np.round(freqs['Pos'])]  #remove insertions
     if (input_x < freqs["Pos"].min()) or (input_x > freqs["Pos"].max()):
