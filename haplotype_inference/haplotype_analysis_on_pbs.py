@@ -30,7 +30,7 @@ def main(args):
         cmd1 = f"python {variants_cmd} -b {blast_path} -m {mutations_path} " \
                f"-p $(((PBS_ARRAY_INDEX-1)*30))-$((PBS_ARRAY_INDEX*30)) -f {freqs_path} -o {variants_folder}"
         cmd_path = os.path.join(output_dir, 'variants.cmd')
-        alias = 'Haplotype-Analysis:Getting-Variants'
+        alias = 'HaplotypeAnalysis-GetVariants'
         number_of_jobs = int(int(number_of_bases)/30)
         create_pbs_cmd(cmdfile=cmd_path, alias=alias, jnum=number_of_jobs, gmem=7, cmds=cmd1, ncpus=30)
         submit_wait_and_log(cmdfile=cmd_path, logger=log, job_name=alias) #TODO: get % done by number of files made
@@ -43,8 +43,8 @@ def main(args):
     cmd4 = f"python {graph_haplotypes_cmd} -i {stretches_path} -o {output_dir}"
     cmds = cmd2 + "\n" + cmd3 + "\n" + cmd4
     cmd_path = os.path.join(output_dir, 'haplotype_analysis.cmd')
-    alias = 'Haplotype-Analysis'
-    create_pbs_cmd(cmdfile=cmd_path, alias='Haplotype-Analysis:Graphing', cmds=cmds)
+    alias = 'HaplotypeAnalysis-CreateGraphs'
+    create_pbs_cmd(cmdfile=cmd_path, alias=alias, cmds=cmds)
     submit_wait_and_log(cmdfile=cmd_path, logger=log, job_name=alias)
 
 
