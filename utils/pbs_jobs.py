@@ -14,7 +14,8 @@ USER_FOLDER_DICT = {"taliakustin": "/sternadi/home/volume1/taliakustin/temp",
                   'ita': '/sternadi/home/volume3/ita/logs'}
 
 
-def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "", load_python=True, jnum=False, run_after_job=None):
+def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "",
+                   load_python=True, jnum=False, run_after_job=None, nodes=1):
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
         o.write("#PBS -q %s\n" % queue)
@@ -29,7 +30,7 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, n
         if queue == 'gpu':
             o.write(f"#PBS -l select=ngpus={ngpus}\n")
         else:    
-            o.write(f"#PBS -l select=ncpus={ncpus}:mem={gmem}gb\n")
+            o.write(f"#PBS -l select={nodes}:ncpus={ncpus}:mem={gmem}gb\n")
 
         if jnum:
            if jnum != 1:
