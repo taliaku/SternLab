@@ -69,6 +69,7 @@ def get_variant(input_x, freqs, all_mappings, all_mutations):
         merged[y_label] = np.where(merged["pos_y"] == y, 1, 0)
         ct = pd.crosstab(merged[x_label], merged[y_label])
         del merged
+        # TODO: output which mutation occurred and not only that a mutation occurred.
         if ct.shape == (2, 2):
             fisher_test = fisher_exact(ct, alternative='greater')
             output_dict[y] = '\t'.join([str(x) for x in [x, y, fisher_test[0], fisher_test[1], ct[1][1]*1.0/(ct[0][0]+ct[0][1]+ct[1][0]+ct[1][1])]])

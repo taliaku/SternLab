@@ -16,7 +16,7 @@ def plot_stretches_deep_dive(df, stretches, output_folder):
         stretch_df.apply(lambda row: plt.plot((row['Pos1'], row['Pos2']), (row['Freq'], row['Freq']), 'C0'), axis=1)
         plt.xlabel('Position')
         plt.ylabel('Frequency')
-        plt.title(f"Stretch {stretch} with meandist of {stretch_dist} made of {stretches[stretch]} bubbles")
+        plt.title(f"Stretch {stretch} with meandist of {stretch_dist} made of {stretches[stretch]/2} pairs")
         plt.savefig(os.path.join(output_folder, f'stretch_{stretch}.png'))
 
 
@@ -32,7 +32,7 @@ def plot_stretches_summary(df, stretches, output_folder):
     plt.title("Stretches")
     plt.xlabel('Position')
     plt.ylabel('Mean Distance')
-    plt.savefig(os.path.join(output_folder, f'stretches_summary.png'))
+    plt.savefig(os.path.join(output_folder, f'haplotype_overview.png'))
 
 
 def main(args):
