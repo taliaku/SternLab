@@ -14,15 +14,33 @@ def main(args):
     output_folder = args.output_folder
     os.makedirs(output_folder, exist_ok=True)
     input_x = str(args.position)
+    freqs = pd.read_csv(freqs_file, sep="\t")
+    freqs = freqs[freqs['Pos'] == np.round(freqs['Pos'])]  # remove insertions
+    all_mappings = pd.read_csv(blast_output, names=["read_id", "start", "end", 'read_start', 'read_end',
+                                                         'plus_or_minus', 'length', 'mutations'], sep="\t")
+    all_mutations = pd.read_csv(mutations_all, names=["pos", "read_id", "mutant", "read_positions"],
+                                skiprows=[0], dtype=str, sep="\t")
+    all_mutations = all_mutations[all_mutations.pos != 'ref_pos']
+    all_mutations['pos'] = all_mutations['pos'].astype(int)
+    cons = freqs[(freqs["Rank"] == 0) & (freqs["Base"] != "-")]
+    cons.insert(0, "pos", pd.to_numeric(cons.loc[:, "Pos"]))
+    all_mutations = pd.merge(all_mutations, cons[["pos","Ref"]], on="pos")
+    del cons
+    mgr = mp.Manager()
+    ns = mgr.Namespace()
+    ns.freqs = freqs
+    ns.all_mappings = all_mappings
+    ns.all_mutations = all_mutations
     if '-' in input_x:
+        del freqs, all_mappings, all_mutations
         start_pos, end_pos = input_x.split('-')
-        pool = mp.Pool(processes=mp.cpu_count())
-        results = {pos: pool.apply_async(get_variant, args=(pos, freqs_file, blast_output, mutations_all, output_folder))
+        pool = mp.Pool(processes=2)#mp.cpu_count())
+        results = {pos: pool.apply_async(get_variant, args=(pos, ns.freqs, ns.all_mappings, ns.all_mutations))
                    for pos in range(int(start_pos), int(end_pos))}
         output = {pos: res.get() for pos, res in results.items()}
     else:
-        output = {input_x: get_variant(input_x=int(input_x), freqs_file=freqs_file, blast_output=blast_output,
-                                        mutations_all=mutations_all, output_folder=output_folder)}
+        output = {input_x: get_variant(input_x=int(input_x), freqs=freqs, all_mappings=all_mappings,
+                                       all_mutations=all_mutations)}
     for pos, output_strings in output.items():
         if len(output_strings) != 0:
             with open(os.path.join(output_folder, f"{pos}.txt"), 'w') as text_file:
@@ -30,23 +48,9 @@ def main(args):
                     print(line, file=text_file)
 
 
-def get_variant(input_x, freqs_file, blast_output, mutations_all, output_folder):
-    freqs = pd.read_csv(freqs_file, sep="\t")
-    freqs = freqs[freqs['Pos'] == np.round(freqs['Pos'])]  #remove insertions
+def get_variant(input_x, freqs, all_mappings, all_mutations):
     if (input_x < freqs["Pos"].min()) or (input_x > freqs["Pos"].max()):
         return {}
-
-    all_mappings = pd.read_csv(blast_output, names=["read_id", "start", "end", 'read_start', 'read_end',
-                                                         'plus_or_minus', 'length', 'mutations'], sep="\t")
-    all_mutations = pd.read_csv(mutations_all, names=["pos", "read_id", "mutant", "read_positions"],
-                                skiprows=[0], dtype=str, sep="\t")
-    all_mutations = all_mutations[all_mutations.pos != 'ref_pos']
-    all_mutations['pos'] = all_mutations['pos'].astype(int)
-    cons = freqs[(freqs["Rank"] == 0)
-                 & (freqs["Base"] != "-")]
-    cons.insert(0, "pos", pd.to_numeric(cons.loc[:, "Pos"]))
-
-    all_mutations = pd.merge(all_mutations, cons[["pos","Ref"]], on="pos")
     #Identify co-occurring variants up to max overlap length - 250 bases
     variants_combinations = range(input_x+1, input_x+250)
     output_dict = {}
@@ -54,15 +58,18 @@ def get_variant(input_x, freqs_file, blast_output, mutations_all, output_folder)
         x = input_x
         maps_for_two_pos = all_mappings[(all_mappings["start"] <= x) & (all_mappings["end"] >= y)]
         grouped = maps_for_two_pos.groupby('read_id')
+        del maps_for_two_pos
         grouped = grouped.filter(lambda x: len(x) == 2)
-        merged = pd.merge(pd.DataFrame({"read_id":grouped["read_id"].unique()}), all_mutations[all_mutations["pos"]==x][["pos","read_id"]], on="read_id", how="left")
-        merged = pd.merge(merged, all_mutations[all_mutations["pos"]==y][["pos","read_id"]], on="read_id", how="left")
+        merged = pd.merge(pd.DataFrame({"read_id":grouped["read_id"].unique()}), all_mutations[all_mutations["pos"] == x][["pos", "read_id"]], on="read_id", how="left")
+        del grouped
+        merged = pd.merge(merged, all_mutations[all_mutations["pos"] == y][["pos", "read_id"]], on="read_id", how="left")
         x_label = "pos_" + str(x)
         y_label = "pos_" + str(y)
         merged[x_label] = np.where(merged["pos_x"] == x, 1, 0)
         merged[y_label] = np.where(merged["pos_y"] == y, 1, 0)
         ct = pd.crosstab(merged[x_label], merged[y_label])
-        if ct.shape == (2,2):
+        del merged
+        if ct.shape == (2, 2):
             fisher_test = fisher_exact(ct, alternative='greater')
             output_dict[y] = '\t'.join([str(x) for x in [x, y, fisher_test[0], fisher_test[1], ct[1][1]*1.0/(ct[0][0]+ct[0][1]+ct[1][0]+ct[1][1])]])
         else:
