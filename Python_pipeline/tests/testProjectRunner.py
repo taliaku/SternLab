@@ -74,7 +74,8 @@ class TestProjectRunner(unittest.TestCase):
         AggregatedSummaryTest = os.path.join(self.output_dir, 'AggregatedSummary.csv')
         self.assertTrue(os.path.isfile(AggregatedSummaryTest), "AggregatedSummary.csv does not exist!")
         self.assertTrue(filecmp.cmp(AggregatedSummaryTest, AggregatedSummaryExample),
-                        'AggregatedSummary.csv does not match example..!')
+                        f"created file: '{AggregatedSummaryTest}' does not match example file: "
+                        f"'{AggregatedSummaryExample}'")
 
 
 if __name__ == '__main__':
