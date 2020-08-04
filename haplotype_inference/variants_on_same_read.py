@@ -24,17 +24,17 @@ def main(args):
     all_mutations['pos'] = all_mutations['pos'].astype(int)
     cons = freqs[(freqs["Rank"] == 0) & (freqs["Base"] != "-")]
     cons.insert(0, "pos", pd.to_numeric(cons.loc[:, "Pos"]))
-    all_mutations = pd.merge(all_mutations, cons[["pos","Ref"]], on="pos")
+    all_mutations = pd.merge(all_mutations, cons[["pos", "Ref"]], on="pos")
     del cons
-    mgr = mp.Manager()
-    ns = mgr.Namespace()
-    ns.freqs = freqs
-    ns.all_mappings = all_mappings
-    ns.all_mutations = all_mutations
     if '-' in input_x:
+        mgr = mp.Manager()
+        ns = mgr.Namespace()
+        ns.freqs = freqs
+        ns.all_mappings = all_mappings
+        ns.all_mutations = all_mutations
         del freqs, all_mappings, all_mutations
         start_pos, end_pos = input_x.split('-')
-        pool = mp.Pool(processes=2)#mp.cpu_count())
+        pool = mp.Pool(processes=mp.cpu_count())
         results = {pos: pool.apply_async(get_variant, args=(pos, ns.freqs, ns.all_mappings, ns.all_mutations))
                    for pos in range(int(start_pos), int(end_pos))}
         output = {pos: res.get() for pos, res in results.items()}
