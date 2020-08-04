@@ -92,7 +92,7 @@ def create_ref_seq(ref_FilePath):
     return REF_GENOME
 
 
-def read_id_qscore(blast_FilePath, read_id, Quality_line, ASCII_Q_SCORE):
+def get_read_id_qscore(blast_FilePath, read_id, Quality_line, ASCII_Q_SCORE):
     Quality_line_length = len(Quality_line)
     READ_ID_QSCORE = {}
     for read_counter in range(Quality_line_length):
@@ -519,7 +519,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
     good_reads_file, good_mutations_file, stats_file, frequencies_file, Non_contributing_file = create_supporting_data_files(
         blast_FilePath)
 
-    # load some data into memory
+    # load some stuff to memory
     ref_genome = create_ref_seq(ref_FilePath)
     ascii_q_score = get_qscore_dict(pipeline_dir)
     read_ids_values = count_num_times_read_matches(blast_lines, len(blast_lines), mode)
@@ -541,7 +541,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
                 (Protocol in ["C", "c", "circular"]) or (
                 Protocol in ["L", "l", "linear"] and num_of_repeats == 2 and number_of_plus_matches == 1 and
                 number_of_minus_matches == 1
-        )
+                )
                 or (Protocol in ["L", "l", "linear"] and num_of_repeats == 1 and number_of_plus_matches < 2 and
                     number_of_minus_matches < 2)
         ):
@@ -550,14 +550,13 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
             else:
                 raise Exception("read id " + read_id + " was not found in qual file\n")
 
-            READ_ID_QSCORE = read_id_qscore(blast_FilePath, read_id, Quality_line,
-                                            ascii_q_score)  # get q-score of read id
-            # For each read_id in blast file, create a dictionary READ_ID_BASE_CALL_COUNTER that will get ref position base count and q-score.
-            # Including mutations and / or gaps.
-            READ_ID_BASE_CALL_COUNTER = {}
-            # For each read_id, create a dictionary READ_ID_DOUBLE_POSITION_COUNTER that will get how many times each position in the read was counted.
-            # Multiple mapped positions will be removed from base calling.
-            READ_ID_DOUBLE_POSITION_COUNTER = {}
+            read_id_qscore = get_read_id_qscore(blast_FilePath, read_id, Quality_line, ascii_q_score)
+            # For each read_id in blast file, create a dictionary READ_ID_BASE_CALL_COUNTER that will get ref position
+            # base count and q-score including mutations and / or gaps.
+            read_id_base_call_counter = {}
+            # For each read_id, create a dictionary READ_ID_DOUBLE_POSITION_COUNTER that will get how many times each
+            # position in the read was counted. Multiple mapped positions will be removed from base calling.
+            read_id_double_position_counter = {}
 
             while match_counter <= number_of_matches:
                 if mode in ["sr", "SR", "SeqtoRef"]:
@@ -578,10 +577,10 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
                 # length = read_record_split[7].strip()
                 aln = read_record_split[8].strip()
 
-                READ_ID_BASE_CALL_COUNTER, READ_ID_DOUBLE_POSITION_COUNTER = \
+                read_id_base_call_counter, read_id_double_position_counter = \
                     create_read_id_seq_qscore(read_id, read_start, read_end, ref_start, ref_end, strand, aln,
-                                              READ_ID_QSCORE, \
-                                              ref_genome, READ_ID_BASE_CALL_COUNTER, READ_ID_DOUBLE_POSITION_COUNTER,
+                                              read_id_qscore, \
+                                              ref_genome, read_id_base_call_counter, read_id_double_position_counter,
                                               q_score, mode)
 
                 match_counter += 1
@@ -594,19 +593,19 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 
             # For each read_id remove positions that were mapped more than once from contributing base calls
             # if please_remove_multiple_mapping == "Y":  #TODO: this doesn't seem to do anything....
-            READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter = \
-                remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER,
+            read_id_double_position_counter, read_id_base_call_counter, double_mapping_counter = \
+                remove_multiple_mapping(read_id_double_position_counter, read_id_base_call_counter,
                                         double_mapping_counter)
-            del READ_ID_DOUBLE_POSITION_COUNTER
+            del read_id_double_position_counter
 
             # For each read_id in the blast file calculate contribution based on q-score in READ_ID_BASE_CALL_COUNTER.
             # Summarize results in total_base_call_counter.
-            READ_ID_BASE_CALL_COUNTER, total_base_call_counter, total_base_counter_per_read_id = \
-                calculate_read_id_contribution(READ_ID_BASE_CALL_COUNTER, total_base_call_counter, q_score,
+            read_id_base_call_counter, total_base_call_counter, total_base_counter_per_read_id = \
+                calculate_read_id_contribution(read_id_base_call_counter, total_base_call_counter, q_score,
                                                num_of_repeats, ref_genome, \
                                                good_mutations_file, Non_contributing_file, read_id,
                                                total_base_counter_per_read_id)
-            del READ_ID_BASE_CALL_COUNTER
+            del read_id_base_call_counter
 
             # Create contributing statistics files, part1
             contributing_stats, contributing_reads_counter, contributing_bases_counter, non_contributing_reads_counter = \
