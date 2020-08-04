@@ -508,10 +508,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
     except:
         raise Exception("Cannot open/read file " + blast_FilePath + "\n")
 
-    ref_genome = create_ref_seq(ref_FilePath)
-    ascii_q_score = get_qscore_dict(pipeline_dir)
-    read_ids_values = count_num_times_read_matches(blast_lines, len(blast_lines), mode)  # go over ids
-    read_ids_values = reads_id_quality(read_ids_values, blast_FilePath)
+    # initialize parameters
     total_base_call_counter = {}
     contributing_stats = {}
     match_statistics = {}
@@ -522,19 +519,25 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
     good_reads_file, good_mutations_file, stats_file, frequencies_file, Non_contributing_file = create_supporting_data_files(
         blast_FilePath)
 
+    # load some data into memory
+    ref_genome = create_ref_seq(ref_FilePath)
+    ascii_q_score = get_qscore_dict(pipeline_dir)
+    read_ids_values = count_num_times_read_matches(blast_lines, len(blast_lines), mode)
+    read_ids_values = reads_id_quality(read_ids_values, blast_FilePath)
+
     blast_line_counter = 0
     while blast_line_counter < len(blast_lines):
         read_record_split, read_id = get_record(blast_lines, blast_line_counter, mode)
-        number_of_matchs = read_ids_values[read_id][counter]
+        number_of_matches = read_ids_values[read_id][counter]
         number_of_plus_matches = read_ids_values[read_id][plus_counter]
         number_of_minus_matches = read_ids_values[read_id][minus_counter]
         total_base_counter_per_read_id = 0
         match_counter = 1
-        if number_of_matchs not in match_statistics:
-            match_statistics[number_of_matchs] = 0
-        match_statistics[number_of_matchs] += 1
+        if number_of_matches not in match_statistics:
+            match_statistics[number_of_matches] = 0
+        match_statistics[number_of_matches] += 1
         always_enter_this_if = True if please_remove_multiple_mapping == "N" else False  # TODO: remove this hack when done.
-        if always_enter_this_if or (number_of_matchs >= num_of_repeats) and (
+        if always_enter_this_if or (number_of_matches >= num_of_repeats) and (
                 (Protocol in ["C", "c", "circular"]) or (
                 Protocol in ["L", "l", "linear"] and num_of_repeats == 2 and number_of_plus_matches == 1 and
                 number_of_minus_matches == 1
@@ -556,7 +559,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
             # Multiple mapped positions will be removed from base calling.
             READ_ID_DOUBLE_POSITION_COUNTER = {}
 
-            while match_counter <= number_of_matchs:
+            while match_counter <= number_of_matches:
                 if mode in ["sr", "SR", "SeqtoRef"]:
                     read_start = read_record_split[2].strip()
                     read_end = read_record_split[3].strip()
@@ -583,7 +586,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 
                 match_counter += 1
                 blast_line_counter += 1
-                if match_counter <= number_of_matchs:  # and blast_line_counter < Lines
+                if match_counter <= number_of_matches:  # and blast_line_counter < Lines
                     read_record_split, next_read_id = get_record(blast_lines, blast_line_counter, mode)
                     if next_read_id != read_id:
                         raise Exception(
@@ -614,14 +617,14 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 
         else:
             with open(Non_contributing_file, 'at') as bad_reads_mutations:  # Record any non contributing reads
-                while match_counter <= number_of_matchs:
+                while match_counter <= number_of_matches:
                     try:
                         bad_reads_mutations.write("\t".join(read_record_split) + "\n")
                     except:
                         raise Exception("Unexpected error, cannot write into file " + Non_contributing_file + "\n")
                     match_counter += 1
                     blast_line_counter += 1
-                    if match_counter <= number_of_matchs:
+                    if match_counter <= number_of_matches:
                         read_record_split, next_read_id = get_record(blast_lines, blast_line_counter, mode)
                         if next_read_id != read_id:
                             raise Exception(
