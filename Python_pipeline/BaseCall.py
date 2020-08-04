@@ -51,8 +51,8 @@ def reads_id_quality(READ_IDS_VALUES, blast_FilePath, quality_line=3):
         RowNum += 1
         if read_id in READ_IDS_VALUES:
             read_id_quality_line = ReadLines[RowNum].strip()
-            READ_IDS_VALUES[read_id][
-                quality_line] = read_id_quality_line  # READ_IDS_VALUES[read_id] = [read_id_counter, plus_counter, minus_counter, read_id_quality_line]
+            READ_IDS_VALUES[read_id][quality_line] = read_id_quality_line
+            # READ_IDS_VALUES[read_id] = [read_id_counter, plus_counter, minus_counter, read_id_quality_line]
         RowNum += 1
 
     return READ_IDS_VALUES
@@ -92,7 +92,7 @@ def create_ref_seq(ref_FilePath):
     return REF_GENOME
 
 
-def read_id_qscore(blast_FilePath, read_id, Quality_line, ASCII_Q_SCORE):
+def get_read_id_qscore(blast_FilePath, read_id, Quality_line, ASCII_Q_SCORE):
     Quality_line_length = len(Quality_line)
     READ_ID_QSCORE = {}
     for read_counter in range(Quality_line_length):
@@ -508,10 +508,13 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
     except:
         raise Exception("Cannot open/read file " + blast_FilePath + "\n")
 
+    # load some stuff into memory
     ref_genome = create_ref_seq(ref_FilePath)
     ascii_q_score = get_qscore_dict(pipeline_dir)
-    read_ids_values = count_num_times_read_matches(blast_lines, len(blast_lines), mode)  # go over ids
-    read_ids_values = reads_id_quality(read_ids_values, blast_FilePath)
+    read_ids_values = count_num_times_read_matches(blast_lines, len(blast_lines), mode)
+    read_ids_values = reads_id_quality(read_ids_values, blast_FilePath)  # TODO: refactor output to make sense
+
+    # initialize stuff
     total_base_call_counter = {}
     contributing_stats = {}
     match_statistics = {}
@@ -519,22 +522,22 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
     contributing_bases_counter = 0
     double_mapping_counter = 0
     non_contributing_reads_counter = 0
-    good_reads_file, good_mutations_file, stats_file, frequencies_file, Non_contributing_file = create_supporting_data_files(
+    good_reads_file, good_mutations_file, stats_file, frequencies_file, non_contributing_file = create_supporting_data_files(
         blast_FilePath)
 
     blast_line_counter = 0
     while blast_line_counter < len(blast_lines):
-        read_record_split, read_id = get_record(blast_lines, blast_line_counter, mode)
-        number_of_matchs = read_ids_values[read_id][counter]
+        read_record_split, read_id = get_record(blast_lines, blast_line_counter, mode)  # TODO: vectorize this?
+        number_of_matches = read_ids_values[read_id][counter]
         number_of_plus_matches = read_ids_values[read_id][plus_counter]
         number_of_minus_matches = read_ids_values[read_id][minus_counter]
         total_base_counter_per_read_id = 0
         match_counter = 1
-        if number_of_matchs not in match_statistics:
-            match_statistics[number_of_matchs] = 0
-        match_statistics[number_of_matchs] += 1
+        if number_of_matches not in match_statistics:
+            match_statistics[number_of_matches] = 0
+        match_statistics[number_of_matches] += 1
         always_enter_this_if = True if please_remove_multiple_mapping == "N" else False  # TODO: remove this hack when done.
-        if always_enter_this_if or (number_of_matchs >= num_of_repeats) and (
+        if always_enter_this_if or (number_of_matches >= num_of_repeats) and (
                 (Protocol in ["C", "c", "circular"]) or (
                 Protocol in ["L", "l", "linear"] and num_of_repeats == 2 and number_of_plus_matches == 1 and
                 number_of_minus_matches == 1
@@ -543,20 +546,20 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
                     number_of_minus_matches < 2)
         ):
             if read_id in read_ids_values:
-                Quality_line = read_ids_values[read_id][quality_line]
+                quality_line = read_ids_values[read_id][quality_line]
             else:
                 raise Exception("read id " + read_id + " was not found in qual file\n")
 
-            READ_ID_QSCORE = read_id_qscore(blast_FilePath, read_id, Quality_line,
-                                            ascii_q_score)  # get q-score of read id
-            # For each read_id in blast file, create a dictionary READ_ID_BASE_CALL_COUNTER that will get ref position base count and q-score.
-            # Including mutations and / or gaps.
-            READ_ID_BASE_CALL_COUNTER = {}
-            # For each read_id, create a dictionary READ_ID_DOUBLE_POSITION_COUNTER that will get how many times each position in the read was counted.
-            # Multiple mapped positions will be removed from base calling.
-            READ_ID_DOUBLE_POSITION_COUNTER = {}
+            # get q-score of read id
+            read_id_qscore = get_read_id_qscore(blast_FilePath, read_id, quality_line, ascii_q_score)
+            # For each read_id in blast file, create a dictionary read_id_base_call_counter that will get ref position
+            # base count and q-score including mutations and / or gaps.
+            read_id_base_call_counter = {}
+            # For each read_id, create a dictionary read_id_double_position_counter that will get how many times each
+            # position in the read was counted. Multiple mapped positions will be removed from base calling.
+            read_id_double_position_counter = {}
 
-            while match_counter <= number_of_matchs:
+            while match_counter <= number_of_matches:
                 if mode in ["sr", "SR", "SeqtoRef"]:
                     read_start = read_record_split[2].strip()
                     read_end = read_record_split[3].strip()
@@ -575,15 +578,15 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
                 # length = read_record_split[7].strip()
                 aln = read_record_split[8].strip()
 
-                READ_ID_BASE_CALL_COUNTER, READ_ID_DOUBLE_POSITION_COUNTER = \
+                read_id_base_call_counter, read_id_double_position_counter = \
                     create_read_id_seq_qscore(read_id, read_start, read_end, ref_start, ref_end, strand, aln,
-                                              READ_ID_QSCORE, \
-                                              ref_genome, READ_ID_BASE_CALL_COUNTER, READ_ID_DOUBLE_POSITION_COUNTER,
+                                              read_id_qscore, \
+                                              ref_genome, read_id_base_call_counter, read_id_double_position_counter,
                                               q_score, mode)
 
                 match_counter += 1
                 blast_line_counter += 1
-                if match_counter <= number_of_matchs:  # and blast_line_counter < Lines
+                if match_counter <= number_of_matches:  # and blast_line_counter < Lines
                     read_record_split, next_read_id = get_record(blast_lines, blast_line_counter, mode)
                     if next_read_id != read_id:
                         raise Exception(
@@ -591,37 +594,37 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 
             # For each read_id remove positions that were mapped more than once from contributing base calls
             # if please_remove_multiple_mapping == "Y":  #TODO: this doesn't seem to do anything....
-            READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER, double_mapping_counter = \
-                remove_multiple_mapping(READ_ID_DOUBLE_POSITION_COUNTER, READ_ID_BASE_CALL_COUNTER,
+            read_id_double_position_counter, read_id_base_call_counter, double_mapping_counter = \
+                remove_multiple_mapping(read_id_double_position_counter, read_id_base_call_counter,
                                         double_mapping_counter)
-            del READ_ID_DOUBLE_POSITION_COUNTER
+            del read_id_double_position_counter
 
-            # For each read_id in the blast file calculate contribution based on q-score in READ_ID_BASE_CALL_COUNTER.
+            # For each read_id in the blast file calculate contribution based on q-score in read_id_base_call_counter.
             # Summarize results in total_base_call_counter.
-            READ_ID_BASE_CALL_COUNTER, total_base_call_counter, total_base_counter_per_read_id = \
-                calculate_read_id_contribution(READ_ID_BASE_CALL_COUNTER, total_base_call_counter, q_score,
+            read_id_base_call_counter, total_base_call_counter, total_base_counter_per_read_id = \
+                calculate_read_id_contribution(read_id_base_call_counter, total_base_call_counter, q_score,
                                                num_of_repeats, ref_genome, \
-                                               good_mutations_file, Non_contributing_file, read_id,
+                                               good_mutations_file, non_contributing_file, read_id,
                                                total_base_counter_per_read_id)
-            del READ_ID_BASE_CALL_COUNTER
+            del read_id_base_call_counter
 
             # Create contributing statistics files, part1
             contributing_stats, contributing_reads_counter, contributing_bases_counter, non_contributing_reads_counter = \
                 summarize_total_contribution_statistics_1(contributing_stats, contributing_reads_counter,
                                                           contributing_bases_counter, non_contributing_reads_counter,
                                                           total_base_counter_per_read_id, match_counter - 1, \
-                                                          good_reads_file, read_id, Quality_line)
+                                                          good_reads_file, read_id, quality_line)
 
         else:
-            with open(Non_contributing_file, 'at') as bad_reads_mutations:  # Record any non contributing reads
-                while match_counter <= number_of_matchs:
+            with open(non_contributing_file, 'at') as bad_reads_mutations:  # Record any non contributing reads
+                while match_counter <= number_of_matches:
                     try:
                         bad_reads_mutations.write("\t".join(read_record_split) + "\n")
                     except:
-                        raise Exception("Unexpected error, cannot write into file " + Non_contributing_file + "\n")
+                        raise Exception("Unexpected error, cannot write into file " + non_contributing_file + "\n")
                     match_counter += 1
                     blast_line_counter += 1
-                    if match_counter <= number_of_matchs:
+                    if match_counter <= number_of_matches:
                         read_record_split, next_read_id = get_record(blast_lines, blast_line_counter, mode)
                         if next_read_id != read_id:
                             raise Exception(
@@ -631,7 +634,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 
     del ascii_q_score
 
-    os.system("sort " + Non_contributing_file + " -o " + Non_contributing_file + "\n")
+    os.system("sort " + non_contributing_file + " -o " + non_contributing_file + "\n")
 
     # Calculate frequencies and write to file
     calculate_frequencies(total_base_call_counter, ref_genome, frequencies_file)
