@@ -145,9 +145,8 @@ def double_position_counter(read_counter, READ_ID_DOUBLE_POSITION_COUNTER, ref_c
 
 
 def create_read_id_seq_qscore(read_id, read_start, read_end, ref_start, ref_end, strand, aln, READ_ID_QSCORE,
-                              REF_GENOME, \
-                              READ_ID_BASE_CALL_COUNTER, READ_ID_DOUBLE_POSITION_COUNTER, q_score, mode, counter=0,
-                              q_score_sum=1, mutation_positions=2):
+                              REF_GENOME, READ_ID_BASE_CALL_COUNTER, READ_ID_DOUBLE_POSITION_COUNTER, q_score, mode,
+                              counter=0, q_score_sum=1, mutation_positions=2):
     if mode in ["sr", "SR", "SeqtoRef"]:
         mode = "SeqtoRef"
         Seq_pair_position = 0
@@ -540,10 +539,9 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
         if always_enter_this_if or (number_of_matches >= num_of_repeats) and (
                 (Protocol in ["C", "c", "circular"]) or (
                 Protocol in ["L", "l", "linear"] and num_of_repeats == 2 and number_of_plus_matches == 1 and
-                number_of_minus_matches == 1
-                )
-                or (Protocol in ["L", "l", "linear"] and num_of_repeats == 1 and number_of_plus_matches < 2 and
-                    number_of_minus_matches < 2)
+                number_of_minus_matches == 1) or (
+                        Protocol in ["L", "l", "linear"] and num_of_repeats == 1 and number_of_plus_matches < 2 and
+                        number_of_minus_matches < 2)
         ):
             if read_id in read_ids_values:
                 Quality_line = read_ids_values[read_id][quality_line]
@@ -551,6 +549,7 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
                 raise Exception("read id " + read_id + " was not found in qual file\n")
 
             read_id_qscore = get_read_id_qscore(blast_FilePath, read_id, Quality_line, ascii_q_score)
+
             # For each read_id in blast file, create a dictionary READ_ID_BASE_CALL_COUNTER that will get ref position
             # base count and q-score including mutations and / or gaps.
             read_id_base_call_counter = {}
@@ -579,9 +578,8 @@ def BaseCall(pipeline_dir, blast_FilePath, ref_FilePath, num_of_repeats, q_score
 
                 read_id_base_call_counter, read_id_double_position_counter = \
                     create_read_id_seq_qscore(read_id, read_start, read_end, ref_start, ref_end, strand, aln,
-                                              read_id_qscore, \
-                                              ref_genome, read_id_base_call_counter, read_id_double_position_counter,
-                                              q_score, mode)
+                                              read_id_qscore, ref_genome, read_id_base_call_counter,
+                                              read_id_double_position_counter, q_score, mode)
 
                 match_counter += 1
                 blast_line_counter += 1
