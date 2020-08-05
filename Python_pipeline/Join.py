@@ -63,7 +63,7 @@ def wrangle_freqs_df(data):
 	data["rank"] = (pd.Series.cumsum(pd.Series(data["coverage_to_set_rank"])) - 1) % 5
 	del data["coverage_to_set_rank"]
 	# Create freqs file
-	pd.DataFrame.set_index(data, keys="ref_position", inplace=True)
+	pd.DataFrame.set_index(data, keys=["ref_position", "base"], inplace=True)
 	return data
 
 
@@ -208,7 +208,8 @@ def main(args):
 		if "L00" in find_files[0]:
 			sample_basename_pattern = os.path.basename(find_files[0].split("L00")[0])
 		else:
-			raise Exception("Unexpected error, was not able to find a common path for sample name. Unable to perform Join step\n")
+			sample_basename_pattern = os.path.basename(find_files[0].split("merged")[0]) #TODO: does this break anything?
+			#raise Exception("Unexpected error, was not able to find a common path for sample name. Unable to perform Join step\n")
 	else:
 		raise Exception("Unexpected error, was not able to find *part1.fasta files in directory " + dir_path + ". Unable to perform Join step\n")
 

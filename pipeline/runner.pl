@@ -4,6 +4,8 @@ use strict;
 #TODO: remove hard coded paths....
 use lib '/sternadi/home/volume3/ita/shared_sternlab/pipeline';
 use Create_cmd;
+$|++;
+
 
 
 #########################################################################
@@ -335,9 +337,18 @@ sub base_call {
 
     my @files_blast=glob("$out_dir*.blast");
     my @files_freqs=glob("$out_dir*.freqs");
+    my $sleep_counter=0;
 
+    while ( scalar(@files_freqs) < scalar(@files_blast) ) {
+        print "Waiting for freq files to appear... (".scalar(@files_freqs). "," .scalar(@files_blast).")\n";
+        sleep(5);
+        $sleep_counter += 5;
+        @files_blast=glob("$out_dir*.blast");
+        @files_freqs=glob("$out_dir*.freqs");
+        last if ($sleep_counter > 120);
+    }
     if (scalar(@files_freqs)!=scalar(@files_blast) ) {
-	   print ERR "number of blast output files ".scalar(@files_blast) ." not compatible with number of freqs files created: ".scalar(@files_freqs)."\n";
+	   print ERR "number of blast output files ".scalar(@files_blast) ." not compatible with number of freqs files created: ".scalar(@files_freqs). "\n";
     }
 
     if (scalar @files_freqs == 0) {

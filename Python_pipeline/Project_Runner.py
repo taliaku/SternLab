@@ -126,16 +126,18 @@ def main(args):
         raise Exception("Unexpected error, pipeline path " + pipeline_path + " does not exist or not a .py file\n")
 
     start_stage = args.start
-    if start_stage != None:
-        if not start_stage in [0, 1, 2, 3, 4, 5, 6]:
-            raise Exception("Unexpected error, start_stage " + str(start_stage) + " is not a valid value\n")
+    if start_stage is not None:
+        start_stage = int(start_stage)
+        if start_stage not in [0, 1, 2, 3, 4, 5, 6]:
+            raise Exception("Unexpected error, start_stage " + start_stage + " is not a valid value\n")
 
     end_stage = args.end
-    if end_stage != None:
-        if not end_stage in [0, 1, 2, 3, 4, 5, 6]:
+    if end_stage is not None:
+        end_stage = int(end_stage)
+        if end_stage not in [0, 1, 2, 3, 4, 5, 6]:
             raise Exception("Unexpected error, end_stage is not a valid integer value between 0-6\n")
 
-    if start_stage != None and end_stage != None and start_stage > end_stage:
+    if (start_stage is not None) and (end_stage is not None) and (int(start_stage) > int(end_stage)):
         raise Exception("Unexpected error, start stage " + str(start_stage) + " is larger than end stage " + str(end_stage) + "\n")
 
     input_dir = os.path.dirname(args.input_dir.strip())
