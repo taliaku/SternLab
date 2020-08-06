@@ -45,6 +45,16 @@ pairs[['seq_x', 'seq_y', 'amplicon_length', 'primer_pairs']].to_csv('X:/volume2/
 # for file in */*.fq; do mv "$file" "${file%.*}.fastq"; done
 # for file in *; do mv "$file" "${file%.*}_L001"; done
 
+
+
 # pipeline
 #python /sternadi/home/volume2/noam/SternLab/Python_pipeline/Project_Runner.py -o /sternadi/nobackup/volume1/noam/covid_data/coronaTech3_20200504/python_pipeline_x1_c0_after_ptrimmer/ -i /sternadi/nobackup/volume1/noam/covid_data/coronaTech3_20200504/ptrimmer_cleanup/ -r /sternadi/home/volume2/noam/covid/MN908947.fasta -x 1 -c 0
 #python /sternadi/home/volume2/noam/SternLab/Python_pipeline/Project_Runner.py -o /sternadi/nobackup/volume1/noam/covid_data/coronaTech3_20200504/python_pipeline_x1_c0_v10-9_after_ptrimmer/ -i /sternadi/nobackup/volume1/noam/covid_data/coronaTech3_20200504/ptrimmer_cleanup/ -r /sternadi/home/volume2/noam/covid/MN908947.fasta -x 1 -c 0 -v 1e-9
+
+# technion4
+#for d in /sternadi/datasets/volume2/coronaTech4_20200805/Raw_data/*R1*; do dir_name=$(basename $d); dir_name=$(echo $dir_name | cut -d"_" -f1); mkdir /sternadi/nobackup/volume1/noam/covid_data/coronaTech4_20200805/ptrimmer_cleanup/$dir_name; echo $d >> /sternadi/nobackup/volume1/noam/covid_data/coronaTech4_20200805/ptrimmer.log; /sternadi/home/volume1/shared/tools/pTrimmer/pTrimmer-1.3.1 -s pair -a /sternadi/home/volume2/noam/covid/artic_amplicons/ptrimmer_primers.txt --read1 $d --read2 "${d//_R1_/_R2_}" -o /sternadi/nobackup/volume1/noam/covid_data/coronaTech4_20200805/ptrimmer_cleanup/$dir_name &>> /sternadi/nobackup/volume1/noam/covid_data/coronaTech4_20200805/ptrimmer.log; done
+# for file in */*.fq; do mv "$file" "${file%.*}.fastq"; done
+# for file in *; do mv "$file" "${file%.*}_L001"; done
+
+#pipeline
+#python /sternadi/home/volume2/noam/SternLab/Python_pipeline/Project_Runner.py -o /sternadi/nobackup/volume1/noam/covid_data/coronaTech4_20200805/python_pipeline_x1_c0_v10-9_after_ptrimmer/ -i /sternadi/nobackup/volume1/noam/covid_data/coronaTech4_20200805/ptrimmer_cleanup/ -r /sternadi/home/volume2/noam/covid/MN908947.fasta -x 1 -c 0 -v 1e-9

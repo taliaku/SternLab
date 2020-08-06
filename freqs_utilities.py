@@ -534,7 +534,7 @@ def estimate_insertion_freq(df, extra_columns=[]):
     insertions['rounded_pos'] = insertions.ref_position.astype(int).astype(float)
     insertions = pd.merge(insertions, read_counts, how='left', on= extra_columns + ['rounded_pos'])
     insertions['estimated_freq'] = insertions.frequency * insertions.coverage / insertions.estimated_read_count
-    df = pd.concat([insertions, not_insertions])
+    df = pd.concat([insertions, not_insertions], sort=False)
     return df.sort_values(extra_columns + ['ref_position'])
 
 
