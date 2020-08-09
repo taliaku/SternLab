@@ -48,7 +48,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output_dir", help="Where all the files will go", required=True)
     parser.add_argument("-i", "--input_file", help="stretches.csv file created by co-occurs_to_stretches.py",
                         required=True)
-    parser.add_argument("-n", "--number_of_stretches", help="plot this many stretches starting with the biggest one, "
-                                                            "default is 5", default=5)
+    parser.add_argument("-n", "--number_of_stretches", help="plot this many stretches, default is 5", default=5,
+                        type=int)
     args = parser.parse_args()
     main(args)

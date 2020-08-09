@@ -7,7 +7,7 @@ import os
 import glob
 import tqdm
 import pandas as pd
-from freqs_utilities import estimate_insertion_freq_python_pipeline
+from freqs_utilities import estimate_insertion_freq
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
     mutations = pd.DataFrame()
     mutations_turned_ns = pd.DataFrame()
     missing_poss = pd.DataFrame()
-    end_pos = 29892
+    end_pos = 29903
 
     for f in tqdm.tqdm(freqs_files):
         #if "all.freqs.csv" in f or 'all.csv' in f or '2089839' not in f:
@@ -32,10 +32,9 @@ def main():
         sample = f.split("/")[-1].split("_")[0]
         df = pd.read_csv(f)    
         df_snps_and_dels = df[(df["rank"] == 0) & (df["ref_base"] != "-") & (df["ref_position"] >= 55) & (df["ref_position"] <= 29836)]
-        df = estimate_insertion_freq_python_pipeline(df)
+        df = estimate_insertion_freq(df)
         df_insertions = df[(df["estimated_freq"] >= 0.8) & (df["ref_base"] == "-") & (df["base"] != "-") & (df["ref_position"] >= 55) & (df["ref_position"] <= 29836) & (df['coverage'] > 10)]
-        df_changes = pd.concat([df_snps_and_dels, df_insertions])
-        df_changes = df_changes.sort_values('ref_position')
+        df_changes = pd.concat([df_snps_and_dels, df_insertions], sort=False).sort_values('ref_position')
         count = int(df_changes.head(1)["ref_position"])
         loc = int(df_changes.head(1)["ref_position"]) - 1
         con = (count) * "N"    
