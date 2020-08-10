@@ -47,11 +47,13 @@ def compare_fastas_to_ref(fastas, ref_seq_name, output_csv, remove_edges=True):
             edges.append((sample, start_pos, end_pos))
 
         edges = pd.DataFrame(edges, columns=['sample', 'start_pos', 'end_pos'])
-        print(edges)
         df = pd.merge(df, edges, on='sample')
-        df = df[(df.fasta_position >= df.start_pos) & (df.fasta_position <= df.end_pos)]
+        df = df[(df.fasta_position >= df.start_pos) & (df.fasta_position < df.end_pos)]
+        df.drop(columns=['fasta_position', 'start_pos', 'end_pos'], inplace=True)
 
-    df.drop(columns=['fasta_position'], inplace=True)
+    else:
+        df.drop(columns=['fasta_position'], inplace=True)
+        
     df.sort_values(['sample', 'position']).to_csv(output_csv, index=False)
 
 if __name__ == "__main__":
