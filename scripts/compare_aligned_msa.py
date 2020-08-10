@@ -58,7 +58,7 @@ def compare_fastas_to_ref(fastas, ref_seq_name, output_csv, remove_edges=True):
         df = pd.merge(df, edges, on='sample')
         df = df[(df.position > df.start_pos) & (df.position < df.end_pos)]
 
-    return df.to_csv(output_csv, index=False)
+    df.to_csv(output_csv, index=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -71,4 +71,4 @@ if __name__ == "__main__":
     if not vars(args):
         parser.print_help()
         parser.exit(1)
-    print(compare_fastas_to_ref(args.input, args.reference, args.output, args.remove_edges))
+    compare_fastas_to_ref(args.input, args.reference, args.output, args.remove_edges)
