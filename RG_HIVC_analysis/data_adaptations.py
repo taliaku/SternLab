@@ -12,13 +12,13 @@ from freqs_utilities import change_ref_to_consensus
 
 def create_unified_samples_to_patient_and_dsi():
     extension = 'tsv'
-    all_filenames = [i for i in glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_input/tables_control/samples_*.{}'.format(extension))]
+    all_filenames = [i for i in glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_input/tables_orig_unfiltered/samples_*.{}'.format(extension))]
 
     # combine all files in the list
-    combined_csv = pd.concat([pd.read_csv(f) for f in all_filenames])
-    # combined_csv['timepoint'] = combined_csv.groupby('patient').cumcount() # TODO- handle column seperation to make this work
+    combined_csv = pd.concat([pd.read_csv(f, sep='\t') for f in all_filenames])
+    combined_csv['timepoint'] = combined_csv.groupby('patient').cumcount()
     # export to csv
-    combined_csv.to_csv("samples_to_patient_and_dsi_control_timepoint.csv", index=False, encoding='utf-8-sig')
+    combined_csv.to_csv("info_tables/samples_to_patient_and_dsi_orig_unfiltered_timepoint.csv", index=False, encoding='utf-8-sig')
 
 def add_codon_aa_info(freq_df):
     df_next_base = freq_df[freq_df['Rank'] == 0][['Pos', 'Base']]
@@ -151,5 +151,5 @@ def generate_unified_filtered_verbose_freqs_df(min_read_count = constants.covera
 
 
 if __name__ == "__main__":
-    # create_unified_samples_to_patient_and_dsi()
-    generate_unified_filtered_verbose_freqs_df()
+    create_unified_samples_to_patient_and_dsi()
+    # generate_unified_filtered_verbose_freqs_df()
