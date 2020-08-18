@@ -39,7 +39,7 @@ die "usage pipeline_runner.pl  <input directory with fastq.gz files> <output dir
 " unless (scalar(@ARGV)>=5);
 
 
-my $current_version_path = '/sternadi/home/volume3/ita/shared_sternlab/pipeline';
+my $current_version_path = '/sternadi/home/volume2/ita/shared_sternlab/pipeline';
 my $in_dir = $ARGV[0];
 
 $in_dir.="/" unless ($in_dir =~ /\/$/);
