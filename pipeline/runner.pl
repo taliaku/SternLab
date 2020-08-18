@@ -2,7 +2,7 @@
 
 use strict;
 #TODO: remove hard coded paths....
-use lib '/sternadi/home/volume3/ita/shared_sternlab/pipeline';
+use lib '/sternadi/home/volume2/ita/shared_sternlab/pipeline';
 use Create_cmd;
 $|++;
 
