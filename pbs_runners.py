@@ -133,7 +133,7 @@ def fastml_runner(alignment, tree, outdir = None, log_file = None, alias = "fast
     marginal_prob = outdir + "/" + basename + ".prob.marginal.txt"
     if log_file == None:
         log_file = outdir + "/" + basename + ".fastml.log"
-    cmdfile = pbs_jobs.assign_cmdfile_path("fastml.txt", alias); tnum = 1; gmem = 1
+    cmdfile = pbs_jobs.assign_cmdfile_path("fastml.txt", alias); tnum = 1; gmem = 1000
     cmds = "%s -s %s -t %s -mn -x %s " \
            "-y %s -j %s -k %s -d %s -e %s -qf -R %s" % (fastml_path, alignment, tree, newick_tree, ancestor_tree, joint_seqs,
                                                  marginal_seqs, joint_prob, marginal_prob, log_file)
@@ -1070,3 +1070,35 @@ def associvar_runner(input_dir, output_dir, start_position, end_position, job_nu
     unify_job_id = pbs_jobs.submit(cmdfile)
 
     return (job_id, array_job_id, unify_job_id)
+
+def codonM_runner(fasta, output=None, alias="codonM", queue="adistzachi"):
+    fasta = check_filename(fasta)
+    if output == None:
+        output = fasta.replace(".fasta", ".codonM")
+    else:
+        output = check_filename(output, Truefile=False)
+    cmdname = "codonM"
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias);
+    gmem = 1;
+    cmds = f"/sternadi/home/volume1/taliakustin/software/tai/misc/codonM {fasta} {output}"
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+
+def codonZ_runner(fasta, output=None, alias="codonZ", queue="adistzachi"):
+    fasta = check_filename(fasta)
+    if output == None:
+        output = fasta.replace(".fasta", ".Z").replace("PEPTIDE_", "")
+        if "Flavi" in fasta:
+            output = fasta.replace("PUTATIVE_", "")
+    else:
+        output = check_filename(output, Truefile=False)
+    cmdname = "codonZ"
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias);
+    gmem = 1;
+    cmds = f"export PATH=$PATH:/sternadi/home/volume1/taliakustin/software/codonW\n" \
+           f"/sternadi/home/volume1/taliakustin/software/tai/misc/codonZ {fasta} {output}"
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
