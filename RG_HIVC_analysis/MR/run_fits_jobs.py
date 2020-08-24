@@ -2,6 +2,7 @@ import glob
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -26,6 +27,7 @@ def generate_fits_input():
 
     # zn patients
     patients = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11']
+    patients = ['p7', 'p6', 'p5', 'p4', 'p3', 'p2', 'p1']
 
     # get freq data from unified freq
     # unified_freq_path = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/unified_freqs_filtered_verbose.csv'.format(run_folder)
@@ -83,10 +85,10 @@ def generate_fits_input():
 
         ### per position
         # for pos in [1685]:
-        # for pos in df_patient.Pos.unique():
-        #     print('pos: {}'.format(pos))
-        #     df_pos = df_patient[(df_patient['Pos'] == pos)]
-        #     split_by_mutation(df_pos, output_path + str(patient) + '/', ID='{}_{}'.format(patient, pos))
+        for pos in tqdm(df_patient.Pos.unique()):
+            print('pos: {}'.format(pos))
+            df_pos = df_patient[(df_patient['Pos'] == pos)]
+            split_by_mutation(df_pos, output_path + str(patient) + '/', ID='{}_{}'.format(patient, pos))
 
         ## alternative to for loop? TODO- examine this. or simply give it 2 hours to run.
         # incompletly_implemented_alternative(df, df_patient)
@@ -197,6 +199,10 @@ def get_syn_pos_from_file(file):
     syn_pos = [int(x.strip()) for x in syn_pos]
     return syn_pos
 
+
+###############################
+
+
 def run_fits():
     input_files_orig_high=  '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/input_files/orig_high/'
 
@@ -212,8 +218,8 @@ def run_fits():
     #                 posterior_file=file+'.posterior', summary_file=file+'.summary')
 
     ## per pos
-    patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
-    # patients = ['47939', '34253', '31254', '29447', '29219', '28841', '28545', '26892', '23271', '22828', '22763'] # opposite order
+    # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892','28545', '28841', '29219', '29447', '31254', '34253', '47939']
+    patients = ['47939', '34253', '31254', '29447', '29219', '28841', '28545', '26892', '23271', '22828', '22763'] # opposite order
     # patients = ['13003', '15664', '22097', '22763', '22828', '26892', '29447'] # relevant after truncation
     # patients = ['12796']
 
@@ -236,6 +242,10 @@ def run_fits():
                         summary_file=input_file+'.summary.bottleneck',
                         queue= 'short',
                         batch= 9062)
+
+
+###############################
+
 
 def custom_summary_2_csv_biallelic(summary_dir, filenames_pattern = 'FITS*.summary', out=None, patient='', inverse_direction = False):
     """
@@ -282,17 +292,18 @@ def custom_summary_2_csv_biallelic(summary_dir, filenames_pattern = 'FITS*.summa
 
 def fits_outputs_to_csv():
 
-    run_name = 'orig_high'
-    # run_name = 'zn'
+    # run_name = 'orig_high'
+    run_name = 'zn'
 
     fits_dir = '/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/fits/input_files/%s/' % run_name
     outputs_dir = fits_dir + 'results_analysis/'
     Path(outputs_dir).mkdir(exist_ok=True, parents=False)
 
-    patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892', '28545', '28841', '29219', '29447', '31254', '34253', '47939']
+    # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '23271', '26892', '28545', '28841', '29219', '29447', '31254', '34253', '47939']
     # patients = ['13003', '15664', '22097', '22763', '22828', '26892', '29447'] # relevant after truncation
     # patients = ['26892']
-    # patients = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11']
+    patients = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11']
+    # patients = ['12796', '13003', '15664', '16207', '17339', '19937', '22097', '22763', '22828', '47939'] # relevant for bottleneck
 
     filenames_pattern = 'FITS*.summary'
 
@@ -308,8 +319,14 @@ def fits_outputs_to_csv():
     final = pd.concat(dfs)
     final.to_csv(outputs_dir + 'fits_mr_summary_' + run_name + '.csv', index=False)
 
+
+###############################
+
+
 def analysis():
     run_name = 'orig_high'
+    # run_name = 'orig_high-bottleneck'
+    # run_name = 'zn'
     fits_summaries_dir = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/MR/fits_runs_summaries/%s/' % run_name
     fits_summary_unified = pd.read_csv(fits_summaries_dir + 'fits_mr_summary_{}.csv'.format(run_name))
 
@@ -318,42 +335,66 @@ def analysis():
     fits_summary_unified = fits_summary_unified[fits_summary_unified['significance'] == 'significant']
 
     # optional filtering low entropy positions
-    filter_low_entropy = False
+    filter_low_entropy = True
 
     if filter_low_entropy:
-        per_patient = True
+        orig_high = True
 
-        if per_patient:
+        if orig_high:
+            orig_high_pos_after_entropy = []
             for patient in fits_summary_unified.Patient.unique():
-                syn_pos_after_entropy_filter_file = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/MR/syn_pos_by_ZN_with_entropy_filter/mutation_rate_positions_orig_high_v5_%s_0.3.txt' % patient
-                # TODO- verify the following-
-                rows_to_remove = (fits_summary_unified['Pos'] == patient) & (not (fits_summary_unified['Pos'] in get_syn_pos_from_file(syn_pos_after_entropy_filter_file)))
-                fits_summary_unified = fits_summary_unified[not rows_to_remove]
+                syn_entropy_pos_per_patient = get_syn_pos_from_file('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/MR/syn_pos_by_ZN_with_entropy_filter/mutation_rate_positions_orig_high_v4_%s_0.3.txt' % patient)
+                orig_high_pos_after_entropy = orig_high_pos_after_entropy + syn_entropy_pos_per_patient
+
+            orig_high_pos_after_entropy = list(set(orig_high_pos_after_entropy))
+            orig_high_pos_after_entropy.sort()
+            print(len(orig_high_pos_after_entropy))
+            pos_after_entropy = orig_high_pos_after_entropy
         else:
             zn_pos_file_with_entropy = '/Users/omer/PycharmProjects/HIV_fitness_landscape/data/mutation_rates/mutation_rate_positions_0.3.txt'
-            fits_summary_unified = fits_summary_unified[fits_summary_unified['Pos'] in get_syn_pos_from_file(zn_pos_file_with_entropy)]
+            pos_after_entropy = get_syn_pos_from_file(zn_pos_file_with_entropy)
 
+        print(len(fits_summary_unified))
+        fits_summary_unified = fits_summary_unified[fits_summary_unified['Pos'].isin(pos_after_entropy)]
+        print(len(fits_summary_unified))
 
-    stats = fits_summary_unified.groupby(['Patient', 'Mutation'])['MR'].agg(['median', 'mean'])
+    stats = fits_summary_unified.groupby(['Patient', 'Mutation'])['MR'].agg(['mean'])
 
-    stats_table_path = fits_summaries_dir + 'fits_mr_summary_{}_stats.csv'.format(run_name)
+    stats_table_path = fits_summaries_dir + 'fits_mr_summary_{}_stats_entropy.csv'.format(run_name)
     stats.to_csv(stats_table_path)
     stats = pd.read_csv(stats_table_path)  # TODO- replace with unstack or whatever needed
-    stats = stats.pivot(index='Mutation', columns='Patient', values=['median', 'mean'])
+    stats = stats.pivot(index='Mutation', columns='Patient', values=['mean'])
+    stats = stats.T
+    stats['Avg'] = stats.mean(numeric_only=True, axis=1)
+    stats = stats.sort_values(by=['Avg'], ascending=False)
     stats.to_csv(stats_table_path)  # TODO- replace with unstack or whatever needed
     print(stats)
 
     # plot distribution by patient & mut
-    for p in fits_summary_unified.Patient.unique():
-        for mut in fits_summary_unified.Mutation.unique():
-            print(mut)
-            ax = sns.distplot(fits_summary_unified[(fits_summary_unified.Mutation == mut) & (fits_summary_unified.Patient == p)]['MR'])
-            plot_header = mut
-            ax.set_title(plot_header)
-            ax.set_xscale('log')
-            # plt.show()
-            plt.savefig(fits_summaries_dir + str(p) + '_' + str(plot_header) + '.png')
-            plt.cla()
+    dist_plots = True
+    if dist_plots:
+        # v1
+        # for p in fits_summary_unified.Patient.unique():
+        #     print(p)
+        #     for mut in fits_summary_unified.Mutation.unique():
+        #         print(mut)
+        #         ax = sns.distplot(fits_summary_unified[(fits_summary_unified.Mutation == mut) & (fits_summary_unified.Patient == p)]['MR'])
+        #         plot_header = mut
+        #         ax.set_title(plot_header)
+        #         ax.set_xscale('log')
+        #         # plt.show()
+        #         plt.savefig(fits_summaries_dir + str(p) + '_' + str(plot_header) + '.png')
+        #         plt.cla()
+        # v2
+        g = sns.FacetGrid(fits_summary_unified, row="Patient", col="Mutation", margin_titles=True)
+        g.set(xscale="log")
+        bins = np.linspace(0, 5e-3, 20)
+        g.map(plt.hist, 'MR', bins=bins)
+
+        # plt.show()
+        mr_dist_plot_path = fits_summaries_dir + 'mr_dist_plot_{}_entropy.png'.format(run_name)
+        plt.savefig(mr_dist_plot_path)
+
 
 
 def get_gens():
@@ -371,8 +412,8 @@ def get_gens():
 if __name__ == "__main__":
     # generate_fits_input()
     # run_fits()
-    fits_outputs_to_csv()
-    # analysis()
+    # fits_outputs_to_csv()
+    analysis()
 
 
     ## Hacks etc.

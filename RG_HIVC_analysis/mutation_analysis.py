@@ -159,7 +159,7 @@ def main3():
 
 
 def combine_interesting_mutation_counts():
-    aa_count_summaries = glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/figures/allele_trajects/allele_freq_example_*_RT_testing.csv')
+    aa_count_summaries = glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/figures/zn_allele_trajects/allele_freq_example_*_RT_testing.csv')
 
     alphaal = list('ACDEFGHIKLMNPQRSTVWY*-X')
     summary_df = pd.DataFrame(columns= ['pos','founder','consensus'] + alphaal)

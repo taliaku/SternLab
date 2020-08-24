@@ -14,7 +14,8 @@ USER_FOLDER_DICT = {"taliakustin": "/sternadi/home/volume1/taliakustin/temp",
                   'ita': '/sternadi/home/volume3/ita/logs'}
 
 
-def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "", load_python=True, jnum=False, run_after_job=None):
+def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "",
+                   load_python=True, jnum=False, run_after_job=None, nodes=1):
     with open(cmdfile, 'w') as o:
         o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
         o.write("#PBS -q %s\n" % queue)
@@ -29,13 +30,15 @@ def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, n
         if queue == 'gpu':
             o.write(f"#PBS -l select=ngpus={ngpus}\n")
         else:    
-            o.write(f"#PBS -l select=ncpus={ncpus}:mem={gmem*100000000}\n")
+            o.write(f"#PBS -l select={nodes}:ncpus={ncpus}:mem={gmem}gb\n")
 
         if jnum:
            if jnum != 1:
                o.write("#PBS -J 1-"+str(jnum)+"\n\n")
-        if run_after_job != None:
+        if run_after_job != None and 'adi' in queue:
             o.write("#PBS -W depend=afterok:" + str(run_after_job)+ ".power9.tau.ac.il\n\n")
+        if run_after_job != None and 'dudu' in queue:
+            o.write("#PBS -W depend=afterok:" + str(run_after_job)+ ".power8.tau.ac.il\n\n")
     
         if dir != "":
             o.write("ls -land %s\n" % dir)
@@ -128,3 +131,20 @@ def assign_cmdfile_path(cmdname, alias):
             os.system("mkdir %s" % tmp_dir)
         cmdname = tmp_dir + "/" + cmdname
     return cmdname
+
+
+def check_killed_daily():
+    username = getpass.getuser()
+    if username not in USER_FOLDER_DICT.keys():
+        return
+    tmp_dir = USER_FOLDER_DICT[username]
+    if not os.path.exists(tmp_dir):
+        return
+    date = datetime.datetime.today().strftime('%Y-%m')
+    tmp_dir = os.path.join(tmp_dir, date)
+    os.chdir(tmp_dir)
+    process = subprocess.getoutput('find ./* -maxdepth 1 -mtime -1 | grep OU | xargs grep --include "*OU" kill')    # get all files that had SIG KILL that day
+    return process
+
+
+

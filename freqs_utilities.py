@@ -7,8 +7,6 @@ from scipy.stats import ttest_ind
 import numpy as np
 import os
 from functools import reduce
-from optparse import OptionParser
-
 
 
 def remove_problematic_lines(freqs_file, text_to_remove="#Created with join V5.1 May 15 2015\n#"):
@@ -58,7 +56,7 @@ def merge_freqs_files(freqs_files, output):
     all.to_csv(output, index=False)
     return output, all
 
-def change_ref_to_consensus(freqs_df):
+def change_ref_to_consensus(freqs_df, allow_major_change = False):
     consensus = freqs_df.copy()
     consensus = consensus.drop_duplicates("Pos") # rank 0 only
     consensus = consensus[['Pos', 'Base']]
@@ -70,7 +68,7 @@ def change_ref_to_consensus(freqs_df):
     if not diff[diff == True].empty:
         changed_ref_ratio = len(diff[diff == True]) / len(diff[diff == False])
         print('changed_ref_ratio: {}%'.format(changed_ref_ratio*100))
-        if changed_ref_ratio > 0.1:
+        if (changed_ref_ratio > 0.1) and not allow_major_change:
             raise BaseException('too many changes')
 
         transformed_freq = pd.merge(freqs_df, consensus, on='Pos', how='left', suffixes=('', '_r'))
@@ -88,10 +86,6 @@ def change_ref_to_consensus(freqs_df):
         return transformed_freq
     else:
         return freqs_df
-
-
-
-
 
 
 def add_mutation_to_freq_file(output, freqs_file = None, freqs = None, forced_rf_shift = 0):
@@ -540,27 +534,9 @@ def estimate_insertion_freq(df, extra_columns=[]):
     insertions['rounded_pos'] = insertions.ref_position.astype(int).astype(float)
     insertions = pd.merge(insertions, read_counts, how='left', on= extra_columns + ['rounded_pos'])
     insertions['estimated_freq'] = insertions.frequency * insertions.coverage / insertions.estimated_read_count
-    df = pd.concat([insertions, not_insertions])
+    df = pd.concat([insertions, not_insertions], sort=False)
     return df.sort_values(extra_columns + ['ref_position'])
 
-
-
-def main():
-    parser = OptionParser("usage: %prog [options]\nTry running %prog --help for more information")
-    parser.add_option("-f", "--freqs", dest="freqs", help="frequency file")
-    parser.add_option("-o", "--output_freqs", dest="output_file", help="output freqs file with mutations")
-    (options, args) = parser.parse_args()
-    freq_file = options.freqs
-    output_freq_file = options.output_file
-
-    print('Handling file:' + freq_file)
-    add_mutation_to_freq_file_with_cons_as_ref(freq_file, output_freq_file)
-
-
-def add_mutation_to_freq_file_with_cons_as_ref(freq_file_no_indels, output_freq_file):
-    #TODO- change_ref_to_consensus() is sensitive to indels
-    transformed_freq = change_ref_to_consensus(freq_file_no_indels)
-    add_mutation_to_freq_file(output_freq_file, freqs= transformed_freq)
 
 def unite_all_freq_files(freqs_dir, out_path=None):
     """
@@ -585,6 +561,3 @@ def compatibilty_old_to_new(df):
     if 'Freq' in df.columns: # if old version:
         df = df.rename(columns={'Pos':'ref_position', 'Base':'base', 'Ref':'ref_base', 'Freq':'frequency', 'Read_count':'coverage', 'Rank':'rank', 'Prob':'probability'})
     return df
-
-if __name__ == "__main__":
-    main()

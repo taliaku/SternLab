@@ -6,18 +6,19 @@ import pandas as pd
 from Bio.Seq import Seq
 
 from RG_HIVC_analysis import constants
-from RG_HIVC_analysis.constants import orig_excluded_samples
+from RG_HIVC_analysis.constants import orig_excluded_samples, get_ET86_region
 from freqs_utilities import change_ref_to_consensus
 
 
 def create_unified_samples_to_patient_and_dsi():
     extension = 'tsv'
-    all_filenames = [i for i in glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_input/tables_control/samples_*.{}'.format(extension))]
+    all_filenames = [i for i in glob.glob('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_input/tables_orig_unfiltered/samples_*.{}'.format(extension))]
 
     # combine all files in the list
-    combined_csv = pd.concat([pd.read_csv(f) for f in all_filenames])
+    combined_csv = pd.concat([pd.read_csv(f, sep='\t') for f in all_filenames])
+    combined_csv['timepoint'] = combined_csv.groupby('patient').cumcount()
     # export to csv
-    combined_csv.to_csv("samples_to_patient_and_dsi_control.csv", index=False, encoding='utf-8-sig')
+    combined_csv.to_csv("info_tables/samples_to_patient_and_dsi_orig_unfiltered_timepoint.csv", index=False, encoding='utf-8-sig')
 
 def add_codon_aa_info(freq_df):
     df_next_base = freq_df[freq_df['Rank'] == 0][['Pos', 'Base']]
@@ -67,7 +68,7 @@ def generate_unified_filtered_verbose_freqs_df(min_read_count = constants.covera
     freqs_folder_path = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/orig_high/'
     # freqs_folder_path = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/ZN_rawdata/freq_files/'
 
-    samples_info_file = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/info_tables/samples_to_patient_and_dsi.tsv'
+    samples_info_file = '/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/info_tables/samples_to_patient_and_dsi_timepoint.tsv'
     samples_to_patient_and_dates = pd.read_csv(samples_info_file, sep='\t')
     samples_to_patient_and_dates.set_index('id', inplace= True)
 
@@ -92,7 +93,7 @@ def generate_unified_filtered_verbose_freqs_df(min_read_count = constants.covera
         freq_df = tmp_df
         freq_df['Freq'] = np.where(freq_df['Freq'] >= freq_threshold, freq_df['Freq'], 0)
 
-        # TODO- test prob threshold
+        # TODO- verify prob threshold
         # tmp_df = freq_df[freq_df["Prob"] >= prob_threshold]
         # print('Filtered Prob: {}% of current freqs file'.format(len(tmp_df) * 100.0 / len(freq_df)))
         # freq_df = tmp_df
@@ -119,8 +120,10 @@ def generate_unified_filtered_verbose_freqs_df(min_read_count = constants.covera
 
 
         # add patient & sample data
+        # Could be done much simpler by merge. But easier for ZN data this way
         patient_id = samples_to_patient_and_dates.loc[f'{sample_id}', 'patient']
         days_since_infection = samples_to_patient_and_dates.loc[f'{sample_id}', 'days_since_infection']
+        timepoint = samples_to_patient_and_dates.loc[f'{sample_id}', 'timepoint']
 
         # for zn data: (should also be done for mine)
         # patient_id = sample_id.split("_")[0]
@@ -129,7 +132,10 @@ def generate_unified_filtered_verbose_freqs_df(min_read_count = constants.covera
         freq_df['ind_id'] = patient_id
         freq_df['sample_id'] = sample_id
         freq_df['years_since_infection'] = str(np.round((days_since_infection) / float(365),2))
-        # TODO- add timepoint (# in patient)
+        freq_df['timepoint'] = timepoint
+
+        # add annotation info
+        freq_df['region'] = freq_df.apply(lambda row: get_ET86_region(row['Pos']), axis=1)
 
         # adding AA & codon info - TODO
         # freq_df = add_codon_aa_info(freq_df)
@@ -145,5 +151,5 @@ def generate_unified_filtered_verbose_freqs_df(min_read_count = constants.covera
 
 
 if __name__ == "__main__":
-    # create_unified_samples_to_patient_and_dsi()
-    generate_unified_filtered_verbose_freqs_df()
+    create_unified_samples_to_patient_and_dsi()
+    # generate_unified_filtered_verbose_freqs_df()

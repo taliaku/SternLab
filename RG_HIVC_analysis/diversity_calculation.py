@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns;
 
 from RG_HIVC_analysis import constants
-from RG_HIVC_analysis.constants import gag_ET86_interval, pol_ET86_interval, env_ET86_interval, excluded_samples_orig, \
-    excluded_patients_control
+from RG_HIVC_analysis.constants import gag_ET86_interval, pol_ET86_interval, env_ET86_interval, orig_excluded_samples, \
+    control_excluded_patients
 
 sns.set_context("poster")
 import sys
@@ -68,12 +68,14 @@ def pis_calc(data, pivot_cols=[], interval = (0, sys.maxsize)): # start_pos=0, e
     filtered_data['counts_for_position'] = np.round(filtered_data['Read_count'] * filtered_data['Freq'])
     selecting_cols = pivot_cols[:]
     selecting_cols.extend(["Pos", "Base", "counts_for_position", "Rank"])
+    # selecting_cols = list(set(selecting_cols))
     filtered_data = filtered_data[selecting_cols]
 
     filtered_data["Rank"] = np.where(filtered_data["Rank"] == 0, "Major", "Minor")
 
     group_cols = pivot_cols[:]
     group_cols.extend(["Pos", "Rank"])
+    # group_cols = list(set(group_cols))
 
     # selecting max on cfp, per Pos\Rank (Major\minor?)- than will be graded per Pos, and summed
     # TODO: use all minor variants (not only max)
@@ -85,6 +87,7 @@ def pis_calc(data, pivot_cols=[], interval = (0, sys.maxsize)): # start_pos=0, e
 
     filtered_data["pdp"] = filtered_data.apply(lambda row: pairwise_differences_proportion(row), axis=1)
 
+    pivot_cols.extend(["Pos"])
     if any(pivot_cols):
         bysample_diversity = filtered_data.groupby(pivot_cols)['pdp'].agg(['count', 'sum']).reset_index()
         bysample_diversity["Pi"] = bysample_diversity["sum"] * 1.0 / bysample_diversity["count"]
@@ -97,7 +100,7 @@ def pis_calc(data, pivot_cols=[], interval = (0, sys.maxsize)): # start_pos=0, e
     return pis
 
 
-def apply_pi_related_filters(data, freq_threshold, min_read_count):
+def apply_pi_related_filters(data, freq_threshold, min_read_count, filter_low_quality_patients = False):
     # transitions only
     data["mutation_type"] = data['Base'] + data['Ref']
     filtered_data = data[data["mutation_type"].isin(['GA', 'AG', 'GG', 'AA', 'CT', 'TC', 'CC', 'TT'])]
@@ -112,7 +115,8 @@ def apply_pi_related_filters(data, freq_threshold, min_read_count):
     # filtered_data = filtered_data[~filtered_data['ind_id'].isin(excluded_patients_control)]
 
     # Only high quality patients:
-    filtered_data = filtered_data[filtered_data['ind_id'].isin(constants.sampled_patients_control)]
+    if filter_low_quality_patients:
+        filtered_data = filtered_data[filtered_data['ind_id'].isin(constants.control_chosen_patients)]
     return filtered_data
 
 
@@ -128,7 +132,7 @@ def generate_pi_rates_summary():
     i = 0
     for file in freq_files:
         sample_id = os.path.splitext(os.path.basename(file))[0]
-        if sample_id in excluded_samples:
+        if sample_id in orig_excluded_samples:
             print('Excluded sample: {} - Skipping'.format(sample_id))
             continue
         print('Handling sample: ' + sample_id)
@@ -244,11 +248,11 @@ def aggregation_attempts():
 
 def pi_rates_generate_and_plot_v2():
     # get freqs raw data
-    run_folder = 'control_low'
+    run_folder = 'orig_high'
     unified_freq_df = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/unified_freqs_filtered_verbose.csv'.format(run_folder))
 
     # generate pi rate values (global & regionals)
-    unified_freq_df = apply_pi_related_filters(unified_freq_df, freq_threshold=0.001, min_read_count=100)
+    unified_freq_df = apply_pi_related_filters(unified_freq_df, freq_threshold=constants.freq_threshold, min_read_count=constants.coverage_threshold)
     pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['ind_id', 'sample_id', 'years_since_infection'])
 
     # gag_pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=gag_ET86_interval)
@@ -291,8 +295,8 @@ def pi_rates_generate_and_plot_v2():
     # g.set_xticklabels(rotation=45, fontsize=14)
 
     # extract plot
-    # plt.show()
-    g.savefig('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/figures/pi_rates_ET86_{}_minimized2.png'.format(run_folder))
+    plt.show()
+    # g.savefig('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/figures/pi_rates_ET86_{}_minimized2.png'.format(run_folder))
 
 def plot_vl_rates():
     # input VL values
@@ -324,10 +328,49 @@ def pi_rates_generate_and_plot_v1():
     plot_diversity_by_time()
 
 
+def add_pi_rates_to_unified_freqs_df():
+    run_folder = 'orig_high'
+    unified_freq_df = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/unified_freqs_filtered_verbose.csv'.format(run_folder))
+
+    # filters?
+    unified_freq_df = apply_pi_related_filters(unified_freq_df, freq_threshold=0, min_read_count=0)
+    samples = ['83476_S27','504193_S37','100888_S14','TASPX100711_S29','504212_S56','X160138_S81','504224_S68'] # 26892 samples
+    unified_freq_df = unified_freq_df[unified_freq_df['sample_id'].isin(samples)]
+
+    pi_rates_by_pos = pis_calc(data=unified_freq_df, pivot_cols=['ind_id', 'sample_id'])
+    print(pi_rates_by_pos)
+
+    print('plotting freq_plot')
+    g = sns.relplot(x="Pos",
+                    y="Pi",
+                    col='sample_id',
+                    # col_order='years_since_infection', # chronological presentation
+                    # # hue='sample_id',
+                    # hue='mutation_type',
+                    col_wrap=7,
+                    # kind="line",
+                    # join=True,
+                    data=pi_rates_by_pos)
+
+    # plot adjustments
+    # g.set(yscale="log")
+    plt.ylim(5e-4, 1)
+    # g.fig.suptitle(plot_header, y=0.1)
+    # g.set_ylabels("mutation_rate")
+    # g.set_xlabels("ET first sample (Years)")
+    # g.set_xticklabels(rotation=45, fontsize=11)
+
+    # extract plot
+    plt.show()
+    # plt.savefig(fname=fname)
+    # g.savefig('')
+
+
 if __name__ == "__main__":
     # pi
     # pi_rates_generate_and_plot_v1()
     pi_rates_generate_and_plot_v2()
+    # add_pi_rates_to_unified_freqs_df()
 
     # vl
     # plot_vl_rates()

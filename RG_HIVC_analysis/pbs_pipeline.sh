@@ -12,7 +12,7 @@
 id
 date
 hostname
-module load python/anaconda_python-3.6.1
+module load python/python-anaconda3.2019.7
 
 ref_ET86="/sternadi/home/volume1/shared/data/ref_genomes/HIV_C/Ref_C_ET86.fasta"
 
@@ -21,15 +21,16 @@ declare -a SAMPLES_ARRAY=(100888_S14  130945_S2  504185_S29 504190_S34  504194_S
 
 sample=${SAMPLES_ARRAY[$PBS_ARRAY_INDEX]}
 input_dir="/sternadi/datasets/volume2/HIV_ravi_gupta_merged/$sample"
-ref_low="/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/ET86_merged_low_qual/iter1/cons/$sample.fasta"
-ref_high="/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/ET86_merged_high_qual/iter1/cons/$sample.fasta"
-output_dir_low="/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/ET86_merged_low_qual/iter2/$sample"
-output_dir_high="/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/ET86_merged_high_qual/iter2/$sample"
 
 # low_qual run
+ref_low="/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/ET86_merged_low_qual/iter1/cons/$sample.fasta"
+output_dir_low="/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/ET86_merged_low_qual/iter2/$sample"
 mkdir -p $output_dir_low
 python /sternadi/home/volume1/shared/SternLab/pipeline_runner.py -i $input_dir -o $output_dir_low -r $ref_low  -NGS_or_Cirseq 1 -q 30 -rep 1 -b 40 -t z -ev 1e-2
+
 # high_qual run
+ref_high="/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/ET86_merged_high_qual/iter1/cons/$sample.fasta"
+output_dir_high="/sternadi/home/volume1/shared/analysis/HIV_ravi_gupta/runs/ET86_merged_high_qual/iter2/$sample"
 mkdir -p $output_dir_high
 python /sternadi/home/volume1/shared/SternLab/pipeline_runner.py -i $input_dir -o $output_dir_high -r $ref_high  -NGS_or_Cirseq 1 -q 30 -rep 2 -b 40 -t z -ev 1e-2
 

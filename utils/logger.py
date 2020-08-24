@@ -1,5 +1,7 @@
 import os
 import logging
+import subprocess
+
 
 def _logger_already_exists(logger, log_file):
     if logger.hasHandlers(): # If logger exists, just return the existing logger.
@@ -12,6 +14,8 @@ def _logger_already_exists(logger, log_file):
     return return_value
 
 def _create_new_logger(logger, log_file):
+    for handler in logging.root.handlers[:]:  # the logger sometimes doesn't write the log files and this may help...
+        logging.root.removeHandler(handler)   # TODO: does it help?
     logger.setLevel(logging.DEBUG)
     # create console handler and set level to info
     ch = logging.StreamHandler()
@@ -30,6 +34,10 @@ def _create_new_logger(logger, log_file):
     logger.addHandler(ch)
     logger.addHandler(fh)
     logger.info(f'Log started! Outputing to: {log_file}')
+    # get the git hash of this directory.
+    git_hash = subprocess.check_output(["git", "describe", "--always"], cwd=os.path.dirname(__file__)).strip().decode()
+    logger.debug(f"git hash: {git_hash}")
+
     return logger
 
 def pipeline_logger(logger_name, log_folder=None):
@@ -46,3 +54,19 @@ def pipeline_logger(logger_name, log_folder=None):
             raise ValueError("First instance of logger must be initiated with an output file!")
         logger = _create_new_logger(logger, log_file)
     return logger
+
+
+def aggregate_logs(log_folder, log):
+    # TODO: agg all logs in subfolders. stop if log as 'aggregated' in its name.
+    pass
+
+
+def run_with_logger(function_to_run, log_name, log_folder):
+    # maybe run mains through something like this to log exceptions and agg logs.
+    log = pipeline_logger(logger_name=log_name, log_folder=log_folder)
+    try:
+        function_to_run
+    except Exception as e:
+        log.error(e)
+    finally:
+        aggregate_logs(log_folder, log)
