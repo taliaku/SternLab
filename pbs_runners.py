@@ -992,8 +992,8 @@ def phydyn_runner(xml_config, multi_thread=True, gpu=False, alias="PhyDyn", ncpu
     return job_id
 
 
-# notice that this runner make use of dudu storage, thus need an appropriate used.
-def kraken2_runner(db_location, input_file, output_file, input_file_2=None, alias='kraken2', nthreads=24, gmem=30, ncpus=2, queue='dudulight'):
+
+def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthreads=None, ncpus=2, queue='dudulight'):
     """
     run kraken2 on cluster -
     :param db_location: db file path location
@@ -1006,17 +1006,42 @@ def kraken2_runner(db_location, input_file, output_file, input_file_2=None, alia
     comprassed = ''
     threads = ''
 
-    if '.gz' in input_file:
+    if '.fastq.gz':
         comprassed = '--gzip-compressed'
     if nthreads:
         thread = f'--threads {nthreads}'
-    if input_file_2 != None:
-        input_file = f"--paired {input_file} {input_file_2}"    # paired reads
-
-
     cmdfile = pbs_jobs.assign_cmdfile_path("kraken_cmd", alias)
     cmds = f"/davidb/local/software/kraken2/kraken2-2.0.8-beta/kraken2 --db {db_location} {threads} --use-names\
      {comprassed} {input_file} --output {output_file} --report {output_file.split('.')[0] + '_report.tab'}"
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, ncpus=ncpus, cmds=cmds, queue=queue)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+
+def kraken2_runner_paired(db_location, input_file1, input_file2, output_file, unclassified_out = None, alias='kraken2', nthreads=None, ncpus=2, queue='adistzachi', gmem=10):
+    """
+    run kraken2 on cluster -
+    :param db_location: db file path location
+    :param input_file: input file - can be .fasta, .fastq or comprassed form
+    :param output_file: output file path
+    :param alias: job name (kraken2)
+    :return: job id
+    """
+    input_file1 = check_filename(input_file1)
+    input_file2 = check_filename(input_file2)
+
+    comprassed = ''
+    threads = ''
+
+    if '.fastq.gz' in input_file1:
+        comprassed = '--gzip-compressed'
+    if nthreads:
+        thread = f'--threads {nthreads}'
+    if unclassified_out:
+        unclassified_out = f"--unclassified-out {unclassified_out}"
+    cmdfile = pbs_jobs.assign_cmdfile_path("kraken_cmd", alias)
+    cmds = f"/sternadi/home/volume1/taliakustin/software/kraken/kraken2 --db {db_location} {threads} --use-names\
+     {comprassed}  --output {output_file} --report {output_file.split('.')[0] + '_report.tab'} --minimum-base-quality 20 {unclassified_out} --paired {input_file1} {input_file2}"
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, ncpus=ncpus, cmds=cmds, queue=queue, gmem=gmem)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
@@ -1104,19 +1129,5 @@ def codonZ_runner(fasta, output=None, alias="codonZ", queue="adistzachi"):
     cmds = f"export PATH=$PATH:/sternadi/home/volume1/taliakustin/software/codonW\n" \
            f"/sternadi/home/volume1/taliakustin/software/tai/misc/codonZ {fasta} {output}"
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
-    job_id = pbs_jobs.submit(cmdfile)
-    return job_id
-
-def nextstrain_runner(running_dir, queue, alias='nextstrain', ncpus=8, gmem=4):
-    """
-    run nextstrain on server. a sanke make file should be presented in the runnning dir
-    """
-    cmdfile = pbs_jobs.assign_cmdfile_path("nextstrain_cmd", alias)
-    cmds = f"module load python/python-anaconda3.2019.10\n\
-            module load mafft/7.450\n\
-            module load iqtree/iqtree-1.6.12\n\
-            cd {running_dir}\n\
-            snakemake -p"
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, cmds=cmds, ncpus=ncpus, queue=queue, gmem=gmem)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
