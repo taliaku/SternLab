@@ -11,7 +11,8 @@ USER_FOLDER_DICT = {"taliakustin": "/sternadi/home/volume1/taliakustin/temp",
                   "okushnir": "/sternadi/home/volume3/okushnir/running",
                   "omertirosh": "/sternadi/home/volume3/omer/logs",
                   'noamharel':'/sternadi/home/volume2/noam/logs',
-                  'ita': '/sternadi/home/volume3/ita/logs'}
+                  'ita': '/sternadi/home/volume3/ita/logs',
+                  'farage': '/sternadi/home/volume3/farage/temp'}
 
 
 def create_pbs_cmd(cmdfile, alias, queue="adistzachi@power9", gmem=2, ncpus=1, ngpus=1, cmds="", dir = "",
