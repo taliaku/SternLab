@@ -70,19 +70,20 @@ def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1,
 
 
 
-def phyml_runner(alignment, alias = "phyml", phylip=True):
+def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt"):
     """
     run phyml on cluster (converts tpo phylip if the flag phylip==False)
     :param alignment: alignment file path
     :param alias: job name (default: phyml)
     :param phylip: True if phylip file, False if fasta file
+    :param d:nt for nucleotide and aa for amino acid
     :return: job id
     """
     alignment = check_filename(alignment)
     if phylip == False:
         alignment = convert_fasta_to_phylip(alignment)
     cmdfile = pbs_jobs.assign_cmdfile_path("phyml", alias); tnum = 1; gmem = 2
-    cmds = "/sternadi/home/volume1/shared/tools/PhyML/PhyML_3.0_linux64 -i %s -b 0 -o n" % alignment
+    cmds = f"/sternadi/home/volume1/shared/tools/PhyML/PhyML_3.0_linux64 -i {alignment} -b 0 -o n -d {d}"
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
@@ -1128,6 +1129,17 @@ def codonZ_runner(fasta, output=None, alias="codonZ", queue="adistzachi"):
     gmem = 1;
     cmds = f"export PATH=$PATH:/sternadi/home/volume1/taliakustin/software/codonW\n" \
            f"/sternadi/home/volume1/taliakustin/software/tai/misc/codonZ {fasta} {output}"
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+def SpartaABC_runners(config_file, path="/sternadi/home/volume1/taliakustin/software/SpartaABC_with_INDELible_20170320_bundle/SpartaABC_with_INDELible/programs/SpartaABC/SpartaABC",
+                      alias="SpartaABC", queue="adistzachi"):
+    config_file = check_filename(config_file)
+    cmdname = "SpartaABC"
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias);
+    gmem = 1;
+    cmds = f"{path} {config_file}"
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
