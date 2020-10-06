@@ -128,7 +128,7 @@ def assign_cmdfile_path(cmdname, alias):
             os.system("mkdir %s" % tmp_dir)
         tmp_dir = tmp_dir + "/%s" % alias
         if not os.path.exists(tmp_dir):
-            os.system("mkdir %s" % tmp_dir)
+            os.mkdir(tmp_dir)
         cmdname = tmp_dir + "/" + cmdname
     return cmdname
 
