@@ -28,7 +28,7 @@ def main(args):
         variants_cmd = os.path.join(this_dir_path, 'variants_on_same_read.py')
         os.makedirs(variants_folder, exist_ok=True)
         number_of_jobs = 100
-        positions_per_job = number_of_bases / number_of_jobs
+        positions_per_job = int(number_of_bases / number_of_jobs) + 1
         cmd1 = f"python {variants_cmd} -b {blast_path} -m {mutations_path} " \
                f"-p $(((PBS_ARRAY_INDEX-1)*{positions_per_job} + 1))-$((PBS_ARRAY_INDEX*{positions_per_job})) " \
                f"-f {freqs_path} " \
