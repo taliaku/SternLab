@@ -472,7 +472,7 @@ def blastx_output6_runner(seqfile, outfile, dbfile="/sternadi/home/volume1/share
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def bowtie2_runner(bowtie_index_path, fastq_file, sam_output, alias="bowtie2", fastq_file2=None):
+def bowtie2_runner(bowtie_index_path, fastq_file, sam_output, alias="bowtie2", fastq_file2=None, queue="adistzachi"):
     """
     run bowtie2 - very fast local flag is on
     :param bowtie_index_path: bowtie index file path (output of bowtie2-build)
@@ -490,7 +490,7 @@ def bowtie2_runner(bowtie_index_path, fastq_file, sam_output, alias="bowtie2", f
     if fastq_file2:
             cmds = "/usr/local/bin/bowtie2"\
            + " --very-fast-local -x  %s -1 %s -2 %s -S %s" % (bowtie_index_path, fastq_file, fastq_file2, sam_output)
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, queue=queue)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
