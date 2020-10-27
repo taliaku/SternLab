@@ -472,7 +472,7 @@ def blastx_output6_runner(seqfile, outfile, dbfile="/sternadi/home/volume1/share
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def bowtie2_runner(bowtie_index_path, fastq_file, sam_output, alias="bowtie2"):
+def bowtie2_runner(bowtie_index_path, fastq_file, sam_output, alias="bowtie2", fastq_file2=None):
     """
     run bowtie2 - very fast local flag is on
     :param bowtie_index_path: bowtie index file path (output of bowtie2-build)
@@ -487,6 +487,9 @@ def bowtie2_runner(bowtie_index_path, fastq_file, sam_output, alias="bowtie2"):
     cmdfile = pbs_jobs.assign_cmdfile_path("bowtie2", alias); tnum = 1; gmem = 2
     cmds = "/usr/local/bin/bowtie2"\
            + " --very-fast-local -x  %s %s -S %s" % (bowtie_index_path, fastq_file, sam_output)
+    if fastq_file2:
+            cmds = "/usr/local/bin/bowtie2"\
+           + " --very-fast-local -x  %s -1 %s -2 %s -S %s" % (bowtie_index_path, fastq_file, fastq_file2, sam_output)
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
@@ -994,7 +997,7 @@ def phydyn_runner(xml_config, multi_thread=True, gpu=False, alias="PhyDyn", ncpu
 
 
 
-def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthreads=None, ncpus=2, queue='dudulight'):
+def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthreads=None, ncpus=2, queue='dudulight', gmem=40):
     """
     run kraken2 on cluster -
     :param db_location: db file path location
@@ -1003,7 +1006,7 @@ def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthrea
     :param alias: job name (kraken2)
     :return: job id
     """
-    input_file = check_filename(input_file)
+   # input_file = check_filename(input_file)
     comprassed = ''
     threads = ''
 
@@ -1014,7 +1017,7 @@ def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthrea
     cmdfile = pbs_jobs.assign_cmdfile_path("kraken_cmd", alias)
     cmds = f"/davidb/local/software/kraken2/kraken2-2.0.8-beta/kraken2 --db {db_location} {threads} --use-names\
      {comprassed} {input_file} --output {output_file} --report {output_file.split('.')[0] + '_report.tab'}"
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, ncpus=ncpus, cmds=cmds, queue=queue)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, ncpus=ncpus, cmds=cmds, queue=queue, gmem=gmem)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
