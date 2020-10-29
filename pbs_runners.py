@@ -70,7 +70,7 @@ def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1,
 
 
 
-def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt"):
+def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt", run_after_job=None):
     """
     run phyml on cluster (converts tpo phylip if the flag phylip==False)
     :param alignment: alignment file path
@@ -84,7 +84,7 @@ def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt"):
         alignment = convert_fasta_to_phylip(alignment)
     cmdfile = pbs_jobs.assign_cmdfile_path("phyml", alias); tnum = 1; gmem = 2
     cmds = f"/sternadi/home/volume1/shared/tools/PhyML/PhyML_3.0_linux64 -i {alignment} -b 0 -o n -d {d}"
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -147,7 +147,7 @@ def fastml_runner(alignment, tree, outdir = None, log_file = None, alias = "fast
     return job_id
 
 
-def mafft_runner(sequence, alignment = None, alias = "mafft"):
+def mafft_runner(sequence, alignment = None, alias = "mafft", run_after_job=None):
     """
     run mafft on cluster
     :param sequence: sequence file (fasta format)
@@ -162,7 +162,7 @@ def mafft_runner(sequence, alignment = None, alias = "mafft"):
     cmds = "/sternadi/home/volume1/taliakustin/software/mafft-7.300-with-extensions/scripts/mafft %s > %s"\
            % (sequence, alignment)
     cmdfile = pbs_jobs.assign_cmdfile_path("mafft", alias); tnum = 1; gmem = 1
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
