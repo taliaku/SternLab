@@ -7,7 +7,6 @@ from scipy.stats import ttest_ind
 import numpy as np
 import os
 from functools import reduce
-import seaborn as sns
 
 
 def remove_problematic_lines(freqs_file, text_to_remove="#Created with join V5.1 May 15 2015\n#"):
@@ -562,32 +561,3 @@ def compatibilty_old_to_new(df):
     if 'Freq' in df.columns: # if old version:
         df = df.rename(columns={'Pos':'ref_position', 'Base':'base', 'Ref':'ref_base', 'Freq':'frequency', 'Read_count':'coverage', 'Rank':'rank', 'Prob':'probability'})
     return df
-
-def samples_mutations_pivot(df, output_excel, threshold_freq=0.1, threshold_read_count=10, sample_column='File', cluster=True):
-    '''
-    This function gets a dataframe of multiple frequency files, and creates a pivot
-    table of mutations that appear at significat frequencies.
-    @df - dataframe object of freqs
-    @output_excel - file path
-    @threshold_freq - a mutation needs to cross this threshold in at least one sample to be included.
-    @sample_column - column name that separates into samples (file, sample etc.)
-    @cluster - default is True. Also runs clustering of mutations and samples and uses this
-            in excel. Clustering is run using only mutations that their frequency is known in
-            all samples, the rest of the mutations (containing NAs in some columns) are appended
-            at the bottom of the chart.
-    (Recommendation: use conditional formatting in excel afterwards to color according to frequency.)
-    '''
-    df['full_mutation'] = df.ref_base + df.ref_position.astype(int).astype(str) + df.base
-    df = df[df.coverage > threshold_read_count]
-    mutations_to_keep = df[(df.ref_base != df.base) & (df.ref_base != '-') & (df.frequency > threshold_freq)].full_mutation.drop_duplicates().tolist()
-    mutations_to_keep = df[df.full_mutation.isin(mutations_to_keep)]
-    to_pivot = mutations_to_keep.pivot_table(values='frequency', index='full_mutation', columns=sample_column)
-    to_pivot.to_excel(output_excel)
-    if cluster:
-        to_pivot_na = to_pivot[to_pivot.isnull().any(axis=1)]
-        to_pivot = to_pivot.dropna()
-        clustergrid = sns.clustermap(to_pivot, mask=True)
-        to_pivot['mutation_order'] = pd.Categorical(to_pivot.index, [to_pivot.index[s] for s in clustergrid.dendrogram_row.reordered_ind])
-        to_pivot = pd.concat([to_pivot.sort_values('mutation_order'), to_pivot_na], sort=False)
-        to_pivot = to_pivot[[to_pivot.columns[s] for s in clustergrid.dendrogram_col.reordered_ind]]
-        to_pivot.to_excel(output_excel.replace('.xlsx', '.clustered.xlsx'))
