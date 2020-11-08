@@ -1,4 +1,8 @@
 
+'''
+#### TO DO: color tree according to libraries, add pangolin lineages to final analysis
+'''
+
 import os,sys,inspect
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
 sys.path.insert(0,parentdir)
@@ -61,14 +65,13 @@ def covid_artic_pipeline(input_dir, output_dir, alias="ARTIC_pipeline", queue="a
     job_id_p7 = script_runner(f"python /sternadi/home/volume2/noam/SternLab/scripts/unite_all_freq_files.py -d '{output_dir}/python_pipeline/freqs/' -o '{output_dir}/python_pipeline/freqs/all_freqs.csv'", alias='unite_freqs', run_after_job=job_id_p3)
     return (job_id_p1, job_id_p2, job_id_p3, job_id_p4, job_id_p5, job_id_p6, job_id_p7)
 
-def add_to_previous_results(run_after_job, new_dir, all_results_dir=UNITED_OUTPUT_DIR):
+def add_to_previous_results(run_after_job=None, all_results_dir=UNITED_OUTPUT_DIR):
     # unite concensuses
     job_id_p1 = script_runner(f'cat {REFERENCE_FILE} {all_results_dir}/../*/python_pipeline/freqs/*consensus_all.fasta > {all_results_dir}israel_sequences.fasta', run_after_job=run_after_job)
     # align and make tree
     job_id_p2 = mafft_runner(f"{all_results_dir}israel_sequences.fasta", run_after_job=job_id_p1)
     job_id_p3 = script_runner(f"python /sternadi/home/volume2/noam/SternLab/scripts/fasta_to_phylip.py -i {all_results_dir}israel_sequences.aln -o {all_results_dir}israel_sequences.aln.phy", run_after_job=job_id_p2)
     job_id_p4 = phyml_runner(f"{all_results_dir}israel_sequences.aln.phy", run_after_job=job_id_p3)
-    #### TO DO - color tree according to directories
     # mutations csv
     job_id_p5 = script_runner(f"python /sternadi/home/volume2/noam/SternLab/scripts/compare_aligned_msa.py -i {all_results_dir}israel_sequences.aln -r 'MN908947.3' -o {all_results_dir}israel_sequences.mutations.csv -e y", alias='mutations_from_msa', run_after_job=job_id_p2)
     # concat freqs
@@ -78,20 +81,23 @@ def add_to_previous_results(run_after_job, new_dir, all_results_dir=UNITED_OUTPU
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input_dir", type=str, help="input directory as downloaded from Technion, contains gzipped fastqs",
-                        required=True)
+                        required=False, default=None)
     args = parser.parse_args()
     if not vars(args):
         parser.print_help()
         parser.exit(1)
-    
-    input_dir = check_dirname(args.input_dir)
-    if input_dir.endswith('/'):
-        input_dir = input_dir[:-1]
-    output_dir = OUTPUT_DIR + os.path.basename(input_dir)
-    make_dir(check_dirname(output_dir, Truedir=False))
-    print(f'reading from: {output_dir}')
-    print(f'writing to : {input_dir}')
-    # run analysis on new data
-    job_ids = covid_artic_pipeline(input_dir, output_dir)
-    # add to all israel analysis files
-    add_to_previous_results(job_ids[-1], output_dir)
+
+    if not any(vars(args).values()): # no new library, just merge all libraries to UNITED_OUTPUT_DIR
+        add_to_previous_results()
+    else:
+        input_dir = check_dirname(args.input_dir)
+        if input_dir.endswith('/'):
+           input_dir = input_dir[:-1]
+        output_dir = OUTPUT_DIR + os.path.basename(input_dir)
+        make_dir(check_dirname(output_dir, Truedir=False))
+        print(f'reading from: {output_dir}')
+        print(f'writing to : {input_dir}')
+        # run analysis on new data
+        job_ids = covid_artic_pipeline(input_dir, output_dir)
+        # add to all israel analysis files
+        add_to_previous_results(job_ids[-1])
