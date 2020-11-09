@@ -66,9 +66,11 @@ def change_ref_to_consensus(freqs_df, allow_major_change = False):
     diff = (consensus.Base != ref_before_change.Ref)
 
     if not diff[diff == True].empty:
-        changed_ref_ratio = len(diff[diff == True]) / len(diff[diff == False])
+        changed_ref_ratio = len(diff[diff == True]) / len(diff)
         print('changed_ref_ratio: {}%'.format(changed_ref_ratio*100))
         if (changed_ref_ratio > 0.1) and not allow_major_change:
+            print(''.join(ref_before_change.Ref.tolist()))
+            print(''.join(consensus.Base.tolist()))
             raise BaseException('too many changes')
 
         transformed_freq = pd.merge(freqs_df, consensus, on='Pos', how='left', suffixes=('', '_r'))
@@ -81,10 +83,12 @@ def change_ref_to_consensus(freqs_df, allow_major_change = False):
         verification = transformed_freq[(transformed_freq.Rank == 0) & (transformed_freq.Ref != transformed_freq.Base)]
         if len(verification) != 0 :
             raise BaseException('some line with ref!=con')
+
         # TODO- add verification to content
 
         return transformed_freq
     else:
+        print('Ref not changed')
         return freqs_df
 
 
