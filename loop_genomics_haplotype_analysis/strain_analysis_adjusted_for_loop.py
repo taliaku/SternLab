@@ -31,9 +31,11 @@ def count_haplotypes(input_chosen_mutations,
     recognized_mutations = pd.read_csv(input_chosen_mutations)['variant'].tolist()
     recognized_positions = [float(p[1:-1]) for p in recognized_mutations]
     blast_df = pd.read_csv(input_blast_df)
+
     # choose only reads that were mapped only once in blast
     blast_df['read_count'] = blast_df.groupby('read')['start_ref'].transform('count')
     blast_df = blast_df[(blast_df.read_count == 1)]
+
     print('len(blast_df): {}'.format(len(blast_df)))
 
     # choose only reads that are mapped from at least start_pos_read to end_pos_read
@@ -236,8 +238,7 @@ def test_main():
 
 
 if __name__ == "__main__":
-    # TODO- uncomment after test runs
+    # test_main()
+
     main()
 
-    # TODO- tmp for test runs
-    # test_main()
