@@ -10,6 +10,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 shafer_root_dir = '/Volumes/STERNADILABHOME$/volume1/shared/analysis/HIV_shafer'
+accungs_root_dir = '/Volumes/STERNADILABHOME$/volume2/ita/haplotypes'
 
 env_samples = ['env10', 'env11', 'env12', 'env13', 'env14', 'env15', 'env3', 'env4', 'env5', 'env6','env7', 'env8', 'env9']
 # env_samples = ['env10']
@@ -82,11 +83,11 @@ def summarize_associvar_strain_analysis():
     text_summaries_df.to_csv('{}/strain_summary_v6.csv'.format(associvar_root_dir), index=False)
 
 
-def plot_associvar_accungs_strains():
+def plot_compare_associvar_accungs_strains():
     # load associvar strain summary
     associvar_rawdata = pd.read_csv('{}/associvar/strain_summary_v5.csv'.format(shafer_root_dir)).reset_index()
     # load accungs strain summary
-    accungs_summarized_data = pd.read_csv('{}/accungs_haplotype_inference/mutation_type_summaries/global_summary_env_v3.csv'.format(shafer_root_dir))
+    accungs_summarized_data = pd.read_csv('{}/accungs_haplotype_inference/mutation_type_analysis/global_summary_env_v3.csv'.format(shafer_root_dir))
 
     # plot 1 - stretches "strength" (according to mutation count)
     # data template: sample_id, stretch_id, first_pos, last_pos, freq, mutation_count
@@ -128,12 +129,47 @@ def plot_associvar_accungs_strains():
     plt.savefig(fname= '{}/results_merged/haplotypes_comparison_with_mutation_count_v1.pdf'.format(shafer_root_dir))
 
 
-    # plot 2 - stretches APOBEC
+def plot_compare_loop_accungs_mutations():
+    # plot 1 - simple freq plot + mut-type (by freqs file)
+    # TODO- imp
+
+    #  0.fetch freq files
+    loop_freq_files = glob.glob('{}/loop_genomics_pipeline/envs_output/*/joined.freqs'.format(shafer_root_dir))
+    accungs_freq_files_env = glob.glob('{}/envs_output/*/joined.freqs'.format(accungs_root_dir))
+    accungs_freq_files_gag = glob.glob('{}/gags_output/*/joined.freqs'.format(accungs_root_dir))
+
+    files_all = loop_freq_files + accungs_freq_files_env + accungs_freq_files_gag
+    print(len(files_all))
+
+    dfs_all = []
+    # 1. freq-> dataset
+    for file in files_all:
+        df = pd.read_csv(file, sep='\t')
+        print(file)
+        df['sample'] = file.split('/')[-2]
+        if file in loop_freq_files:
+            df['source'] = 'loop'
+        else:
+            df['source'] = 'accungs'
+
+        dfs_all.append(df)
+    freqs_all = pd.concat(dfs_all)
+
+    print(freqs_all.head())
+
+    # 2. add mutation column according to reference
+
+    # 3. plot
+
+
+    # plot 2 - OPTIONAL - freq plot + mut-type - by strain file
     # data template: sample_id, stretch_id, pos, mutation, freq
     # TODO- transform both data
+    # accungs_rawdata_with_mutations = pd.read_csv('{}/accungs_haplotype_inference/mutation_type_analysis/stretch_data_with_mutation_type/*_stretch_with_mutation.csv'.format(shafer_root_dir))
 
 
 if __name__ == '__main__':
     # summarize_associvar_strain_analysis()
+    # plot_compare_associvar_accungs_strains()
 
-    plot_associvar_accungs_strains()
+    plot_compare_loop_accungs_mutations()
