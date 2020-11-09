@@ -1,6 +1,9 @@
 import glob
 import pandas as pd
 import numpy as np
+
+from freqs_utilities import change_ref_to_consensus
+
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 3000)
 
@@ -144,8 +147,13 @@ def plot_compare_loop_accungs_mutations():
     dfs_all = []
     # 1. freq-> dataset
     for file in files_all:
-        df = pd.read_csv(file, sep='\t')
         print(file)
+        df = pd.read_csv(file, sep='\t')
+
+        # remove insertions + fix ref
+        df = df[df['Pos'] == np.round(df['Pos'])]  # remove insertion
+        df = change_ref_to_consensus(df)
+
         df['sample'] = file.split('/')[-2]
         if file in loop_freq_files:
             df['source'] = 'loop'
@@ -153,13 +161,52 @@ def plot_compare_loop_accungs_mutations():
             df['source'] = 'accungs'
 
         dfs_all.append(df)
-    freqs_all = pd.concat(dfs_all)
 
+    freqs_all = pd.concat(dfs_all)
     print(freqs_all.head())
 
     # 2. add mutation column according to reference
+    freqs_all['mutation'] = freqs_all['Ref'] + '->' + freqs_all['Base']
 
     # 3. plot
+    freqs_all['sample_serial_id'] = freqs_all['sample'].apply(lambda x: x[3:]).astype(int)
+    freqs_all['sample_source'] = freqs_all['sample'] + '_' + freqs_all['source']
+    freqs_all.sort_values(by=['sample_serial_id','sample_source'], inplace=True)
+    print(freqs_all.head())
+    print(len(freqs_all))
+
+    # filters for plot
+    # base count- 100
+    # transitions only
+    # TODO- additional filtering?
+
+    freqs_all['Base_count'] = freqs_all['Read_count'] * freqs_all['Freq']
+    freqs_all_filtered = freqs_all[(freqs_all['Rank'] != 0)
+                                    & (freqs_all['Prob'] > 0.8)
+                                    & (freqs_all['mutation'].isin(['G->A', 'A->G', 'G->G', 'A->A', 'C->T', 'T->C', 'C->C', 'T->T']))
+                                    & (freqs_all['Base_count'] > 100)]
+
+
+    print(freqs_all_filtered.head())
+    print(len(freqs_all_filtered))
+
+    # TODO- temp for readability
+    freqs_all_filtered = freqs_all_filtered[~freqs_all_filtered['sample_serial_id'].isin([1,2,4,7])]
+
+    if True:
+        g = sns.relplot(x='Pos',
+                        y='Freq',
+                        col='sample_source',
+                        hue='mutation',
+                        col_wrap=3,
+                        data=freqs_all_filtered)
+
+        plt.yscale('log')
+        plt.ylim(1e-04, 1)
+
+        # extract
+        # plt.show()
+        plt.savefig(fname='{}/results_merged/base_mutations_comparison_v1_picked.pdf'.format(shafer_root_dir))
 
 
     # plot 2 - OPTIONAL - freq plot + mut-type - by strain file
