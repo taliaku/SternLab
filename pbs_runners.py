@@ -51,7 +51,7 @@ def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis
         return job_id
 
 
-def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adistzachi", run_after_job=None, toRun=False):
+def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adistzachi", run_after_job=None, toRun=True):
 
     """
     run script on cluster as a pbs array
