@@ -75,8 +75,10 @@ def add_to_previous_results(run_after_job=None, all_results_dir=UNITED_OUTPUT_DI
     # mutations csv
     job_id_p5 = script_runner(f"python /sternadi/home/volume2/noam/SternLab/scripts/compare_aligned_msa.py -i {all_results_dir}israel_sequences.aln -r 'MN908947.3' -o {all_results_dir}israel_sequences.mutations.csv -e y", alias='mutations_from_msa', run_after_job=job_id_p2)
     # concat freqs
-    job_id_p6 = script_runner(f'python /sternadi/home/volume2/noam/SternLab/scripts/concat_dfs.py {all_results_dir}/../*/python_pipeline/freqs/all_freqs.csv -o {all_results_dir}israel_freqs.csv', run_after_job=run_after_job)
-    return (job_id_p1, job_id_p2, job_id_p3, job_id_p4, job_id_p5, job_id_p6)
+    job_id_p6 = script_runner(f'python /sternadi/home/volume2/noam/SternLab/scripts/concat_dfs.py {all_results_dir}/../*/python_pipeline/freqs/all_freqs.csv -o {all_results_dir}israel_freqs.csv', run_after_job=job_id_p5)
+    # run alerts
+    job_id_p7 = script_runner(f'python /sternadi/home/volume2/noam/SternLab/covid19/covid_artic_pipeline_alerts.py', run_after_job=job_id_p6)
+    return (job_id_p1, job_id_p2, job_id_p3, job_id_p4, job_id_p5, job_id_p6, job_id_p7)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

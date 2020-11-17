@@ -1146,3 +1146,27 @@ def SpartaABC_runners(config_file, path="/sternadi/home/volume1/taliakustin/soft
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
+
+def bwa_basecalling_runner(input_r1, input_r2, output_dir, reference_file,
+                         alias="bwa_bc", queue="adistzachi", cmdname="bwa_basecalling"):
+    input_r1 = check_filename(input_r1)
+    input_r2 = check_filename(input_r2)
+    output_dir = check_dirname(output_dir, Truedir = False)
+    make_dir(output_dir)
+    reference_file = check_filename(reference_file)
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias)
+    basename = input_r1.split('/')[-1].split('_')[0]
+    gmem = 5
+    cmds = f'''bwa index {reference_file}
+               module load bcftools/bcftools-1.6
+               module load samtools/samtools-1.6
+               bwa mem {reference_file} {input_r1} {input_r2} > {output_dir}/{basename}.sam
+               samtools view -bh -S -q 30 -F 4 {output_dir}/{basename}.sam > {output_dir}/{basename}.HQ_mapped.bam
+               samtools sort {output_dir}/{basename}.HQ_mapped.bam -o {output_dir}/{basename}.HQ_mapped.sorted.bam
+               samtools index {output_dir}/{basename}.HQ_mapped.sorted.bam
+               bcftools mpileup -f {reference_file} {output_dir}/{basename}.HQ_mapped.sorted.bam -o {output_dir}/{basename}.HQ_mapped.sorted.mpileup.vcf
+               bcftools call -mv {output_dir}/{basename}.HQ_mapped.sorted.mpileup.vcf -o {output_dir}/{basename}.HQ_mapped.sorted.vcf
+            '''
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
