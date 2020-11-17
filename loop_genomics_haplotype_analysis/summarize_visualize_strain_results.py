@@ -47,14 +47,12 @@ def summarize_associvar_strain_analysis():
         sample_strains_df['strain'] = sample_strains_df['strain'].apply(str.replace, args = (" ", ""))
 
         # text summary (row\column per strain)
-        # freq + read_count - given
         # length + first\last positions
-        # TODO- handle WT lines
+        # TODO- handle WT lines - first\last pos + length
         sample_strains_df['first_pos'] = sample_strains_df['strain'].apply(lambda x: x.split(',')[0][1:-1])
         print(sample_strains_df['first_pos'])
         sample_strains_df['last_pos'] = sample_strains_df['strain'].apply(lambda x: x.split(',')[-1][1:-1])
         print(sample_strains_df['last_pos'])
-        # TODO- add length
         # sample_strains_df['length'] = sample_strains_df['last_pos'] - sample_strains_df['last_pos']
 
         # # mut count (founder)
@@ -133,9 +131,6 @@ def plot_compare_associvar_accungs_strains():
 
 
 def plot_compare_loop_accungs_mutations():
-    # plot 1 - simple freq plot + mut-type (by freqs file)
-    # TODO- imp
-
     #  0.fetch freq files
     loop_freq_files = glob.glob('{}/loop_genomics_pipeline/envs_output/*/joined.freqs'.format(shafer_root_dir))
     accungs_freq_files_env = glob.glob('{}/envs_output/*/joined.freqs'.format(accungs_root_dir))
@@ -144,8 +139,8 @@ def plot_compare_loop_accungs_mutations():
     files_all = loop_freq_files + accungs_freq_files_env + accungs_freq_files_gag
     print(len(files_all))
 
-    dfs_all = []
     # 1. freq-> dataset
+    dfs_all = []
     for file in files_all:
         print(file)
         df = pd.read_csv(file, sep='\t')
@@ -168,18 +163,37 @@ def plot_compare_loop_accungs_mutations():
     # 2. add mutation column according to reference
     freqs_all['mutation'] = freqs_all['Ref'] + '->' + freqs_all['Base']
 
-    # 3. plot
+    # 3. add strain data
+    print('add strain data')
+    # get data
+    strain_df = get_strain_data()
+    strain_df.to_csv('{}/results_merged/strain_data.csv'.format(shafer_root_dir), index=False)
+    # merge by sample + pos
+    tmp = pd.merge(freqs_all, strain_df,
+                   how='left',
+                   on=['source', 'sample', 'Pos'])
+    tmp['strain'] = tmp['strain'].fillna('WT_or_other')
+
+    freqs_all = tmp
+
+    # 4. add syn\non-syn data
+    # TODO-imp
+    # get ORFs
+    # produce consensus codons \ mutated codons
+    # TODO- mark adjescent mutations- additional possible codon inference
+    #  (mutated-codon-per-position, mutated-codon-with-neighbour-BPs)
+    # -> translate to consensus \ mutated AA
+    # -> infer syn\non-syn
+
+    # 5. plot
     freqs_all['sample_serial_id'] = freqs_all['sample'].apply(lambda x: x[3:]).astype(int)
     freqs_all['sample_source'] = freqs_all['sample'] + '_' + freqs_all['source']
     freqs_all.sort_values(by=['sample_serial_id','sample_source'], inplace=True)
     print(freqs_all.head())
-    print(len(freqs_all))
 
     # filters for plot
     # base count- 100
     # transitions only
-    # TODO- additional filtering?
-
     freqs_all['Base_count'] = freqs_all['Read_count'] * freqs_all['Freq']
     freqs_all_filtered = freqs_all[(freqs_all['Rank'] != 0)
                                     & (freqs_all['Prob'] > 0.8)
@@ -187,17 +201,24 @@ def plot_compare_loop_accungs_mutations():
                                     & (freqs_all['Base_count'] > 100)]
 
 
-    print(freqs_all_filtered.head())
     print(len(freqs_all_filtered))
 
-    # TODO- temp for readability
+    strain_names = freqs_all_filtered['strain'].unique().tolist()
+    palette = dict(zip(strain_names, sns.color_palette(n_colors=len(strain_names))))
+    palette.update({"WT_or_other": "gray"})
+
+    # leave selected samples
     freqs_all_filtered = freqs_all_filtered[~freqs_all_filtered['sample_serial_id'].isin([1,2,4,7])]
 
     if True:
         g = sns.relplot(x='Pos',
                         y='Freq',
                         col='sample_source',
-                        hue='mutation',
+                        hue='strain',
+                        # hue_order=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,
+                        #            'WT_or_other'],
+                        palette= palette,
+                        style='mutation',
                         col_wrap=3,
                         data=freqs_all_filtered)
 
@@ -206,13 +227,65 @@ def plot_compare_loop_accungs_mutations():
 
         # extract
         # plt.show()
-        plt.savefig(fname='{}/results_merged/base_mutations_comparison_v1_picked.pdf'.format(shafer_root_dir))
+        plt.savefig(fname='{}/results_merged/base_mutations_comparison_v7.pdf'.format(shafer_root_dir))
 
 
-    # plot 2 - OPTIONAL - freq plot + mut-type - by strain file
-    # data template: sample_id, stretch_id, pos, mutation, freq
-    # TODO- transform both data
-    # accungs_rawdata_with_mutations = pd.read_csv('{}/accungs_haplotype_inference/mutation_type_analysis/stretch_data_with_mutation_type/*_stretch_with_mutation.csv'.format(shafer_root_dir))
+def get_strain_data():
+    strain_df = []
+
+    # get accungs strain data
+    accungs_strain_files = glob.glob(
+        '{}/accungs_haplotype_inference/mutation_type_analysis/stretch_data_with_mutation_type/env*_mutations_by_stretch_env_v1.csv'.format(
+            shafer_root_dir))
+
+    for file in accungs_strain_files:
+        sample = (file.split('/')[-1]).split('_')[0]
+        print(sample)
+        df = pd.read_csv(file)
+
+        df = df[['Stretch', 'Pos']]
+        df['sample'] = sample
+        df['source'] = 'accungs'
+
+        # convert to minimal values
+        sample_strain_reindex = df['Stretch'].unique().tolist()
+        df['Stretch'] = df['Stretch'].apply(lambda x: sample_strain_reindex.index(x))
+
+        strain_df.append(df)
+
+    # get loop strain data
+    loop_strain_data = pd.read_csv(
+        '/Volumes/STERNADILABHOME$/volume1/shared/analysis/HIV_shafer/associvar/strain_summary_v5.csv')
+
+    loop_strain_data['strain_id'] = loop_strain_data['contig'] + loop_strain_data['strain_id'].astype(str)
+    # convert to minimal values
+    strain_id_reindex_dict = {"A0": 0,"A1": 1,"A2": 2,"A3": 3,"A4": 4,
+                              "B0": 5,"B1": 6,"B2": 7,"B3": 8,"B4": 9,
+                              "C0": 10,"C1": 11,"C2": 12,"C3": 13,"C4": 14
+                              }
+    loop_strain_data['strain_id'] = loop_strain_data['strain_id'].apply(lambda x: strain_id_reindex_dict.get(x))
+
+    loop_strain_data = loop_strain_data[['sample', 'strain_id', 'strain']]
+
+    # Removing WT strains- irrelevant in this plot #TODO- consult & verify
+    loop_strain_data = loop_strain_data[loop_strain_data['strain'] != 'WT']
+
+    loop_strain_data['mutation'] = loop_strain_data['strain'].apply(lambda x: x.replace(" ", "").split(','))
+    loop_strain_data = loop_strain_data.explode('mutation')
+    loop_strain_data['Pos'] = loop_strain_data['mutation'].apply(lambda x: int(float(x[1:-1])))
+    loop_strain_data = loop_strain_data.rename(columns={"strain_id": "Stretch"})
+    loop_strain_data['source'] = 'loop'
+    loop_strain_data = loop_strain_data[['Stretch', 'Pos', 'sample', 'source']]
+
+    # combine data
+    strain_df.append(loop_strain_data)
+    strain_df = pd.concat(strain_df)
+
+    # cosmetics
+    strain_df = strain_df[['source', 'sample', 'Stretch', 'Pos']]
+    strain_df = strain_df.rename(columns={"Stretch": "strain"})
+
+    return strain_df
 
 
 if __name__ == '__main__':
