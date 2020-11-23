@@ -14,7 +14,7 @@ import argparse
 
 OUTPUT_DIR = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline/'
 UNITED_OUTPUT_DIR = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline/all_results/'
-REFERENCE_FILE = '/sternadi/home/volume2/noam/covid/MN908947.fasta'
+REFERENCE_FILE = '/sternadi/home/volume2/noam/covid/references/MN908947.fasta'
 
 
 def covid_artic_pipeline(input_dir, output_dir, alias="ARTIC_pipeline", queue="adistzachi"):
@@ -51,7 +51,7 @@ def covid_artic_pipeline(input_dir, output_dir, alias="ARTIC_pipeline", queue="a
     cmds = f"cp {output_dir}/python_pipeline/*/*.freqs.csv {output_dir}/python_pipeline/freqs/\n"
     cmds += f"python /sternadi/home/volume2/noam/SternLab/covid19/get_consensus_covid19.py -d {output_dir}/python_pipeline/freqs/ -o $(basename {output_dir})\n"
     # concat together with Wuhan reference
-    cmds += f"cat /sternadi/home/volume2/noam/covid/MN908947.fasta {output_dir}/python_pipeline/freqs/$(basename {output_dir})_consensus_all.fasta > {output_dir}/consensuses_w_wuhan.fasta\n"
+    cmds += f"cat {REFERENCE_FILE} {output_dir}/python_pipeline/freqs/$(basename {output_dir})_consensus_all.fasta > {output_dir}/consensuses_w_wuhan.fasta\n"
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias+'_p2', queue=queue, gmem=gmem, cmds=cmds, run_after_job=job_id_p1)
     job_id_p2 = pbs_jobs.submit(cmdfile)
     # align and create tree

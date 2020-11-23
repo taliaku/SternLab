@@ -16,7 +16,6 @@ TEMP_FREQS_FILE = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline/all_re
 freqs_alerts = {'-6696.1T':0.4, '-6696.1A':0.4, '-6696.1C':0.4, '-6696.1G':0.4}
 # mutations to search for on the concensus level, values are comments for why this is added
 consensus_nuc_alerts = {'-6696.001T':'correlated with negative serology',
-                        'C1059.0T':'test',
                         'C22879.0A':'spike N439K variant',
                         'C22879.0G':'spike N439K variant',
                         'A22920.0T':'mink mutation Y453F',
