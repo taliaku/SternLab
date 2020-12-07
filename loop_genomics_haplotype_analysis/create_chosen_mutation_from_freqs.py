@@ -5,7 +5,8 @@ def create_chosen_mutation_from_freqs(freq_file, output_dir, run_name, freq_thre
 
     freqs = pd.read_csv(freq_file, sep='\t')
 
-    invalid_ref_positions = freqs[(freqs['Rank'] == 0) & (freqs['Ref'] != freqs['Base'])]['Pos'].tolist()
+    invalid_ref_positions = set(freqs[(freqs['Rank'] == 0) & (freqs['Ref'] != freqs['Base']) & (freqs['Ref'] != '-')]['Pos'].tolist())
+    print('len(invalid_ref_positions): {}'.format(len(invalid_ref_positions)))
 
     chosen_mutations = freqs[(freqs['Rank'] != 0) # all minor variants
                            & (freqs['Freq'] > freq_threshold)
@@ -37,9 +38,9 @@ def main_hiv_shafer_loop():
 
         create_chosen_mutation_from_freqs(freq_file,
                                           output_dir,
-                                          run_name = 'contig_3_freq0.1',
+                                          run_name = 'contigB_freq0.1',
                                           freq_threshold = 0.001,
-                                          range = (2000, 3500))
+                                          range = (1000, 3051))
 
 
 if __name__ == '__main__':

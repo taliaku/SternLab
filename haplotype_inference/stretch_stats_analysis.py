@@ -30,9 +30,7 @@ def stretches_stats_per_sample(stretch_file, freq_file):
     mutations_by_stretch = pd.merge(mutations_by_stretch, base, how = 'left', on= 'Pos').rename(columns={'Base':'Rank1'})
     mutations_by_stretch['mutation'] = mutations_by_stretch['Rank0'] + mutations_by_stretch['Rank1']
     print(mutations_by_stretch.shape)
-    # print(mutations_by_stretch.head())
-
-    # TODO- extract mutation type inference- here??
+    print(mutations_by_stretch.head())
 
     # mutation count
     count = mutations_by_stretch.groupby('Stretch').count()['Pos'].sort_values(ascending=False)
@@ -68,19 +66,20 @@ def stretches_stats_per_sample(stretch_file, freq_file):
     mutation_types_summary['length'] = mutation_types_summary['last_pos'] - mutation_types_summary['first_pos']
     mutation_types_summary = pd.merge(mutation_types_summary, freq.reset_index(), on='Stretch', how='left')
 
-    return mutation_types_summary
+    return mutation_types_summary, mutations_by_stretch
 
 
-def combine_stretches_stats_all_sampels(root_dir, output_dir, samples, run_name):
+def combine_stretches_stats_all_sampels(freqs_dir, stretch_data_dir, output_dir, samples, run_name):
     all_summaries = []
     for sample in samples:
         print('Running: {}'.format(sample))
-        stretch_file = '{}/{}s_output/{}/analysis/stretches.csv'.format(root_dir, sample[:3], sample)
-        freq_file = '{}/{}s_output/{}/joined.freqs'.format(root_dir, sample[:3], sample)
-        mutation_types_summary = stretches_stats_per_sample(stretch_file, freq_file)
+        stretch_file = '{}/{}/stretches.csv'.format(stretch_data_dir, sample)
+        freq_file = '{}/{}s_output/{}/joined.freqs'.format(freqs_dir, sample[:3], sample)
+        mutation_types_summary, mutations_by_stretch = stretches_stats_per_sample(stretch_file, freq_file)
 
         # extract sample summary
-        # mutation_types_summary.to_csv('{}/{}_mutation_summary.csv'.format(output_dir, sample), index=False)
+        mutations_by_stretch.to_csv('{}/stretch_data_with_mutation_type/{}_mutations_by_stretch_{}.csv'.format(output_dir, sample, run_name), index=False)
+        mutation_types_summary.to_csv('{}/summary_by_sample/{}_mutation_summary_{}.csv'.format(output_dir, sample, run_name), index=False)
 
         # global summary
         mutation_types_summary['Stretch'] = sample + '_' + mutation_types_summary['Stretch'].astype(str)
@@ -92,6 +91,7 @@ def combine_stretches_stats_all_sampels(root_dir, output_dir, samples, run_name)
                                             how='left')
 
         all_summaries.append(mutation_types_summary_p)
+
     # merge
     global_summary = pd.concat(all_summaries, sort=False)
     # export
@@ -109,7 +109,7 @@ def combine_stretches_stats_all_sampels(root_dir, output_dir, samples, run_name)
 def hiv_shafer_analysis():
     test = False
     if test:
-        mutation_types_summary = stretches_stats_per_sample(
+        mutation_types_summary, mutations_by_stretch = stretches_stats_per_sample(
             # '/sternadi/home/volume2/ita/haplotypes/envs_output/env1/analysis/stretches.csv',
             # '/sternadi/home/volume2/ita/haplotypes/envs_output/env1/joined.freqs'
             '/Volumes/STERNADILABHOME$/volume2/ita/haplotypes/envs_output/env11/analysis/stretches.csv',
@@ -123,7 +123,8 @@ def hiv_shafer_analysis():
             '/Users/omer/Documents/Lab/HIV_shafer/accungs_haplotype_inference/mutation_type_analysis/summary_by_sample/mutation_type_summary.csv', index=False)
 
     else:
-        root_dir = '/Volumes/STERNADILABHOME$/volume2/ita/haplotypes'
+        freqs_dir = '/Volumes/STERNADILABHOME$/volume2/ita/haplotypes'
+        stretch_data_dir = '/Volumes/STERNADILABHOME$/volume1/shared/analysis/HIV_shafer/accungs_haplotype_inference/rerun_hap_new_params'
         output_dir = '/Volumes/STERNADILABHOME$/volume1/shared/analysis/HIV_shafer/accungs_haplotype_inference/mutation_type_analysis'
 
         samples = ['env1', 'env10', 'env11', 'env12', 'env13', 'env14', 'env15', 'env2', 'env3', 'env4', 'env5', 'env6',
@@ -131,17 +132,20 @@ def hiv_shafer_analysis():
                    'gag1', 'gag10', 'gag11', 'gag12', 'gag13', 'gag14', 'gag15', 'gag2', 'gag3', 'gag4', 'gag5', 'gag6',
                    'gag7', 'gag8', 'gag9']
 
-        env_samples = ['env1', 'env10', 'env11', 'env12', 'env13', 'env14', 'env15', 'env2', 'env3', 'env4', 'env5',
-                       'env6', 'env7', 'env8', 'env9']
+        env_samples = ['env10', 'env11', 'env12', 'env13', 'env14', 'env15', 'env3', 'env4', 'env5',
+                       'env6', 'env7', 'env8', 'env9', 'env1', 'env2']
         gag_samples = ['gag10', 'gag11', 'gag12', 'gag13', 'gag14', 'gag15', 'gag2', 'gag3', 'gag5', 'gag6', 'gag8',
                        'gag9']
 
         # TODO- use full samples (stretch file of env+gag combined)
 
-        combine_stretches_stats_all_sampels(root_dir,
+        combine_stretches_stats_all_sampels(freqs_dir,
+                                            stretch_data_dir,
                                             output_dir,
-                                            gag_samples,
-                                            'gag_v4')
+                                            env_samples,
+                                            'env_v5')
+
+        # v5 - only adding env1, env2
 
 
 if __name__ == '__main__':

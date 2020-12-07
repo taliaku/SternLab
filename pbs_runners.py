@@ -70,7 +70,7 @@ def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1,
 
 
 
-def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt", run_after_job=None):
+def phyml_runner(alignment, bootstrap = 0, alias = "phyml", phylip=True, d="nt", run_after_job=None):
     """
     run phyml on cluster (converts tpo phylip if the flag phylip==False)
     :param alignment: alignment file path
@@ -83,7 +83,7 @@ def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt", run_after_job=
     if phylip == False:
         alignment = convert_fasta_to_phylip(alignment)
     cmdfile = pbs_jobs.assign_cmdfile_path("phyml", alias); tnum = 1; gmem = 2
-    cmds = f"/sternadi/home/volume1/shared/tools/PhyML/PhyML_3.0_linux64 -i {alignment} -b 0 -o n -d {d}"
+    cmds = f"/sternadi/home/volume1/shared/tools/PhyML/PhyML_3.0_linux64 -i {alignment} -b {bootstrap} -o n -d {d}"
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id

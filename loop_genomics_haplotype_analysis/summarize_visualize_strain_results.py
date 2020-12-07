@@ -14,8 +14,10 @@ import matplotlib.pyplot as plt
 
 shafer_root_dir = '/Volumes/STERNADILABHOME$/volume1/shared/analysis/HIV_shafer'
 accungs_root_dir = '/Volumes/STERNADILABHOME$/volume2/ita/haplotypes'
+shafer_root_dir_power9 = '/sternadi/home/volume1/shared/analysis/HIV_shafer'
+accungs_root_dir_power9 = '/sternadi/home/volume2/ita/haplotypes'
 
-env_samples = ['env10', 'env11', 'env12', 'env13', 'env14', 'env15', 'env3', 'env4', 'env5', 'env6','env7', 'env8', 'env9']
+env_samples = ['env1', 'env2', 'env3', 'env4', 'env5', 'env6','env7', 'env8', 'env9', 'env10', 'env11', 'env12', 'env13', 'env14', 'env15']
 # env_samples = ['env10']
 
 def summarize_associvar_strain_analysis():
@@ -25,12 +27,13 @@ def summarize_associvar_strain_analysis():
     for sample in env_samples:
         print('Sample: {}'.format(sample))
 
-        # get 3 contigs
-        # TODO- maybe replace with less filtered reliable.csv
-        contigs = glob.glob('{}/{}/associvar_strain_{}_contig_*_freq0.1.csv.reliable.csv'.format(associvar_root_dir, sample, sample))
+        # get 2 contigs
+        contigA = glob.glob('{}/{}/associvar_strain_{}_contigA_freq0.1.csv.reliable.csv'.format(associvar_root_dir, sample, sample))[0]
+        contigB = glob.glob('{}/{}/associvar_strain_{}_contigB_freq0.1.csv.reliable.csv'.format(associvar_root_dir, sample, sample))[0]
+        contigs = contigA + contigB
         print(contigs)
 
-        # filter top 3 haplotypes only (or above some read threshold?)
+        # filter top 5 haplotypes only (or above some read threshold?)
         contigs_df = [pd.read_csv(x).head() for x in contigs]
 
         # add strain identifier
@@ -81,7 +84,7 @@ def summarize_associvar_strain_analysis():
 
     # export
     print(text_summaries_df)
-    text_summaries_df.to_csv('{}/strain_summary_v6.csv'.format(associvar_root_dir), index=False)
+    text_summaries_df.to_csv('{}/strain_summary_v7.csv'.format(associvar_root_dir), index=False)
 
 
 def plot_compare_associvar_accungs_strains():
@@ -130,51 +133,83 @@ def plot_compare_associvar_accungs_strains():
     plt.savefig(fname= '{}/results_merged/haplotypes_comparison_with_mutation_count_v1.pdf'.format(shafer_root_dir))
 
 
-def plot_compare_loop_accungs_mutations():
-    #  0.fetch freq files
-    loop_freq_files = glob.glob('{}/loop_genomics_pipeline/envs_output/*/joined.freqs'.format(shafer_root_dir))
-    accungs_freq_files_env = glob.glob('{}/envs_output/*/joined.freqs'.format(accungs_root_dir))
-    accungs_freq_files_gag = glob.glob('{}/gags_output/*/joined.freqs'.format(accungs_root_dir))
+def plot_compare_loop_accungs_mutations(plot_gag = True,
+                                        loop_only = False,
+                                        new_pipe_runs = False,
+                                        generate_freq_data = True,
+                                        generate_strain_data = True):
+    if generate_freq_data:
+        #  0.fetch freq files
+        files_all = []
+        loop_freq_files = glob.glob('{}/loop_genomics_pipeline/envs_output/*/joined.freqs'.format(shafer_root_dir))
+        files_all.extend(loop_freq_files)
+        accungs_freq_files_env = glob.glob('{}/envs_output/*/joined.freqs'.format(accungs_root_dir))
+        files_all.extend(accungs_freq_files_env)
+        accungs_freq_files_gag = glob.glob('{}/gags_output/*/joined.freqs'.format(accungs_root_dir))
+        files_all.extend(accungs_freq_files_gag)
 
-    files_all = loop_freq_files + accungs_freq_files_env + accungs_freq_files_gag
-    print(len(files_all))
+        # TODO- add 2 more freq datasets
+        if new_pipe_runs:
+            loop_env_new_pipeline = glob.glob('{}/new_pipeline_loop/env*/freqs.tsv'.format(shafer_root_dir))
+            files_all.extend(loop_env_new_pipeline)
+            accungs_env_new_pipeline = glob.glob('{}/new_pipeline_accungs/env*/freqs.tsv'.format(shafer_root_dir))
+            files_all.extend(accungs_env_new_pipeline)
 
-    # 1. freq-> dataset
-    dfs_all = []
-    for file in files_all:
-        print(file)
-        df = pd.read_csv(file, sep='\t')
+        print(len(files_all))
 
-        # remove insertions + fix ref
-        df = df[df['Pos'] == np.round(df['Pos'])]  # remove insertion
-        df = change_ref_to_consensus(df)
+        # 1. freq-> dataset (old format)
+        dfs_all = []
+        for file in files_all:
+            print(file)
+            df = pd.read_csv(file, sep='\t')
 
-        df['sample'] = file.split('/')[-2]
-        if file in loop_freq_files:
-            df['source'] = 'loop'
-        else:
-            df['source'] = 'accungs'
+            if file in loop_freq_files:
+                df['source'] = 'loop'
+            elif file in accungs_freq_files_env + accungs_freq_files_gag:
+                df['source'] = 'accungs'
+            elif (new_pipe_runs and file in loop_env_new_pipeline + accungs_env_new_pipeline):
+                print(df.columns)
+                df.rename(columns={'ref_pos':'Pos', 'read_base':'Base', 'ref_base':'Ref',
+                                   'frequency':'Freq', 'base_rank':'Rank', 'coverage':'Read_count',
+                                   'probability':'Prob'},
+                          inplace=True)
+                print(df.columns)
+                if file in loop_env_new_pipeline:
+                    df['source'] = 'loop_new'
+                else:
+                    df['source'] = 'accungs_new'
 
-        dfs_all.append(df)
+            # remove insertions + fix ref
+            df = df[df['Pos'] == np.round(df['Pos'])]  # remove insertion
+            df = change_ref_to_consensus(df)
 
-    freqs_all = pd.concat(dfs_all)
-    print(freqs_all.head())
+            df['sample'] = file.split('/')[-2]
 
-    # 2. add mutation column according to reference
-    freqs_all['mutation'] = freqs_all['Ref'] + '->' + freqs_all['Base']
+            dfs_all.append(df)
 
-    # 3. add strain data
-    print('add strain data')
-    # get data
-    strain_df = get_strain_data()
-    strain_df.to_csv('{}/results_merged/strain_data.csv'.format(shafer_root_dir), index=False)
-    # merge by sample + pos
-    tmp = pd.merge(freqs_all, strain_df,
-                   how='left',
-                   on=['source', 'sample', 'Pos'])
-    tmp['strain'] = tmp['strain'].fillna('WT_or_other')
+        freqs_all = pd.concat(dfs_all)
+        print(freqs_all.head())
 
-    freqs_all = tmp
+        # 2. add mutation column according to reference
+        freqs_all['mutation'] = freqs_all['Ref'] + '->' + freqs_all['Base']
+
+        # 3. add strain data
+        print('add strain data')
+        # get data
+        strain_df = get_strain_data(generate_data= generate_strain_data)
+        strain_df = strain_df.drop(columns=['mutation'])
+        # merge by sample + pos
+        # TODO- merge on Rank1 only?
+        tmp = pd.merge(freqs_all, strain_df,
+                       how='left',
+                       on=['source', 'sample', 'Pos'])
+        tmp['strain'] = tmp['strain'].fillna('WT_or_other')
+        freqs_all = tmp
+
+        # export
+        freqs_all.to_csv('{}/results_merged/freqs_strain_data_all_samples_v5.csv'.format(shafer_root_dir), index=False)
+    else:
+        freqs_all = pd.read_csv('{}/results_merged/freqs_strain_data_all_samples_v5.csv'.format(shafer_root_dir))
 
     # 4. add syn\non-syn data
     # TODO-imp
@@ -199,27 +234,52 @@ def plot_compare_loop_accungs_mutations():
                                     & (freqs_all['Prob'] > 0.8)
                                     & (freqs_all['mutation'].isin(['G->A', 'A->G', 'G->G', 'A->A', 'C->T', 'T->C', 'C->C', 'T->T']))
                                     & (freqs_all['Base_count'] > 100)]
-
-
     print(len(freqs_all_filtered))
 
-    strain_names = freqs_all_filtered['strain'].unique().tolist()
-    palette = dict(zip(strain_names, sns.color_palette(n_colors=len(strain_names))))
-    palette.update({"WT_or_other": "gray"})
-
     # leave selected samples
-    freqs_all_filtered = freqs_all_filtered[~freqs_all_filtered['sample_serial_id'].isin([1,2,4,7])]
+    # if not plot_gag:
+    #     print('filter gag')
+    #     print(len(freqs_all_filtered))
+    #     freqs_all_filtered = freqs_all_filtered[freqs_all_filtered['sample'].apply(lambda x: x[:3]) == 'gag']
+    #     print(len(freqs_all_filtered))
+    #
 
-    if True:
+    # freqs_all_filtered = freqs_all_filtered[~freqs_all_filtered['sample_serial_id'].isin([1,2,4,7])]
+    freqs_all_filtered = freqs_all_filtered[(freqs_all_filtered['source'] == 'loop') | (freqs_all_filtered['sample_serial_id'].isin([1,2]))]
+    # freqs_all_filtered = freqs_all_filtered[freqs_all_filtered['sample_source'] == 'env15_loop']
+    print(freqs_all_filtered['sample_source'].unique().tolist())
+
+    # strain coloring
+    strain_names = freqs_all_filtered['strain'].unique().tolist()
+    print(strain_names)
+    palette = dict(zip(strain_names, sns.color_palette(n_colors=len(strain_names))))
+    palette.update({"WT_or_other": "gray", 5: "black"})
+    # palette.update({"WT_or_other": "gray"})
+    # palette.update({"WT_or_other": "gray",
+    #                 5: "black",
+    #                 12: "black"})
+
+    plot = True
+    if plot:
         g = sns.relplot(x='Pos',
                         y='Freq',
                         col='sample_source',
+                        # col_order= ['env15_loop'],
+                        # col_order= ['env9_loop', 'env10_loop', 'env12_loop', 'env7_loop'],# low diversity
+                        # col_order= ['env11_loop', 'env15_loop', 'env2_accungs'], # multiple foudners
+                        # col_order= ['env6_loop', 'env8_loop', 'env4_loop',
+                        #             'env3_loop', 'env5_loop', 'env13_loop', 'env14_loop', 'env1_accungs'], # high diversity
+                        col_order= ['env9_loop', 'env10_loop', 'env12_loop', 'env7_loop',# low diversity
+                                    'env11_loop', 'env15_loop', 'env2_accungs', '', # multiple foudners
+                                    'env6_loop', 'env8_loop', 'env4_loop', # high diversity, few strains
+                                    'env3_loop', 'env5_loop', 'env13_loop', 'env14_loop', 'env1_accungs'], # high diversity, many strains
                         hue='strain',
-                        # hue_order=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,
-                        #            'WT_or_other'],
+                        # hue_order=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,'WT_or_other',
+                        #            14],
                         palette= palette,
                         style='mutation',
-                        col_wrap=3,
+                        style_order= ['A->G', 'G->A', 'T->C', 'C->T'],
+                        col_wrap=4,
                         data=freqs_all_filtered)
 
         plt.yscale('log')
@@ -227,69 +287,103 @@ def plot_compare_loop_accungs_mutations():
 
         # extract
         # plt.show()
-        plt.savefig(fname='{}/results_merged/base_mutations_comparison_v7.pdf'.format(shafer_root_dir))
+        plt.savefig(fname='{}/results_merged/mutations_strains_all_by_diversity.pdf'.format(shafer_root_dir))
 
 
-def get_strain_data():
-    strain_df = []
+def get_strain_data(generate_data = True):
+    if generate_data:
+        strain_df = []
 
-    # get accungs strain data
-    accungs_strain_files = glob.glob(
-        '{}/accungs_haplotype_inference/mutation_type_analysis/stretch_data_with_mutation_type/env*_mutations_by_stretch_env_v1.csv'.format(
-            shafer_root_dir))
+        # get accungs strain data
+        accungs_strain_files = glob.glob(
+            '{}/accungs_haplotype_inference/mutation_type_analysis/stretch_data_with_mutation_type/env*_mutations_by_stretch_env_v5.csv'.format(
+                shafer_root_dir))
 
-    for file in accungs_strain_files:
-        sample = (file.split('/')[-1]).split('_')[0]
-        print(sample)
-        df = pd.read_csv(file)
+        for file in accungs_strain_files:
+            sample = (file.split('/')[-1]).split('_')[0]
+            print(sample)
+            df = pd.read_csv(file)
 
-        df = df[['Stretch', 'Pos']]
-        df['sample'] = sample
-        df['source'] = 'accungs'
+            df = df[['Stretch', 'Pos', 'mutation']]
+            df['sample'] = sample
+            df['source'] = 'accungs'
 
+            # convert to minimal values
+            sample_strain_reindex = df['Stretch'].unique().tolist()
+            df['Stretch'] = df['Stretch'].apply(lambda x: sample_strain_reindex.index(x))
+
+            strain_df.append(df)
+
+        # get loop strain data
+        loop_strain_data = pd.read_csv(
+            '/Volumes/STERNADILABHOME$/volume1/shared/analysis/HIV_shafer/associvar/strain_summary_v5.csv')
+
+        loop_strain_data['strain_id'] = loop_strain_data['contig'] + loop_strain_data['strain_id'].astype(str)
         # convert to minimal values
-        sample_strain_reindex = df['Stretch'].unique().tolist()
-        df['Stretch'] = df['Stretch'].apply(lambda x: sample_strain_reindex.index(x))
+        strain_id_reindex_dict = {"A0": 0,"A1": 1,"A2": 2,"A3": 3,"A4": 4,
+                                  "B0": 5,"B1": 6,"B2": 7,"B3": 8,"B4": 9,
+                                  "C0": 10,"C1": 11,"C2": 12,"C3": 13,"C4": 14
+                                  }
+        loop_strain_data['strain_id'] = loop_strain_data['strain_id'].apply(lambda x: strain_id_reindex_dict.get(x))
 
-        strain_df.append(df)
+        loop_strain_data = loop_strain_data[['sample', 'strain_id', 'strain']]
 
-    # get loop strain data
-    loop_strain_data = pd.read_csv(
-        '/Volumes/STERNADILABHOME$/volume1/shared/analysis/HIV_shafer/associvar/strain_summary_v5.csv')
+        # Removing WT strains- irrelevant in this plot #TODO- consult & verify
+        loop_strain_data = loop_strain_data[loop_strain_data['strain'] != 'WT']
 
-    loop_strain_data['strain_id'] = loop_strain_data['contig'] + loop_strain_data['strain_id'].astype(str)
-    # convert to minimal values
-    strain_id_reindex_dict = {"A0": 0,"A1": 1,"A2": 2,"A3": 3,"A4": 4,
-                              "B0": 5,"B1": 6,"B2": 7,"B3": 8,"B4": 9,
-                              "C0": 10,"C1": 11,"C2": 12,"C3": 13,"C4": 14
-                              }
-    loop_strain_data['strain_id'] = loop_strain_data['strain_id'].apply(lambda x: strain_id_reindex_dict.get(x))
+        loop_strain_data['mutation'] = loop_strain_data['strain'].apply(lambda x: x.replace(" ", "").split(','))
+        loop_strain_data = loop_strain_data.explode('mutation')
+        loop_strain_data['Pos'] = loop_strain_data['mutation'].apply(lambda x: int(float(x[1:-1])))
+        loop_strain_data['mutation'] = loop_strain_data['mutation'].apply(lambda x: x[0]+x[-1])
+        loop_strain_data = loop_strain_data.rename(columns={"strain_id": "Stretch"})
+        loop_strain_data['source'] = 'loop'
+        loop_strain_data = loop_strain_data[['Stretch', 'Pos', 'mutation', 'sample', 'source']]
 
-    loop_strain_data = loop_strain_data[['sample', 'strain_id', 'strain']]
+        # combine data
+        strain_df.append(loop_strain_data)
+        strain_df = pd.concat(strain_df)
 
-    # Removing WT strains- irrelevant in this plot #TODO- consult & verify
-    loop_strain_data = loop_strain_data[loop_strain_data['strain'] != 'WT']
+        # cosmetics
+        strain_df = strain_df[['source', 'sample', 'Stretch', 'Pos', 'mutation']]
+        strain_df = strain_df.rename(columns={"Stretch": "strain"})
+        strain_df['strain'] = strain_df['strain'].astype(int)
 
-    loop_strain_data['mutation'] = loop_strain_data['strain'].apply(lambda x: x.replace(" ", "").split(','))
-    loop_strain_data = loop_strain_data.explode('mutation')
-    loop_strain_data['Pos'] = loop_strain_data['mutation'].apply(lambda x: int(float(x[1:-1])))
-    loop_strain_data = loop_strain_data.rename(columns={"strain_id": "Stretch"})
-    loop_strain_data['source'] = 'loop'
-    loop_strain_data = loop_strain_data[['Stretch', 'Pos', 'sample', 'source']]
-
-    # combine data
-    strain_df.append(loop_strain_data)
-    strain_df = pd.concat(strain_df)
-
-    # cosmetics
-    strain_df = strain_df[['source', 'sample', 'Stretch', 'Pos']]
-    strain_df = strain_df.rename(columns={"Stretch": "strain"})
+        # export
+        strain_df.to_csv('{}/results_merged/strain_data_v4_param2.csv'.format(shafer_root_dir), index=False)
+    else:
+        strain_df = pd.read_csv('{}/results_merged/strain_data_v4_param2.csv'.format(shafer_root_dir))
 
     return strain_df
+
+def blending_strains_analysis():
+    strain_df = pd.read_csv('{}/results_merged/strain_data_v3_param2.csv'.format(shafer_root_dir))
+    strain_df['source_strain'] = strain_df['source'] + '_' + strain_df['strain'].astype(str)
+    # print(strain_df.head())
+
+    # for sample in strain_df.sample.unique():
+    for sample in env_samples:
+        print(sample)
+
+        df = strain_df[strain_df['sample'] == sample]
+        all_strains = df['source_strain'].unique().tolist()
+        loop_strains = list(filter(lambda k: 'loop' in k, all_strains))
+        accungs_strains = list(filter(lambda k: 'accungs' in k, all_strains))
+
+        df = df.merge(df, on='Pos')
+        df = pd.crosstab(df['source_strain_x'], df['source_strain_y'])
+
+        df = df.drop(loop_strains, axis=1) # drop columns
+        df = df.drop(accungs_strains, axis=0) # drop rows
+        # print(df)
+        df.to_csv('/Users/omer/Documents/Lab/HIV_shafer/strain_intersect/{}_strain_intersect.csv'.format(sample))
 
 
 if __name__ == '__main__':
     # summarize_associvar_strain_analysis()
     # plot_compare_associvar_accungs_strains()
 
-    plot_compare_loop_accungs_mutations()
+    # plot_compare_loop_accungs_mutations()
+
+    # blending_strains_analysis()
+
+    plot_compare_loop_accungs_mutations(generate_strain_data= False, generate_freq_data= False)

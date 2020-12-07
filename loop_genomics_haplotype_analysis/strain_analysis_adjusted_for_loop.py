@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 
 
-# TODO- all fixes -> code review
+# TODO- try re-write
 def count_haplotypes(input_chosen_mutations,
                      input_blast_df,
                      input_mutation_df,
@@ -35,8 +35,8 @@ def count_haplotypes(input_chosen_mutations,
     # choose only reads that were mapped only once in blast
     blast_df['read_count'] = blast_df.groupby('read')['start_ref'].transform('count')
     blast_df = blast_df[(blast_df.read_count == 1)]
-
     print('len(blast_df): {}'.format(len(blast_df)))
+    print('reads_mapped_once: {}'.format(len(blast_df.groupby('read').count())))
 
     # choose only reads that are mapped from at least start_pos_read to end_pos_read
     # TODO- different logic possible?
@@ -49,8 +49,6 @@ def count_haplotypes(input_chosen_mutations,
     mutations_df = pd.read_csv(input_mutation_df)
     mutations_df = mutations_df[(mutations_df.ref != '-')] # remove insertions
     print('len(mutations_df): {}'.format(len(mutations_df)))
-
-    # TODO- keep useful prints
 
     # drop reads containing a variation that is not the recognized mutation or the WT in the positions we are checking combinations for.
     # TODO-
@@ -149,8 +147,7 @@ def count_haplotypes(input_chosen_mutations,
     df_reliable.sort_values('frequency', ascending=False).to_csv(output_file + '.reliable.csv', index=False)
     return
 
-# TODO- verify correctness after changes
-# TODO- irrelevant? filtering is based distance is incorrect here?
+# TODO- remove believable filtering- keep only re-org parts
 def choose_believable_strains(df, substitution_error_cutoff, deletion_error_cutoff):
     df['believable'] = False
     df['closest_strain'] = None

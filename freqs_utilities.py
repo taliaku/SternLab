@@ -58,11 +58,17 @@ def merge_freqs_files(freqs_files, output):
 
 def change_ref_to_consensus(freqs_df, allow_major_change = False):
     consensus = freqs_df.copy()
+    print(consensus.head())
+    consensus = consensus.sort_values(by=['Pos','Freq'], ascending=[True,False])
+    print(consensus.head())
     consensus = consensus.drop_duplicates("Pos") # rank 0 only
+    print(consensus.head())
     consensus = consensus[['Pos', 'Base']]
     ref_before_change = freqs_df.copy()
     ref_before_change = ref_before_change.drop_duplicates("Pos") # rank 0 only
     ref_before_change = ref_before_change[['Pos', 'Ref']]
+    print(''.join(ref_before_change.Ref.tolist()))
+    print(''.join(consensus.Base.tolist()))
     diff = (consensus.Base != ref_before_change.Ref)
 
     if not diff[diff == True].empty:
