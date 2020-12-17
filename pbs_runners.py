@@ -70,7 +70,11 @@ def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1,
 
 
 
+<<<<<<< Updated upstream
 def phyml_runner(alignment, bootstrap = 0, alias = "phyml", phylip=True, d="nt", run_after_job=None):
+=======
+def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt", run_after_job=None, bootstrap=0):
+>>>>>>> Stashed changes
     """
     run phyml on cluster (converts tpo phylip if the flag phylip==False)
     :param alignment: alignment file path
@@ -1167,6 +1171,75 @@ def bwa_basecalling_runner(input_r1, input_r2, output_dir, reference_file,
                bcftools mpileup -f {reference_file} {output_dir}/{basename}.HQ_mapped.sorted.bam -o {output_dir}/{basename}.HQ_mapped.sorted.mpileup.vcf
                bcftools call -mv {output_dir}/{basename}.HQ_mapped.sorted.mpileup.vcf -o {output_dir}/{basename}.HQ_mapped.sorted.vcf
             '''
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+def ivar_runner(input_r1, output_dir,
+                           reference_file="/sternadi/home/volume2/noam/covid/references/MN908947.fasta",
+                           bed_file="/sternadi/home/volume2/noam/covid/artic_amplicons/nCoV-2019_v3.bed",
+                           primers_fasta="/sternadi/home/volume2/noam/covid/artic_amplicons/artic_fastas.fasta",
+                           pair_information="/sternadi/home/volume2/noam/covid/artic_amplicons/ARTIC_SARS_CoV-2_amplicon_info_v3.tsv",
+                         alias="ivar", queue="adistzachi", cmdname="ivar"):
+    input_r1 = check_filename(input_r1)
+    input_r2 = check_filename(input_r1.replace('_R1_', '_R2_'))
+    output_dir = check_dirname(output_dir, Truedir = False)
+    make_dir(output_dir)
+    reference_file = check_filename(reference_file)
+    bed_file = check_filename(bed_file)
+    primers_fasta = check_filename(primers_fasta)
+    pair_information = check_filename(pair_information)
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias)
+    basename = input_r1.split('/')[-1].split('_')[0]
+    gmem = 1
+    cmds = f'''bwa index {reference_file}
+               module load miniconda/miniconda3-4.7.12-environmentally
+               conda activate /powerapps/share/centos7/miniconda/miniconda3-4.7.12-environmentally/envs/iVar
+               module load samtools/samtools-1.9
+             '''
+    # align reads
+    cmds += f'''bwa mem {reference_file} {input_r1} {input_r2} | samtools view -F 4 -Sb | samtools sort -o {output_dir}/{basename}.sorted.bam
+                samtools index {output_dir}/{basename}.sorted.bam
+            '''
+    # trim primer quality
+    cmds += f'''mkdir {output_dir}/trimmed/
+                ivar trim -b {bed_file} -i {output_dir}/{basename}.sorted.bam -p {output_dir}/trimmed/{basename}.trimmed
+                samtools sort {output_dir}/trimmed/{basename}.trimmed.bam -o {output_dir}/trimmed/{basename}.trimmed.sorted.bam
+                samtools index {output_dir}/trimmed/{basename}.trimmed.sorted.bam
+            '''
+    # merge replicates - not releavnt here
+    # call consensus
+    cmds += f'''mkdir {output_dir}/consensus
+                samtools mpileup -A -d 0 -Q 0 -F 0 {output_dir}/trimmed/{basename}.trimmed.sorted.bam | ivar consensus -p {output_dir}/consensus/{basename}.fa
+                mkdir {output_dir}/index
+                bwa index -p {output_dir}/index/{basename} {output_dir}/consensus/{basename}.fa
+            '''
+    # create primer bam
+    cmds += f'''mkdir {output_dir}/bed
+                bwa mem -k 5 -T 16 {output_dir}/index/{basename} {primers_fasta} | samtools view -bS -F 4 | samtools sort -o {output_dir}/bed/{basename}.bam
+             '''
+    # create new bed
+    cmds += f'''bedtools bamtobed -i {output_dir}/bed/{basename}.bam > {output_dir}/bed/{basename}.bed
+            '''
+    # call variants in primer, compared to concensus reference
+    cmds += f'''mkdir {output_dir}/primer_mismatches
+                samtools mpileup -A -d 0 --reference {output_dir}/consensus/{basename}.fa -Q 0 -F 0 {output_dir}/bed/{basename}.bam | ivar variants -p {output_dir}/primer_mismatches/{basename}.tsv -t 0.03
+            '''
+    # get masked
+    cmds += f'''ivar getmasked -i {output_dir}/primer_mismatches/{basename}.tsv -b {output_dir}/bed/{basename}.bed  -f {pair_information} -p {output_dir}/{basename}_masked_primer_names.txt
+            '''
+    # remove reads
+    cmds += f'''mkdir {output_dir}/masked
+                ivar removereads -i {output_dir}/trimmed/{basename}.trimmed.sorted.bam -p {output_dir}/masked/{basename}.masked -t {output_dir}/{basename}_masked_primer_names.txt -b {bed_file}
+                samtools sort -o {output_dir}/masked/{basename}.masked.sorted.bam {output_dir}/masked/{basename}.masked.bam
+                samtools index {output_dir}/masked/{basename}.masked.sorted.bam
+            '''
+    # call variants post removal
+    cmds += f'''mkdir {output_dir}/masked_variants/
+                samtools mpileup -A -d 0 --reference {reference_file} -Q 0 -F 0 {output_dir}/masked/{basename}.masked.sorted.bam | ivar variants -p {output_dir}/masked_variants/{basename}.masked.tsv -t 0.03
+             '''
+    # finish
+    cmds += '''conda deactivate'''
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id

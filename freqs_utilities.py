@@ -507,17 +507,20 @@ def get_median_coverage_and_stop_mutation_for_df(df):
 def compare_positions_between_freqs(dict_of_freqs, out_path=False, positions_to_compare=False):
     '''
     Compare and display frequencies and read counts per position between different freqs files.
-    :param dict_of_freqs: a dictionary of freqs files to compare in the format of {name:freqs_path}
+    :param dict_of_freqs: a dictionary of freqs files (paths or dataframes) to compare in the format of {name:freqs_path}
     :param out_path: path to save output csv, optional
     :param positions_to_compare: a list of positions to compare, optional
     :return: merged dataframe
     '''
     dfs = []
     for i in dict_of_freqs:
-        df = pd.read_csv(dict_of_freqs[i])
+        if type(dict_of_freqs[i]) == str:
+            df = pd.read_csv(dict_of_freqs[i])
+        else:
+            df = dict_of_freqs[i]
         df = compatibilty_old_to_new(df)
-        df = df[['ref_base', 'ref_position', 'base', 'frequency', 'coverage']]
-        df.rename(columns={'coverage':'coverage_' + i, 'frequency':'frequency_' + i}, inplace=True)
+        df = df[['ref_base', 'ref_position', 'base', 'frequency', 'coverage', 'rank']]
+        df.rename(columns={'coverage':'coverage_' + i, 'frequency':'frequency_' + i, 'rank':'rank_' + i}, inplace=True)
         dfs.append(df)
     df_final = reduce(lambda left,right: pd.merge(left,right,on=['ref_base', 'ref_position', 'base']), dfs)
     if positions_to_compare:
