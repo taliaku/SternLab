@@ -1,5 +1,7 @@
 #! /usr/local/python_anaconda/bin/python3.4
 
+### to do - these functions fit the blast output of the old pipeline, update to new
+
 import pandas as pd
 import re
 import math
