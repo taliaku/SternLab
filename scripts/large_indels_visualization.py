@@ -36,7 +36,7 @@ def plot_suspicious_reads(suspicious_reads_file, output_fig_path= None, sort=Tru
     print('plotting')
     plt.figure(figsize=(20, 10))
     df.apply(lambda row: plt.plot((row['interval'][0], row['interval'][1]),
-                                  (reads.index(row['read_id']), reads.index(row['read_id'])),
+                                  (reads.index(row['read_id']), reads.index(row['read_id'])), # TODO- extract this to (hopefully) improve performance
                                   row['interval_id'], #TODO- color by id (dont know how it colors at the moment)
                                   marker='o'),
              axis=1)
