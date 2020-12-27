@@ -70,11 +70,7 @@ def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1,
 
 
 
-<<<<<<< Updated upstream
-def phyml_runner(alignment, bootstrap = 0, alias = "phyml", phylip=True, d="nt", run_after_job=None):
-=======
 def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt", run_after_job=None, bootstrap=0):
->>>>>>> Stashed changes
     """
     run phyml on cluster (converts tpo phylip if the flag phylip==False)
     :param alignment: alignment file path
