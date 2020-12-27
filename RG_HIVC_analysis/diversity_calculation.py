@@ -5,10 +5,11 @@ import pandas as pd
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
+import seaborn as sns;
 
-#from RG_HIVC_analysis import constants
-#from RG_HIVC_analysis.constants import gag_ET86_interval, pol_ET86_interval, env_ET86_interval, orig_excluded_samples, control_excluded_patients
+from RG_HIVC_analysis import constants
+from RG_HIVC_analysis.constants import gag_ET86_interval, pol_ET86_interval, env_ET86_interval, orig_excluded_samples, \
+    control_excluded_patients
 
 sns.set_context("poster")
 import sys
@@ -58,23 +59,22 @@ def pis_calc(data, pivot_cols=[], interval = (0, sys.maxsize)): # start_pos=0, e
     # Filters
     # TODO- extract this filter too\ insert all others here
     # choose interval
-    #
-    #filtered_data = data[(data["ref_position"] >= interval[0]) & (data["ref_position"] <= interval[1])]
-    filtered_data = data
+    filtered_data = data[(data["Pos"] >= interval[0]) & (data["Pos"] <= interval[1])]
+
     if filtered_data.empty:
         warnings.warn("No relevant data after filtering. Skipping")
         return None
 
-    filtered_data['counts_for_position'] = np.round(filtered_data['coverage'] * filtered_data['frequency'])
+    filtered_data['counts_for_position'] = np.round(filtered_data['Read_count'] * filtered_data['Freq'])
     selecting_cols = pivot_cols[:]
-    selecting_cols.extend(["ref_position", "base", "counts_for_position", "rank"])
+    selecting_cols.extend(["Pos", "Base", "counts_for_position", "Rank"])
     # selecting_cols = list(set(selecting_cols))
     filtered_data = filtered_data[selecting_cols]
 
-    filtered_data["rank"] = np.where(filtered_data["rank"] == 0, "Major", "Minor")
+    filtered_data["Rank"] = np.where(filtered_data["Rank"] == 0, "Major", "Minor")
 
     group_cols = pivot_cols[:]
-    group_cols.extend(["ref_position", "rank"])
+    group_cols.extend(["Pos", "Rank"])
     # group_cols = list(set(group_cols))
 
     # selecting max on cfp, per Pos\Rank (Major\minor?)- than will be graded per Pos, and summed
@@ -87,7 +87,7 @@ def pis_calc(data, pivot_cols=[], interval = (0, sys.maxsize)): # start_pos=0, e
 
     filtered_data["pdp"] = filtered_data.apply(lambda row: pairwise_differences_proportion(row), axis=1)
 
-    pivot_cols.extend(["ref_position"])
+    pivot_cols.extend(["Pos"])
     if any(pivot_cols):
         bysample_diversity = filtered_data.groupby(pivot_cols)['pdp'].agg(['count', 'sum']).reset_index()
         bysample_diversity["Pi"] = bysample_diversity["sum"] * 1.0 / bysample_diversity["count"]
