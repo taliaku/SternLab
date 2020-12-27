@@ -24,7 +24,9 @@ consensus_nuc_alerts = {'-6696.001T':'correlated with negative serology',
                         'A21768.0-':'mink deletion',
                         'T21769.0-':'mink deletion',
                         'G21770.0-':'mink deletion',
-                        'T21771.0-':'mink deletion',}
+                        'T21771.0-':'mink deletion',
+                        'A23063.0T':'N501Y spike RBD',
+                        'C23604.0A':'P681H spike furin cleavage site'}
 
 ############################################################
 
