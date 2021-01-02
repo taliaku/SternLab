@@ -27,11 +27,15 @@ def main(args):
     if not skip_variants:
         variants_cmd = os.path.join(this_dir_path, 'variants_on_same_read.py')
         os.makedirs(variants_folder, exist_ok=True)
-        cmd1 = f"python {variants_cmd} -b {blast_path} -m {mutations_path} -p $PBS_ARRAY_INDEX -f {freqs_path} " \
+        number_of_jobs = 100
+        positions_per_job = int(number_of_bases / number_of_jobs) + 1
+        cmd1 = f"python {variants_cmd} -b {blast_path} -m {mutations_path} " \
+               f"-p $(((PBS_ARRAY_INDEX-1)*{positions_per_job} + 1))-$((PBS_ARRAY_INDEX*{positions_per_job})) " \
+               f"-f {freqs_path} " \
                f"-o {variants_folder}"
         cmd_path = os.path.join(output_dir, 'variants.cmd')
         alias = 'HaplotypeAnalysis-GetVariants'
-        create_pbs_cmd(cmdfile=cmd_path, alias=alias, jnum=number_of_bases, gmem=2, cmds=cmd1)
+        create_pbs_cmd(cmdfile=cmd_path, alias=alias, jnum=number_of_jobs, gmem=100, ncpus=50, cmds=cmd1)
         submit_wait_and_log(cmdfile=cmd_path, logger=log, job_name=alias) #TODO: get % done by number of files made
     linked_pairs_path = os.path.join(output_dir, "linked_pairs.txt")
     cmd2 = f"cat {variants_folder}/*.txt > {linked_pairs_path}"

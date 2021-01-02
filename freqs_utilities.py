@@ -58,17 +58,25 @@ def merge_freqs_files(freqs_files, output):
 
 def change_ref_to_consensus(freqs_df, allow_major_change = False):
     consensus = freqs_df.copy()
+    print(consensus.head())
+    consensus = consensus.sort_values(by=['Pos','Freq'], ascending=[True,False])
+    print(consensus.head())
     consensus = consensus.drop_duplicates("Pos") # rank 0 only
+    print(consensus.head())
     consensus = consensus[['Pos', 'Base']]
     ref_before_change = freqs_df.copy()
     ref_before_change = ref_before_change.drop_duplicates("Pos") # rank 0 only
     ref_before_change = ref_before_change[['Pos', 'Ref']]
+    print(''.join(ref_before_change.Ref.tolist()))
+    print(''.join(consensus.Base.tolist()))
     diff = (consensus.Base != ref_before_change.Ref)
 
     if not diff[diff == True].empty:
-        changed_ref_ratio = len(diff[diff == True]) / len(diff[diff == False])
+        changed_ref_ratio = len(diff[diff == True]) / len(diff)
         print('changed_ref_ratio: {}%'.format(changed_ref_ratio*100))
         if (changed_ref_ratio > 0.1) and not allow_major_change:
+            print(''.join(ref_before_change.Ref.tolist()))
+            print(''.join(consensus.Base.tolist()))
             raise BaseException('too many changes')
 
         transformed_freq = pd.merge(freqs_df, consensus, on='Pos', how='left', suffixes=('', '_r'))
@@ -81,10 +89,12 @@ def change_ref_to_consensus(freqs_df, allow_major_change = False):
         verification = transformed_freq[(transformed_freq.Rank == 0) & (transformed_freq.Ref != transformed_freq.Base)]
         if len(verification) != 0 :
             raise BaseException('some line with ref!=con')
+
         # TODO- add verification to content
 
         return transformed_freq
     else:
+        print('Ref not changed')
         return freqs_df
 
 
@@ -497,17 +507,20 @@ def get_median_coverage_and_stop_mutation_for_df(df):
 def compare_positions_between_freqs(dict_of_freqs, out_path=False, positions_to_compare=False):
     '''
     Compare and display frequencies and read counts per position between different freqs files.
-    :param dict_of_freqs: a dictionary of freqs files to compare in the format of {name:freqs_path}
+    :param dict_of_freqs: a dictionary of freqs files (paths or dataframes) to compare in the format of {name:freqs_path}
     :param out_path: path to save output csv, optional
     :param positions_to_compare: a list of positions to compare, optional
     :return: merged dataframe
     '''
     dfs = []
     for i in dict_of_freqs:
-        df = pd.read_csv(dict_of_freqs[i])
+        if type(dict_of_freqs[i]) == str:
+            df = pd.read_csv(dict_of_freqs[i])
+        else:
+            df = dict_of_freqs[i]
         df = compatibilty_old_to_new(df)
-        df = df[['ref_base', 'ref_position', 'base', 'frequency', 'coverage']]
-        df.rename(columns={'coverage':'coverage_' + i, 'frequency':'frequency_' + i}, inplace=True)
+        df = df[['ref_base', 'ref_position', 'base', 'frequency', 'coverage', 'rank']]
+        df.rename(columns={'coverage':'coverage_' + i, 'frequency':'frequency_' + i, 'rank':'rank_' + i}, inplace=True)
         dfs.append(df)
     df_final = reduce(lambda left,right: pd.merge(left,right,on=['ref_base', 'ref_position', 'base']), dfs)
     if positions_to_compare:

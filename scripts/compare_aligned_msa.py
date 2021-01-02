@@ -43,6 +43,8 @@ def compare_fastas_to_ref(fastas, ref_seq_name, output_csv, remove_edges=True):
                     diffs.append((ref_pos, sample, f[ref_seq_name][i], f[sample][i], i))
 
     df = pd.DataFrame(diffs, columns=['position', 'sample', 'ref_base', 'base', 'fasta_position'])
+    df['ref_base'] = df['ref_base'].str.upper()
+    df['base'] = df['base'].str.upper()
     print('diff count: {}'.format(len(diffs)))
 
     if remove_edges == 'y':

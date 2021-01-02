@@ -51,7 +51,7 @@ def script_runner(cmds, alias = "script", load_python=False, gmem=2, queue="adis
         return job_id
 
 
-def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adistzachi", run_after_job=None, toRun=False):
+def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1, queue="adistzachi", run_after_job=None, toRun=True):
 
     """
     run script on cluster as a pbs array
@@ -70,7 +70,7 @@ def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1,
 
 
 
-def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt"):
+def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt", run_after_job=None, bootstrap=0):
     """
     run phyml on cluster (converts tpo phylip if the flag phylip==False)
     :param alignment: alignment file path
@@ -83,8 +83,8 @@ def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt"):
     if phylip == False:
         alignment = convert_fasta_to_phylip(alignment)
     cmdfile = pbs_jobs.assign_cmdfile_path("phyml", alias); tnum = 1; gmem = 2
-    cmds = f"/sternadi/home/volume1/shared/tools/PhyML/PhyML_3.0_linux64 -i {alignment} -b 0 -o n -d {d}"
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    cmds = f"/sternadi/home/volume1/shared/tools/PhyML/PhyML_3.0_linux64 -i {alignment} -b {bootstrap} -o n -d {d}"
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -147,7 +147,7 @@ def fastml_runner(alignment, tree, outdir = None, log_file = None, alias = "fast
     return job_id
 
 
-def mafft_runner(sequence, alignment = None, alias = "mafft"):
+def mafft_runner(sequence, alignment = None, alias = "mafft", run_after_job=None):
     """
     run mafft on cluster
     :param sequence: sequence file (fasta format)
@@ -162,7 +162,7 @@ def mafft_runner(sequence, alignment = None, alias = "mafft"):
     cmds = "/sternadi/home/volume1/taliakustin/software/mafft-7.300-with-extensions/scripts/mafft %s > %s"\
            % (sequence, alignment)
     cmdfile = pbs_jobs.assign_cmdfile_path("mafft", alias); tnum = 1; gmem = 1
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -471,7 +471,7 @@ def blastx_output6_runner(seqfile, outfile, dbfile="/sternadi/home/volume1/share
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def bowtie2_runner(bowtie_index_path, fastq_file, sam_output, alias="bowtie2"):
+def bowtie2_runner(bowtie_index_path, fastq_file, sam_output, alias="bowtie2", fastq_file2=None, queue="adistzachi"):
     """
     run bowtie2 - very fast local flag is on
     :param bowtie_index_path: bowtie index file path (output of bowtie2-build)
@@ -486,7 +486,10 @@ def bowtie2_runner(bowtie_index_path, fastq_file, sam_output, alias="bowtie2"):
     cmdfile = pbs_jobs.assign_cmdfile_path("bowtie2", alias); tnum = 1; gmem = 2
     cmds = "/usr/local/bin/bowtie2"\
            + " --very-fast-local -x  %s %s -S %s" % (bowtie_index_path, fastq_file, sam_output)
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
+    if fastq_file2:
+            cmds = "/usr/local/bin/bowtie2"\
+           + " --very-fast-local -x  %s -1 %s -2 %s -S %s" % (bowtie_index_path, fastq_file, fastq_file2, sam_output)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, queue=queue)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -981,7 +984,7 @@ def phydyn_runner(xml_config, multi_thread=True, gpu=False, alias="PhyDyn", ncpu
 
 
 
-def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthreads=None, ncpus=2, queue='dudulight'):
+def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthreads=None, ncpus=2, queue='dudulight', gmem=40):
     """
     run kraken2 on cluster -
     :param db_location: db file path location
@@ -990,7 +993,7 @@ def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthrea
     :param alias: job name (kraken2)
     :return: job id
     """
-    input_file = check_filename(input_file)
+   # input_file = check_filename(input_file)
     comprassed = ''
     threads = ''
 
@@ -1001,7 +1004,7 @@ def kraken2_runner(db_location, input_file, output_file, alias='kraken2', nthrea
     cmdfile = pbs_jobs.assign_cmdfile_path("kraken_cmd", alias)
     cmds = f"/davidb/local/software/kraken2/kraken2-2.0.8-beta/kraken2 --db {db_location} {threads} --use-names\
      {comprassed} {input_file} --output {output_file} --report {output_file.split('.')[0] + '_report.tab'}"
-    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, ncpus=ncpus, cmds=cmds, queue=queue)
+    pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, ncpus=ncpus, cmds=cmds, queue=queue, gmem=gmem)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
@@ -1127,6 +1130,99 @@ def SpartaABC_runners(config_file, path="/sternadi/home/volume1/taliakustin/soft
     cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias);
     gmem = 1;
     cmds = f"{path} {config_file}"
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+def bwa_basecalling_runner(input_r1, input_r2, output_dir, reference_file,
+                         alias="bwa_bc", queue="adistzachi", cmdname="bwa_basecalling"):
+    input_r1 = check_filename(input_r1)
+    input_r2 = check_filename(input_r2)
+    output_dir = check_dirname(output_dir, Truedir = False)
+    make_dir(output_dir)
+    reference_file = check_filename(reference_file)
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias)
+    basename = input_r1.split('/')[-1].split('_')[0]
+    gmem = 5
+    cmds = f'''bwa index {reference_file}
+               module load bcftools/bcftools-1.6
+               module load samtools/samtools-1.6
+               bwa mem {reference_file} {input_r1} {input_r2} > {output_dir}/{basename}.sam
+               samtools view -bh -S -q 30 -F 4 {output_dir}/{basename}.sam > {output_dir}/{basename}.HQ_mapped.bam
+               samtools sort {output_dir}/{basename}.HQ_mapped.bam -o {output_dir}/{basename}.HQ_mapped.sorted.bam
+               samtools index {output_dir}/{basename}.HQ_mapped.sorted.bam
+               bcftools mpileup -f {reference_file} {output_dir}/{basename}.HQ_mapped.sorted.bam -o {output_dir}/{basename}.HQ_mapped.sorted.mpileup.vcf
+               bcftools call -mv {output_dir}/{basename}.HQ_mapped.sorted.mpileup.vcf -o {output_dir}/{basename}.HQ_mapped.sorted.vcf
+            '''
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+def ivar_runner(input_r1, output_dir,
+                           reference_file="/sternadi/home/volume2/noam/covid/references/MN908947.fasta",
+                           bed_file="/sternadi/home/volume2/noam/covid/artic_amplicons/nCoV-2019_v3.bed",
+                           primers_fasta="/sternadi/home/volume2/noam/covid/artic_amplicons/artic_fastas.fasta",
+                           pair_information="/sternadi/home/volume2/noam/covid/artic_amplicons/ARTIC_SARS_CoV-2_amplicon_info_v3.tsv",
+                         alias="ivar", queue="adistzachi", cmdname="ivar"):
+    input_r1 = check_filename(input_r1)
+    input_r2 = check_filename(input_r1.replace('_R1_', '_R2_'))
+    output_dir = check_dirname(output_dir, Truedir = False)
+    make_dir(output_dir)
+    reference_file = check_filename(reference_file)
+    bed_file = check_filename(bed_file)
+    primers_fasta = check_filename(primers_fasta)
+    pair_information = check_filename(pair_information)
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdname, alias)
+    basename = input_r1.split('/')[-1].split('_')[0]
+    gmem = 1
+    cmds = f'''bwa index {reference_file}
+               module load miniconda/miniconda3-4.7.12-environmentally
+               conda activate /powerapps/share/centos7/miniconda/miniconda3-4.7.12-environmentally/envs/iVar
+               module load samtools/samtools-1.9
+             '''
+    # align reads
+    cmds += f'''bwa mem {reference_file} {input_r1} {input_r2} | samtools view -F 4 -Sb | samtools sort -o {output_dir}/{basename}.sorted.bam
+                samtools index {output_dir}/{basename}.sorted.bam
+            '''
+    # trim primer quality
+    cmds += f'''mkdir {output_dir}/trimmed/
+                ivar trim -b {bed_file} -i {output_dir}/{basename}.sorted.bam -p {output_dir}/trimmed/{basename}.trimmed
+                samtools sort {output_dir}/trimmed/{basename}.trimmed.bam -o {output_dir}/trimmed/{basename}.trimmed.sorted.bam
+                samtools index {output_dir}/trimmed/{basename}.trimmed.sorted.bam
+            '''
+    # merge replicates - not releavnt here
+    # call consensus
+    cmds += f'''mkdir {output_dir}/consensus
+                samtools mpileup -A -d 0 -Q 0 -F 0 {output_dir}/trimmed/{basename}.trimmed.sorted.bam | ivar consensus -p {output_dir}/consensus/{basename}.fa
+                mkdir {output_dir}/index
+                bwa index -p {output_dir}/index/{basename} {output_dir}/consensus/{basename}.fa
+            '''
+    # create primer bam
+    cmds += f'''mkdir {output_dir}/bed
+                bwa mem -k 5 -T 16 {output_dir}/index/{basename} {primers_fasta} | samtools view -bS -F 4 | samtools sort -o {output_dir}/bed/{basename}.bam
+             '''
+    # create new bed
+    cmds += f'''bedtools bamtobed -i {output_dir}/bed/{basename}.bam > {output_dir}/bed/{basename}.bed
+            '''
+    # call variants in primer, compared to concensus reference
+    cmds += f'''mkdir {output_dir}/primer_mismatches
+                samtools mpileup -A -d 0 --reference {output_dir}/consensus/{basename}.fa -Q 0 -F 0 {output_dir}/bed/{basename}.bam | ivar variants -p {output_dir}/primer_mismatches/{basename}.tsv -t 0.03
+            '''
+    # get masked
+    cmds += f'''ivar getmasked -i {output_dir}/primer_mismatches/{basename}.tsv -b {output_dir}/bed/{basename}.bed  -f {pair_information} -p {output_dir}/{basename}_masked_primer_names.txt
+            '''
+    # remove reads
+    cmds += f'''mkdir {output_dir}/masked
+                ivar removereads -i {output_dir}/trimmed/{basename}.trimmed.sorted.bam -p {output_dir}/masked/{basename}.masked -t {output_dir}/{basename}_masked_primer_names.txt -b {bed_file}
+                samtools sort -o {output_dir}/masked/{basename}.masked.sorted.bam {output_dir}/masked/{basename}.masked.bam
+                samtools index {output_dir}/masked/{basename}.masked.sorted.bam
+            '''
+    # call variants post removal
+    cmds += f'''mkdir {output_dir}/masked_variants/
+                samtools mpileup -A -d 0 --reference {reference_file} -Q 0 -F 0 {output_dir}/masked/{basename}.masked.sorted.bam | ivar variants -p {output_dir}/masked_variants/{basename}.masked.tsv -t 0.03
+             '''
+    # finish
+    cmds += '''conda deactivate'''
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
