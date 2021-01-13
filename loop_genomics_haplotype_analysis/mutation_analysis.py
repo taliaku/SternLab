@@ -1,5 +1,8 @@
+import glob
+
 import pandas as pd
-import numpy as np
+pd.set_option('display.max_rows', 500)
+# pd.set_option('display.width', 3000)
 
 import seaborn as sns
 sns.set_context("poster")
@@ -8,15 +11,24 @@ import matplotlib.pyplot as plt
 from RG_HIVC_analysis.diversity_calculation import pis_calc
 from loop_genomics_haplotype_analysis.summarize_visualize_strain_results import env_samples, shafer_root_dir
 
-def get_freqs(with_strains = False, filter = True):
-    # TODO- implement params
-    freqs_all = pd.read_csv('{}/results_merged/freqs_strain_data_all_samples_v5.csv'.format(shafer_root_dir))
+def get_freqs(freq_filename = 'freqs_strain_data_all_samples_v6_with_new_pipelines.csv', filter = True, remove_strain_data = True):
+    freqs_all = pd.read_csv('{}/results_merged/{}'.format(shafer_root_dir, freq_filename))
     print('data loaded')
+
+    # select env samples only
     freqs_all = freqs_all[freqs_all['sample'].isin(env_samples)]
-    freqs_all = freqs_all.drop(columns=['strain'])
-    freqs_all = freqs_all.drop_duplicates()
+
+    # remove strain data
+    if remove_strain_data:
+        freqs_all = freqs_all.drop(columns=['strain'])
+        freqs_all = freqs_all.drop_duplicates()
+
+    # validation
     print('len(freqs_all): {}'.format(len(freqs_all)))
     print(freqs_all.groupby('sample').count()['Pos'])
+
+    # visualize un-alignment between pipelines
+    # print(freqs_all.groupby(['sample', 'source']).max()['Pos'])
 
     # filter
     # ** some duplication here but ok
@@ -30,10 +42,10 @@ def get_freqs(with_strains = False, filter = True):
         print(freqs_all.groupby('sample').count()['Pos'])
     return freqs_all
 
-
-def cd4_diversity_regression():
+def cd4_diversity_regression(plot= False):
     # get freqs
-    freqs = get_freqs(filter=False)
+    freqs = get_freqs(filter=False,
+                      remove_strain_data = False)
 
     # side-analysis- coverage stats
     print(freqs.groupby('source').agg(['mean', 'median'])['Read_count'])
@@ -70,17 +82,45 @@ def cd4_diversity_regression():
     plot_data = pd.merge(pi_rates_by_sample, cd4_counts, on='sample', how='inner')
     plot_data = plot_data.rename(columns={'Pi': 'Pi diversity', 'cd4_count': 'CD4 count'})
     print(plot_data)
+    plot_data.to_csv('{}/results_merged/CD4_diversity_rates.csv'.format(shafer_root_dir))
 
     # plot
-    g = sns.lmplot(x='CD4 count',
-                   y='Pi diversity',
-                   height=10,
-                   data=plot_data);
-    plt.xlim(0, 900)
-    plt.ylim(0, 0.14)
-    plt.savefig(fname='{}/results_merged/CD4_diversity_regression.pdf'.format(shafer_root_dir))
-    plt.show()
+    if plot:
+        g = sns.lmplot(x='CD4 count',
+                       y='Pi diversity',
+                       height=10,
+                       data=plot_data);
+        plt.xlim(0, 900)
+        plt.ylim(0, 0.14)
+        plt.savefig(fname='{}/results_merged/CD4_diversity_regression.pdf'.format(shafer_root_dir))
+        plt.show()
 
+
+def get_pi_rates():
+    run_name = 'new_pipeline_loop_v6_blast_2500'
+    pipeline_dir = '/sternadi/nobackup/volume1/HIVB_shafer_accungs_seq/%s' % run_name
+    freqs = glob.glob('%s/env*/freqs.tsv' % pipeline_dir)
+
+    for freq in freqs:
+        # TODO- imp
+        # read
+        # add run_name column
+        # add sample column
+        # transform to old format
+
+
+    # filter
+    # TODO- imp & move to general freqs
+    freqs['Base_count'] = freqs['Read_count'] * freqs['Freq']
+    freqs = freqs[(freqs['Prob'] > 0.8)
+                  & (freqs['Base_count'] > 20)
+                  ]
+    filtered_freq_df = apply_pi_related_filters(freq_df, freq_threshold= 0.001, min_read_count= 100)
+
+    # get pi rates
+    # TODO- imp & move to general freqs
+    pi_rates_by_sample = pis_calc(data=freqs, pivot_cols=['sample'])
+    pi_rates_by_sample = pi_rates_by_sample.groupby('sample').mean().reset_index()
 
 if __name__ == '__main__':
     cd4_diversity_regression()
