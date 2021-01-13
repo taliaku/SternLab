@@ -208,8 +208,8 @@ fig.savefig('X:/volume2/noam/hcv/variant_frequencies3.png' , bbox_inches='tight'
 
 ############ quantify diversity
 sys.path.append('X:/volume2/noam/SternLab/RG_HIVC_analysis/')
-from diversity_calculation import pis_calc
-diversities = pis_calc(df, ['Sample'])
+from scripts.diversity_analysis import pi_diversity_calc
+diversities = pi_diversity_calc(df, ['Sample'])
 diversities = pd.merge(diversities, infection_order, on='Sample')[['paper_name', 'infection_order', 'Pi']]
 diversities.to_csv('X:/volume2/noam/hcv/diversities.csv', index=False)
 
