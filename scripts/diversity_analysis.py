@@ -1,71 +1,66 @@
 import sys
 import warnings
-
 import numpy as np
 
-
-def pi_diversity_calc(data, pivot_cols=[], interval = (0, sys.maxsize)): # start_pos=0, end_pos= sys.maxsize
+def pi_diversity_calc(data, pivot_cols=[]):
     """
-    Calculates PI diversity per position, than calculates mean per group according to pivot_vols. Assumes data is not indexed.
+    Calculates PI diversity per position, than calculates mean per group according to pivot_vols.
+    Assumes data is not indexed.
 
-    # Example for using pivot:
-    # pi_rates_by_sample = pi_diversity_calc(data=freqs, pivot_cols=['sample'])
-    # pi_rates_by_sample = pi_rates_by_sample.groupby('sample').mean().reset_index()
-
-    :param data: freqs file, with optional additional columns for pivoting (grouping)
+    :param data: freqs file + columns additional for pivoting
     :param pivot_cols:
-    :param min_read_count:
     :return:
     """
+
+    # TODO- call apply_pi_related_filters() here?
+
+    # keep only pivot & data columns
+    selecting_cols = pivot_cols[:]
+    selecting_cols.extend(["ref_pos", "read_base", "base_count", "base_rank"]) # base_count = coverage * frequncy
+    selecting_cols = list(set(selecting_cols))
+    data = data[selecting_cols]
+
+    # Mark major\minor variants per position
+    data["base_rank"] = np.where(data["base_rank"] == 0, "Major", "Minor")
+
+    group_cols = pivot_cols[:]
+    group_cols.extend(["ref_pos", "base_rank"])
+    group_cols = list(set(group_cols))
+
+    # Getting minor base frequency
+    # (selecting max of minor bases)
+    data = data.groupby(group_cols)['base_count'].aggregate(max).unstack('base_rank').reset_index()
+    # TODO: use all minor variants? (not only max?)
+
+    if 'Minor' not in data.columns:
+        # raise Exception("No minor frequencies found. check filtering of input data")
+        warnings.warn("No minor frequencies found. check filtering of input data")
+        return None
+
+    data["Minor"] = data["Minor"].fillna(0)
+    data["Total"] = data["Major"] + data["Minor"]
+
+    # Pi diversity calculation by positions
+    # (more on this in https://academic.oup.com/ve/article/5/1/vey041/5304643)
     def pairwise_differences_proportion(row):
         if row["Minor"] == 0:
             return 0
-        total_part = (row["Total"] * (row["Total"] - 1))
-        numerator = total_part - ((row["Major"] * (row["Major"] - 1)) + (row["Minor"] * (row["Minor"] - 1)))
-        denominator = total_part
-        return numerator * 1.0 / denominator
+        else:
+            total_part = (row["Total"] * (row["Total"] - 1))
+            numerator = total_part - ((row["Major"] * (row["Major"] - 1)) + (row["Minor"] * (row["Minor"] - 1)))
+            denominator = total_part
+            return numerator * 1.0 / denominator
 
-    # Filters
-    # TODO- extract this filter too\ insert all others here
-    # choose interval
+    data["pdp"] = data.apply(lambda row: pairwise_differences_proportion(row), axis=1)
 
-    filtered_data = data[(data["ref_position"] >= interval[0]) & (data["ref_position"] <= interval[1])]
-    filtered_data = data
-    if filtered_data.empty:
-        warnings.warn("No relevant data after filtering. Skipping")
-        return None
-
-    filtered_data['counts_for_position'] = np.round(filtered_data['coverage'] * filtered_data['frequency'])
-    selecting_cols = pivot_cols[:]
-    selecting_cols.extend(["ref_position", "base", "counts_for_position", "rank"])
-    # selecting_cols = list(set(selecting_cols))
-    filtered_data = filtered_data[selecting_cols]
-
-    filtered_data["rank"] = np.where(filtered_data["rank"] == 0, "Major", "Minor")
-
-    group_cols = pivot_cols[:]
-    group_cols.extend(["ref_position", "rank"])
-    # group_cols = list(set(group_cols))
-
-    # selecting max on cfp, per Pos\Rank (Major\minor?)- than will be graded per Pos, and summed
-    # TODO: use all minor variants (not only max)
-    filtered_data = filtered_data.groupby(group_cols)['counts_for_position'].aggregate(max).unstack().reset_index()
-    if 'Minor' not in filtered_data.columns:
-        return 0
-
-    filtered_data["Total"] = filtered_data["Major"] + filtered_data["Minor"]
-
-    filtered_data["pdp"] = filtered_data.apply(lambda row: pairwise_differences_proportion(row), axis=1)
-
-    pivot_cols.extend(["ref_position"])
-    if any(pivot_cols):
-        bysample_diversity = filtered_data.groupby(pivot_cols)['pdp'].agg(['count', 'sum']).reset_index()
+    if len(pivot_cols) != 0:
+        bysample_diversity = data.groupby(pivot_cols)['pdp'].agg(['count', 'sum']).reset_index()
         bysample_diversity["Pi"] = bysample_diversity["sum"] * 1.0 / bysample_diversity["count"]
         output_cols = pivot_cols[:]
         output_cols.append("Pi")
         pis = bysample_diversity[output_cols]
     else:
-        pis = filtered_data['pdp'].mean()
+        pis = data['pdp'].mean()
 
     return pis
 
@@ -73,10 +68,12 @@ def pi_diversity_calc(data, pivot_cols=[], interval = (0, sys.maxsize)): # start
 def apply_pi_related_filters(freqs_file,
                              coverage_threshold=0,
                              frequency_threshold=0,
-                             base_count_threshold=0,
-                             probability_threshold=0,
-                             transitions_only= False,
-                             remove_indels= False):
+                             base_count_threshold=10,
+                             probability_threshold=0.8,
+                             transitions_only= True,
+                             remove_insertions= True,
+                             positions_to_include = (0, sys.maxsize)  # start_pos=0, end_pos= sys.maxsize
+                             ):
 
     filtered_freqs_file = freqs_file.copy()
 
@@ -94,12 +91,22 @@ def apply_pi_related_filters(freqs_file,
 
     # transitions only
     if transitions_only:
-        filtered_freqs_file["mutation_type"] = filtered_freqs_file['read_base'] + filtered_freqs_file['ref_position']
+        filtered_freqs_file["mutation_type"] = filtered_freqs_file['read_base'].astype(str) + filtered_freqs_file['ref_base'].astype(str)
         filtered_freqs_file = filtered_freqs_file[
             filtered_freqs_file["mutation_type"].isin(['GA', 'AG', 'GG', 'AA', 'CT', 'TC', 'CC', 'TT'])]
 
-    # remove indels
-    if remove_indels:
-        filtered_freqs_file = filtered_freqs_file[(filtered_freqs_file["read_base"] != "-") & (filtered_freqs_file["ref_position"] != "-")]
+    # remove insertions
+    if remove_insertions:
+        # filtered_freqs_file = filtered_freqs_file[filtered_freqs_file['ref_base'] != "-"]
+        filtered_freqs_file = filtered_freqs_file[filtered_freqs_file['ref_pos'] % 1 == 0]
 
-    return filtered_freqs_file
+    # keep specified positions
+    filtered_freqs_file = filtered_freqs_file[(filtered_freqs_file["ref_pos"] >= positions_to_include[0]) &
+                                        (filtered_freqs_file["ref_pos"] <= positions_to_include[1])]
+
+    if filtered_freqs_file.empty:
+        warnings.warn("No relevant data after filtering")
+        return None
+    else:
+        print("after filtering: {} rows ({}% from original)".format(len(filtered_freqs_file), len(filtered_freqs_file)*100/len(freqs_file)))
+        return filtered_freqs_file
