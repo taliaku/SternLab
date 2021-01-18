@@ -69,7 +69,7 @@ def main():
                 mutations = mutations.append({"ref_position":new_loc, "ref_base":ref_base, "base":base, "coverage":coverage, 'frequency':frequency, "sample":sample}, ignore_index=True)
                 
         con += (end_pos - loc - 1) * "N"
-        if mask:
+        if options.mask:
             con = post_processing(con)
         con_all += f">Israel/{sample}/2020\n{con}\n"
 
