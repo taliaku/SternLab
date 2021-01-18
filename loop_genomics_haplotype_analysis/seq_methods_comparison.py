@@ -19,14 +19,17 @@ def run_new_pipeline_on_server():
 
     input_path_accungs = '/sternadi/datasets/volume2/MY060520202/FASTQ_Generation_2020-05-08_19_30_42Z-246623382/env{}_*'
     # output_path_accungs = '/sternadi/home/volume1/shared/analysis/HIV_shafer/new_pipeline_accungs_v2/env{}'
-    output_path_accungs = '/sternadi/nobackup/volume1/HIVB_shafer_accungs_seq/new_pipeline_accungs_v2_15_iter/env{}'
+    output_path_accungs = '/sternadi/nobackup/volume1/HIVB_shafer_accungs_seq/new_pipeline_accungs_v3_no_indel/env{}'
 
     # q10
     # input_path_loop = '/sternadi/datasets/volume2/HIV_shafer_loop_genomics/fastq_only/s{}'
-    # output_path_loop = '/sternadi/home/volume1/shared/analysis/HIV_shafer/new_pipeline_loop_v2_q10/env{}'
+    # output_path_loop = '/sternadi/home/volume1/shared/analysis/HIV_shafer/new_pipeline_loop_v4_q10_no_indel/env{}'
     # long reads
-    input_path_loop = '/sternadi/datasets/volume2/HIV_shafer_loop_genomics/fastq_long_only/s{}'
-    output_path_loop = '/sternadi/nobackup/volume1/HIVB_shafer_accungs_seq/new_pipeline_loop_v3_long_reads/env{}'
+    # input_path_loop = '/sternadi/datasets/volume2/HIV_shafer_loop_genomics/fastq_long_only/s{}'
+    # output_path_loop = '/sternadi/nobackup/volume1/HIVB_shafer_accungs_seq/new_pipeline_loop_v5_long_reads_no_indel/env{}'
+    # blast_mapped_2500 + q10
+    input_path_loop = '/sternadi/datasets/volume2/HIV_shafer_loop_genomics/fastq_mapped_2500_only/s{}'
+    output_path_loop = '/sternadi/nobackup/volume1/HIVB_shafer_accungs_seq/new_pipeline_loop_v6_blast_2500/env{}'
 
     # create param list
     accungs_run_param_list = []
@@ -46,7 +49,7 @@ def run_new_pipeline_on_server():
         sample_dict_accungs = {'input_dir': input_dir,
                                 'output_dir': output_dir,
                                 'reference_file': ref_path,
-                                "with_indels": "Y",
+                                # "with_indels": "N", #TODO- notice
                                 "overlapping_reads": "Y",
                                 "calculate_haplotypes": "N", # TODO- run Y on nobackup, when there's space
                                 "max_basecall_iterations": 10}
@@ -65,7 +68,7 @@ def run_new_pipeline_on_server():
                             'reference_file': ref_path,
                             "with_indels": "Y",
                             "overlapping_reads": "N",
-                            # "quality_threshold": "10",  # TODO- trying other Q scores
+                            "quality_threshold": "10",
                             "max_basecall_iterations": 10}
         loop_run_param_list.append(sample_dict_loop)
 
@@ -77,28 +80,32 @@ def run_new_pipeline_on_server():
     multi_runner(loop_run_param_list)
 
 
-# TODO- from sheri- dont take these results too seriously
-def accungs_loop_muts_correlation():
-    from loop_genomics_haplotype_analysis.summarize_visualize_strain_results import env_samples, shafer_root_dir
+# Note from sheri- dont take these results too seriously
+def accungs_loop_muts_correlation(run_name,
+                                  accungs_source_name = 'accungs',
+                                  loop_source_name = 'loop',
+                                  plot_correlation = True,
+                                  freq_boxplot = False,
+                                  freq_dist_all_samples = False):
+
+    from loop_genomics_haplotype_analysis.summarize_visualize_strain_results import env_samples, shafer_root_dir, shafer_dir_nobackup
     from loop_genomics_haplotype_analysis.mutation_analysis import get_freqs
 
     print('* accungs_loop_muts_correlation *')
     # get filtered freqs
-    freqs_filtered = get_freqs()
+    freqs = get_freqs(freq_filename= 'freqs_strain_data_all_samples_v7_no_indels_for_seq_comparison.csv', remove_strain_data= False) # original dataset doesnt include strains
 
     # 1. plot per-mut correlation
-    plot_correlation = True
     if plot_correlation:
-        freqs_accungs = freqs_filtered[freqs_filtered['source'] == 'accungs']
-        freqs_loop = freqs_filtered[freqs_filtered['source'] == 'loop']
-        print('len(freqs_accungs): {}'.format(len(freqs_accungs)))
-        print('len(freqs_loop): {}'.format(len(freqs_loop)))
+        # print(freqs['source'].unique().tolist())
+        freqs_accungs = freqs[freqs['source'] == accungs_source_name]
+        freqs_loop = freqs[freqs['source'] == loop_source_name]
+
+        # align positions from 2 sources
+        align_freqs_positions_according_to_consensus_alignment()
+
         print(freqs_accungs.groupby('sample').count()['Pos'])
         print(freqs_loop.groupby('sample').count()['Pos'])
-
-        # align 2 cons coordinates
-        # no need- all files are without insertions.
-
         cross_freqs = pd.merge(freqs_accungs,
                                freqs_loop,
                                how='inner',
@@ -123,51 +130,79 @@ def accungs_loop_muts_correlation():
                        col="sample",
                        col_order=env_samples,
                        col_wrap=5,
-                       # height=3,
+                       height=9,
                        data=freq_set);
 
             plt.xlim(axis[0], axis[1])
             plt.ylim(axis[0], axis[1])
             # plt.xscale('log')
             # plt.yscale('log')
+
             # g.set_title(name)
-            plt.savefig(fname='{}/results_merged/accungs_loop_mutation_correlation_linear_{}_v2.pdf'.format(shafer_root_dir, name))
+            # add diagonal
+            for ax in g.axes.flat:
+                ax.plot((0, 1), (0, 1), ls='--', color='0.7')
+
+            plt.savefig(fname='{}/results_merged/accungs_loop_mutation_correlation_linear_{}_{}.pdf'.format(shafer_root_dir, name, run_name))
             plt.show()
 
     # 2. boxplot freq distribution
-    freq_boxplot = False
     if freq_boxplot:
         print('boxplot')
         #  1. regular
         # v1
-        boxplot(freqs_filtered, '{}/results_merged/accungs_loop_freq_medians.pdf')
+        boxplot(freqs, '{}/results_merged/accungs_loop_freq_medians.pdf')
         # v2
-        # mutations_box_plots_itamar(freqs_filtered, '', True)
+        # mutations_box_plots_itamar(freqs, '', True)
 
         #  2. non-ox too (CA\GT)
-        print(len(freqs_filtered))
-        freqs_nonox = freqs_filtered[~freqs_filtered['mutation'].isin(['C->A', 'G->T'])]
+        print(len(freqs))
+        freqs_nonox = freqs[~freqs['mutation'].isin(['C->A', 'G->T'])]
         print(len(freqs_nonox))
-        boxplot(freqs_filtered, '{}/results_merged/accungs_loop_freq_medians_nonox.pdf')
+        boxplot(freqs, '{}/results_merged/accungs_loop_freq_medians_nonox.pdf')
         #  3. high\low freqs?
         #  4. syn only - requires HXB2 coords
 
     # 3. mut-type count avg. (per sample, per seq-type)
     # I did count per strand, can also do per seq type (accungs is more but we'll see how much)
-    # TODO- imp
-    # freqs_filtered = freqs_filtered.pivot(index='mutation', columns='source', values='mean')
-    freqs_filtered = freqs_filtered.groupby(index='mutation', columns='source', values='mean')
+    # TODO- find correct agg method\column to agg on
+    freqs_transitions = freqs[freqs['mutation'].isin(['G->A', 'C->T', 'A->G', 'T->C'])]
+    print(freqs_transitions.groupby(['source', 'mutation']).agg(['count', 'mean'])['Freq'])
+    print(freqs_transitions.groupby(['sample', 'mutation']).agg(['count', 'mean'])['Freq'])
 
     # 4. mut-freq distribution, per seq-type
-    # TODO- imp
-    freq_dist_all_samples = True
     if freq_dist_all_samples:
-        freqs_filtered.groupby('source')['Freq'].hist(bins=50, log=True, alpha=0.8, legend = True)
+        freqs.groupby('source')['Freq'].hist(bins=50, log=True, alpha=0.8, legend = True)
         plt.savefig(fname='{}/results_merged/accungs_loop_freq_dist_agg.pdf'.format(shafer_root_dir))
         plt.show()
 
 
+def align_freqs_positions_according_to_consensus_alignment():
+    pass
+    # TODO- imp (start with one sample)
+    # for sample in ['env12']:
+    #     sample_all_sources = freqs[freqs['sample'] == sample]
+    #
+    #     # produce cons alignment?
+    #     # TODO- alignment headache
+    #     #  option?-
+    #     pairwise2.align.localms(seq, target,10,-5,-10,-3)
+    #
+    #     # get cons alignment
+    #     # TODO- fasta_to_df small-headache
+    #     two_cons_alignment = fasta_to_df(
+    #         '{}/env_consensuses_alignments/{}_accungs_loop_long.fasta'.format(shafer_dir_nobackup, sample))
+    #     two_cons_alignment = two_cons_alignment.rename(columns={"Pos": "Aligned_pos", "Ref": "Rhino_ref"})
+    #
+    #     # add synched pos to df
+    #     sample_accungs = two_cons_alignment[two_cons_alignment.Rhino_ref != "-"]
+    #     max_pos = len(sample_accungs.Aligned_pos)
+    #     pos_range = list(range(1, max_pos + 1))
+    #     sample_accungs["Rhino_pos"] = pos_range
+
+
 def boxplot(freqs_filtered, title):
+
     sns.boxplot(x='sample',
                 y='Freq',
                 hue='source',
@@ -194,7 +229,38 @@ def boxplot(freqs_filtered, title):
 #     return daplot
 
 
+# TODO- not good for me- concats seqs in fasta file
+def fasta_to_df(fasta_file):
+    with open(fasta_file, "r") as f:
+        seq = ""
+        for line in f:
+            if line.startswith(">"):
+                continue
+            line = line.rstrip("\n")
+            seq += line
+
+    pos_dict = {}
+    for i in range(1,len(seq)):
+        # TODO- can be done without loop
+        pos_dict[i] = seq[i-1]
+
+    output_df = pd.DataFrame(pos_dict.items(), columns=["Pos", "Ref"])
+    return output_df
+
+def fasta_to_df2(tmp_cirseq_dir):
+    fasta_files = glob.glob(tmp_cirseq_dir + "*.fasta")
+    records = {}
+    for file in fasta_files:
+        records = parse_fasta(file)
+        df = pd.DataFrame.from_dict(records, orient='index')
+        df.index.name = 'id'
+        df.columns = ['seq']
+        return df
+
+
 if __name__ == '__main__':
     run_new_pipeline_on_server()
 
-    # accungs_loop_muts_correlation()
+    # accungs_loop_muts_correlation(run_name='v2_rerun', accungs_source_name= 'accungs', loop_source_name='loop')
+    # accungs_loop_muts_correlation(run_name='v3_q10_no_indel', accungs_source_name= 'accungs_new_no_indel', loop_source_name='loop_new_q10_no_indel')
+    # accungs_loop_muts_correlation(run_name='v4_long_reads_no_indel', accungs_source_name= 'accungs_new_no_indel', loop_source_name='loop_new_long_reads_no_indel')
