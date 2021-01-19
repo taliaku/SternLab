@@ -1245,6 +1245,8 @@ def pangolin_runner(input_fasta, outdir, outfile=None, alias="pangolin", queue="
         fi
     unset __conda_setup
     # <<< conda initialize <<<
+    cd /sternadi/home/volume1/shared/tools/pangolin
+    conda env create -f environment.yml
     conda env list
     conda activate pangolin
     """
