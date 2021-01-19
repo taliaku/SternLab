@@ -70,7 +70,7 @@ def array_script_runner(cmds, jnum, alias = "script", load_python=False, gmem=1,
 
 
 
-def phyml_runner(alignment, bootstrap = 0, alias = "phyml", phylip=True, d="nt", run_after_job=None):
+def phyml_runner(alignment, alias = "phyml", phylip=True, d="nt", run_after_job=None, bootstrap=0):
     """
     run phyml on cluster (converts tpo phylip if the flag phylip==False)
     :param alignment: alignment file path
@@ -147,7 +147,7 @@ def fastml_runner(alignment, tree, outdir = None, log_file = None, alias = "fast
     return job_id
 
 
-def mafft_runner(sequence, alignment = None, reference = None, keep_length= False, alias = "mafft", run_after_job=None, gmem = 1):
+def mafft_runner(sequence, alignment = None, alias = "mafft", run_after_job=None):
     """
     run mafft on cluster
     :param sequence: sequence file (fasta format)
@@ -159,14 +159,9 @@ def mafft_runner(sequence, alignment = None, reference = None, keep_length= Fals
     if alignment == None:
         alignment = sequence.split(".fasta")[0] + ".aln"
     alignment = check_filename(alignment, Truefile=False)
-    base_cmd = "/sternadi/home/volume1/taliakustin/software/mafft-7.300-with-extensions/scripts/mafft --auto --thread -1"
-    if reference != None:
-        if keep_length:
-            base_cmd = base_cmd + ' --keeplength'
-        cmds = "%s --addfragments %s %s > %s" % (base_cmd, sequence, reference, alignment)
-    else:
-        cmds = "%s %s > %s" % (base_cmd, sequence, alignment)
-    cmdfile = pbs_jobs.assign_cmdfile_path("mafft", alias); tnum = 1; gmem = gmem
+    cmds = "/sternadi/home/volume1/taliakustin/software/mafft-7.300-with-extensions/scripts/mafft %s > %s"\
+           % (sequence, alignment)
+    cmdfile = pbs_jobs.assign_cmdfile_path("mafft", alias); tnum = 1; gmem = 1
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
@@ -185,7 +180,7 @@ def prank_runner(sequence, alignment=None, alias = "prank"):
     sequence = check_filename(sequence)
     alignment = check_filename(alignment, Truefile=False)
     cmds = "/powerapps/share/bin/prank -d=%s -o=%s -F" % (sequence, alignment)
-    cmdfile = pbs_jobs.assign_cmdfile_path("prank_alignment", alias); tnum=1; gmem=4
+    cmdfile = pbs_jobs.assign_cmdfile_path("prank_alignment", alias); tnum=1; gmem=1
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
@@ -236,8 +231,8 @@ def prank_runner_with_tree(sequence, tree, alignment=None, alias = "prank"):
     return job_id
 
 
-def njTree_runner(alignment, tree=None, alias = "njTree",  run_after_job=None, alphabet="an", gmem=2):
-"""
+def njTree_runner(alignment, tree=None, alias = "njTree",  run_after_job=None, alphabet="an"):
+    """
     run neighbors-joining tree on cluster
     :param alignment: alignment file path
     :param tree: output tree path (default: None)
@@ -248,7 +243,7 @@ def njTree_runner(alignment, tree=None, alias = "njTree",  run_after_job=None, a
         tree = os.path.splitext(alignment)[0] + ".tree"
     alignment = check_filename(alignment, Truefile=False)
     tree = check_filename(tree, Truefile=False)
-    cmdfile = pbs_jobs.assign_cmdfile_path("njTree", alias); tnum=1; gmem=gmem
+    cmdfile = pbs_jobs.assign_cmdfile_path("njTree", alias); tnum=1; gmem=2
     cmds = f"/sternadi/home/volume1/shared/tools/phylogenyCode/programs/treeUtil/njTreeJCdist -i {alignment} -o {tree} -{alphabet}"
     dir = "/sternadi/home/volume1/shared/tools/phylogenyCode/programs/treeUtil/"
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, run_after_job=run_after_job)
@@ -1258,6 +1253,6 @@ def pangolin_runner(input_fasta, outdir, outfile=None, alias="pangolin", queue="
         cmds += f"\npangolin {input_fasta} -o {outdir}"
     else:
         cmds += f"\npangolin {input_fasta} -o {outdir} --outfile {outfile}"
-    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=False)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
