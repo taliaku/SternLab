@@ -1,8 +1,9 @@
 #! /usr/local/python_anaconda/bin/python3.4
-
 import pandas as pd
-import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('agg')
 import seaborn as sns
+import matplotlib.pyplot as plt
 import os,sys,inspect
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))))
 sys.path.insert(0,parentdir)

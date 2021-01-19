@@ -236,8 +236,8 @@ def prank_runner_with_tree(sequence, tree, alignment=None, alias = "prank"):
     return job_id
 
 
-def njTree_runner(alignment, tree=None, alias = "njTree",  run_after_job=None, gmem=2):
-    """
+def njTree_runner(alignment, tree=None, alias = "njTree",  run_after_job=None, alphabet="an", gmem=2):
+"""
     run neighbors-joining tree on cluster
     :param alignment: alignment file path
     :param tree: output tree path (default: None)
@@ -245,12 +245,11 @@ def njTree_runner(alignment, tree=None, alias = "njTree",  run_after_job=None, g
     :return: job id
     """
     if tree == None:
-        tree = alignment.split(".")[0] + ".tree"
+        tree = os.path.splitext(alignment)[0] + ".tree"
     alignment = check_filename(alignment, Truefile=False)
     tree = check_filename(tree, Truefile=False)
     cmdfile = pbs_jobs.assign_cmdfile_path("njTree", alias); tnum=1; gmem=gmem
-    cmds = "/sternadi/home/volume1/shared/tools/phylogenyCode/programs/treeUtil/njTreeJCdist -i %s -o %s -an"\
-           % (alignment, tree)
+    cmds = f"/sternadi/home/volume1/shared/tools/phylogenyCode/programs/treeUtil/njTreeJCdist -i {alignment} -o {tree} -{alphabet}"
     dir = "/sternadi/home/volume1/shared/tools/phylogenyCode/programs/treeUtil/"
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
@@ -542,7 +541,7 @@ def tophat2_runner(output_dir, bowtie_reference, fastq, alias="tophat2"):
 
 
 def r4s_runner(tree_file, seq_file, outfile, dirname, tree_outfile=None, unormelized_outfile=None, log_outfile=None, \
-               ref_seq = None, n_categories = 4, alias = "r4s"):
+               branch_opt = "n", ref_seq = None, n_categories = 4, alias = "r4s"):
     """
     run r4site on cluster
     :param tree_file: input tree file path
@@ -576,26 +575,12 @@ def r4s_runner(tree_file, seq_file, outfile, dirname, tree_outfile=None, unormel
     cmdfile = pbs_jobs.assign_cmdfile_path("r4s_cmd.txt", alias); tnum = 1; gmem = 2
     ref_seq_parameter = " -a " + ref_seq if ref_seq is not None else ""
     if tree_file !=None:
-        cmds = "/sternadi/home/volume1/shared/tools/rate4site"\
-                                                            + " -t " + tree_file\
-                                                            + " -s " + seq_file\
-                                                            + " -o " + outfile\
-                                                            + ref_seq_parameter \
-                                                            + " -x " + tree_outfile\
-                                                            + " -y " + unormelized_outfile\
-                                                            + " -V 10"\
-                                                            + " -l " + log_outfile\
-                                                            + " -Mh -k " + n_categories
+        cmds = f"/sternadi/home/volume1/shared/tools/rate4site -t {tree_file} -s {seq_file} -o" \
+               f" {outfile} {ref_seq_parameter} -x {tree_outfile} -y {unormelized_outfile} -V 10 -l {log_outfile} -Mg -k {n_categories} -b{branch_opt}"
     else:
-        cmds = "/sternadi/home/volume1/shared/tools/rate4site"\
-                                                            + " -s " + seq_file\
-                                                            + " -o " + outfile \
-                                                            + ref_seq_parameter\
-                                                            + " -x " + tree_outfile\
-                                                            + " -y " + unormelized_outfile\
-                                                            + " -V 10"\
-                                                            + " -l " + log_outfile\
-                                                            + " -Mh -k " + n_categories
+        cmds = f"/sternadi/home/volume1/shared/tools/rate4site -s {seq_file} -o" \
+               f" {outfile} {ref_seq_parameter} -x {tree_outfile} -y {unormelized_outfile} -V 10 -l {log_outfile} -Mg -k {n_categories} -b{branch_opt}"
+
 
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds, queue="adistzachi")# added change
     job_id = pbs_jobs.submit(cmdfile)
@@ -627,8 +612,8 @@ def codeml_united_runner(clt1, clt2, rst1_name, rst2_name, alias ="cml"):
     return job_id
 
 
-def selecton_runner(codon_aln, output_dir=None, tree=None, log=None, rate=None, output=None,
-                    color=None, out_tree=None, query_seq = None, model="M8", alias="selecton", use_query_seq=False):
+def selecton_runner(codon_aln, path="selecton", output_dir=None, tree=None, log=None, rate=None, output=None,
+                    color=None, out_tree=None, query_seq = None, model="M8", alias="selecton", use_query_seq=False, branch_len_opt=True):
     codon_aln = check_filename(codon_aln)
     if output_dir == None:
         base = codon_aln.split(".")[0] + "_selecton"
@@ -654,18 +639,20 @@ def selecton_runner(codon_aln, output_dir=None, tree=None, log=None, rate=None, 
     if tree != None:
         tree = check_filename(tree)
         if use_query_seq == False:
-            cmds = "selecton -i %s -u %s -l %s -r %s -o %s -c %s -t %s %s" \
-                   % (codon_aln, tree, log, rate, output, color, out_tree, model)
+            cmds = "%s -i %s -u %s -l %s -r %s -o %s -c %s -t %s %s" \
+                   % (path, codon_aln, tree, log, rate, output, color, out_tree, model)
         else:
-            cmds = "selecton -i %s -u %s -l %s -r %s -o %s -c %s -t %s %s -q %s" \
-                   % (codon_aln, tree, log, rate, output, color, out_tree, model, query_seq)
+            cmds = "%s -i %s -u %s -l %s -r %s -o %s -c %s -t %s %s -q %s" \
+                   % (path, codon_aln, tree, log, rate, output, color, out_tree, model, query_seq)
     else:
         if use_query_seq == False:
-            cmds = "selecton -i %s -l %s -r %s -o %s -c %s -t %s %s" \
-                   % (codon_aln, log, rate, output, color, out_tree, model)
+            cmds = "%s -i %s -l %s -r %s -o %s -c %s -t %s %s" \
+                   % (path, codon_aln, log, rate, output, color, out_tree, model)
         else:
-            cmds = "selecton -i %s -l %s -r %s -o %s -c %s -t %s %s -q %s" \
-                   % (codon_aln, log, rate, output, color, out_tree, model, query_seq)
+            cmds = "%s -i %s -l %s -r %s -o %s -c %s -t %s %s -q %s" \
+                   % (path, codon_aln, log, rate, output, color, out_tree, model, query_seq)
+    if branch_len_opt == False:
+        cmds += " -bn"
     cmdfile = pbs_jobs.assign_cmdfile_path("selecton.txt", alias); tnum = 1; gmem = 2
     pbs_jobs.create_pbs_cmd(cmdfile=cmdfile, alias=alias, jnum=tnum, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
@@ -1241,6 +1228,36 @@ def ivar_runner(input_r1, output_dir,
              '''
     # finish
     cmds += '''conda deactivate'''
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
+
+def pangolin_runner(input_fasta, outdir, outfile=None, alias="pangolin", queue="adistzachi", cmdfile="pangolin", gmem=1):
+    input_fasta = check_filename(input_fasta)
+    outdir = check_dirname(outdir)
+
+    cmds = """# >>> conda initialize >>>
+    # !! Contents within this block are managed by 'conda init' !!
+    __conda_setup="$('/powerapps/share/miniconda3-4.7.12/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+        else
+            if [ -f "/powerapps/share/miniconda3-4.7.12/etc/profile.d/conda.sh" ]; then
+                    . "/powerapps/share/miniconda3-4.7.12/etc/profile.d/conda.sh"
+            else
+                export PATH="/powerapps/share/miniconda3-4.7.12/bin:$PATH"
+            fi
+        fi
+    unset __conda_setup
+    # <<< conda initialize <<<
+    conda env list
+    conda activate pangolin
+    """
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdfile, alias)
+    if outfile == None:
+        cmds += f"\npangolin {input_fasta} -o {outdir}"
+    else:
+        cmds += f"\npangolin {input_fasta} -o {outdir} --outfile {outfile}"
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
