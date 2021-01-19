@@ -1226,3 +1226,33 @@ def ivar_runner(input_r1, output_dir,
     pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
+
+def pangolin_runner(input_fasta, outdir, outfile=None, alias="pangolin", queue="adistzachi", cmdfile="pangolin", gmem=1):
+    input_fasta = check_filename(input_fasta)
+    outdir = check_dirname(outdir)
+
+    cmds = """# >>> conda initialize >>>
+    # !! Contents within this block are managed by 'conda init' !!
+    __conda_setup="$('/powerapps/share/miniconda3-4.7.12/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+        else
+            if [ -f "/powerapps/share/miniconda3-4.7.12/etc/profile.d/conda.sh" ]; then
+                    . "/powerapps/share/miniconda3-4.7.12/etc/profile.d/conda.sh"
+            else
+                export PATH="/powerapps/share/miniconda3-4.7.12/bin:$PATH"
+            fi
+        fi
+    unset __conda_setup
+    # <<< conda initialize <<<
+    conda env list
+    conda activate pangolin
+    """
+    cmdfile = pbs_jobs.assign_cmdfile_path(cmdfile, alias)
+    if outfile == None:
+        cmds += f"\npangolin {input_fasta} -o {outdir}"
+    else:
+        cmds += f"\npangolin {input_fasta} -o {outdir} --outfile {outfile}"
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds)
+    job_id = pbs_jobs.submit(cmdfile)
+    return job_id
