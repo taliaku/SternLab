@@ -1,18 +1,16 @@
 import os
-import warnings
 
 import pandas as pd
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns;
+import seaborn as sns
 
-from RG_HIVC_analysis import constants
-from RG_HIVC_analysis.constants import gag_ET86_interval, pol_ET86_interval, env_ET86_interval, orig_excluded_samples, \
-    control_excluded_patients
+#from RG_HIVC_analysis import constants
+#from RG_HIVC_analysis.constants import gag_ET86_interval, pol_ET86_interval, env_ET86_interval, orig_excluded_samples, control_excluded_patients
+from scripts.diversity_analysis import pi_diversity_calc, apply_pi_related_filters
 
 sns.set_context("poster")
-import sys
 
 
 def get_simple_diversity_stats():
@@ -40,86 +38,6 @@ def count_major_subs(freq_file):
     return subs_count
 
 
-def pis_calc(data, pivot_cols=[], interval = (0, sys.maxsize)): # start_pos=0, end_pos= sys.maxsize
-    """
-    Calculates PI diversity per position, than calculates mean per group according to pivot_vols. Assumes data is not indexed.
-    :param data:
-    :param pivot_cols:
-    :param min_read_count:
-    :return:
-    """
-    def pairwise_differences_proportion(row):
-        if row["Minor"] == 0:
-            return 0
-        total_part = (row["Total"] * (row["Total"] - 1))
-        numerator = total_part - ((row["Major"] * (row["Major"] - 1)) + (row["Minor"] * (row["Minor"] - 1)))
-        denominator = total_part
-        return numerator * 1.0 / denominator
-
-    # Filters
-    # TODO- extract this filter too\ insert all others here
-    # choose interval
-    filtered_data = data[(data["Pos"] >= interval[0]) & (data["Pos"] <= interval[1])]
-
-    if filtered_data.empty:
-        warnings.warn("No relevant data after filtering. Skipping")
-        return None
-
-    filtered_data['counts_for_position'] = np.round(filtered_data['Read_count'] * filtered_data['Freq'])
-    selecting_cols = pivot_cols[:]
-    selecting_cols.extend(["Pos", "Base", "counts_for_position", "Rank"])
-    # selecting_cols = list(set(selecting_cols))
-    filtered_data = filtered_data[selecting_cols]
-
-    filtered_data["Rank"] = np.where(filtered_data["Rank"] == 0, "Major", "Minor")
-
-    group_cols = pivot_cols[:]
-    group_cols.extend(["Pos", "Rank"])
-    # group_cols = list(set(group_cols))
-
-    # selecting max on cfp, per Pos\Rank (Major\minor?)- than will be graded per Pos, and summed
-    # TODO: use all minor variants (not only max)
-    filtered_data = filtered_data.groupby(group_cols)['counts_for_position'].aggregate(max).unstack().reset_index()
-    if 'Minor' not in filtered_data.columns:
-        return 0
-
-    filtered_data["Total"] = filtered_data["Major"] + filtered_data["Minor"]
-
-    filtered_data["pdp"] = filtered_data.apply(lambda row: pairwise_differences_proportion(row), axis=1)
-
-    pivot_cols.extend(["Pos"])
-    if any(pivot_cols):
-        bysample_diversity = filtered_data.groupby(pivot_cols)['pdp'].agg(['count', 'sum']).reset_index()
-        bysample_diversity["Pi"] = bysample_diversity["sum"] * 1.0 / bysample_diversity["count"]
-        output_cols = pivot_cols[:]
-        output_cols.append("Pi")
-        pis = bysample_diversity[output_cols]
-    else:
-        pis = filtered_data['pdp'].mean()
-
-    return pis
-
-
-def apply_pi_related_filters(data, freq_threshold, min_read_count, filter_low_quality_patients = False):
-    # transitions only
-    data["mutation_type"] = data['Base'] + data['Ref']
-    filtered_data = data[data["mutation_type"].isin(['GA', 'AG', 'GG', 'AA', 'CT', 'TC', 'CC', 'TT'])]
-    # remove indels
-    filtered_data = filtered_data[(filtered_data["Base"] != "-") & (filtered_data["Ref"] != "-")]
-    # remove low coverage
-    filtered_data = filtered_data[filtered_data["Read_count"] > min_read_count]
-    # set low frequencies to 0
-    filtered_data["Freq"] = np.where(filtered_data["Freq"] >= freq_threshold, filtered_data["Freq"], 0)
-
-    # Remove low quality patients:
-    # filtered_data = filtered_data[~filtered_data['ind_id'].isin(excluded_patients_control)]
-
-    # Only high quality patients:
-    if filter_low_quality_patients:
-        filtered_data = filtered_data[filtered_data['ind_id'].isin(constants.control_chosen_patients)]
-    return filtered_data
-
-
 def generate_pi_rates_summary():
     """Deprecated"""
 
@@ -138,18 +56,18 @@ def generate_pi_rates_summary():
         print('Handling sample: ' + sample_id)
 
         freq_df = pd.read_csv(file, sep='\t')
-        filtered_freq_df = apply_pi_related_filters(freq_df, freq_threshold= 0.001, min_read_count= 100)
-        global_pi_rate = pis_calc(data=filtered_freq_df)
+        filtered_freq_df = apply_pi_related_filters(freq_df, frequency_threshold= 0.001, coverage_threshold= 100)
+        global_pi_rate = pi_diversity_calc(data=filtered_freq_df)
 
         # hxb2_file = glob.glob('/Users/omer/PycharmProjects/SternLab/RG_data_analysis/freq_files_HXB2_2/{}/*.freqs'.format(sample_id))[0]
         # freq_df_hxb2 = pd.read_csv(hxb2_file, sep='\t')
         # et86_file = glob.glob('/Users/omer/PycharmProjects/SternLab/RG_data_analysis/ET86_2s/{}.freqs'.format(sample_id))[0]
         # freq_df_et86 = pd.read_csv(et86_file, sep='\t')
-        # global_pi_rate2 = pis_calc(data=freq_df_et86, min_read_count= 1000, freq_threshold= 0)
+        # global_pi_rate2 = pi_diversity_calc(data=freq_df_et86, min_read_count= 1000, freq_threshold= 0)
 
-        gag_pi_rate = pis_calc(data=filtered_freq_df, interval= gag_ET86_interval)
-        pol_pi_rate = pis_calc(data=filtered_freq_df, interval= pol_ET86_interval)
-        env_pi_rate = pis_calc(data=filtered_freq_df, interval= env_ET86_interval)
+        gag_pi_rate = pi_diversity_calc(data=filtered_freq_df, interval= gag_ET86_interval)
+        pol_pi_rate = pi_diversity_calc(data=filtered_freq_df, interval= pol_ET86_interval)
+        env_pi_rate = pi_diversity_calc(data=filtered_freq_df, interval= env_ET86_interval)
 
         row = [sample_id] + [global_pi_rate] + [gag_pi_rate] + [pol_pi_rate] + [env_pi_rate]
         # print(row)
@@ -252,14 +170,14 @@ def pi_rates_generate_and_plot_v2():
     unified_freq_df = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/unified_freqs_filtered_verbose.csv'.format(run_folder))
 
     # generate pi rate values (global & regionals)
-    unified_freq_df = apply_pi_related_filters(unified_freq_df, freq_threshold=constants.freq_threshold, min_read_count=constants.coverage_threshold)
-    pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['ind_id', 'sample_id', 'years_since_infection'])
+    unified_freq_df = apply_pi_related_filters(unified_freq_df, frequency_threshold=constants.freq_threshold, coverage_threshold=constants.coverage_threshold)
+    pi_rates_by_sample = pi_diversity_calc(data=unified_freq_df, pivot_cols= ['ind_id', 'sample_id', 'years_since_infection'])
 
-    # gag_pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=gag_ET86_interval)
+    # gag_pi_rates_by_sample = pi_diversity_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=gag_ET86_interval)
     # pi_rates_by_sample = pi_rates_by_sample.merge(gag_pi_rates_by_sample, on='sample_id', how='left', sort=False, suffixes=('', '_gag'))
-    pol_pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=pol_ET86_interval)
+    pol_pi_rates_by_sample = pi_diversity_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=pol_ET86_interval)
     pi_rates_by_sample = pi_rates_by_sample.merge(pol_pi_rates_by_sample, on='sample_id', how='left', sort=False, suffixes=('', '_pol'))
-    # env_pi_rates_by_sample = pis_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=env_ET86_interval)
+    # env_pi_rates_by_sample = pi_diversity_calc(data=unified_freq_df, pivot_cols= ['sample_id'], interval=env_ET86_interval)
     # pi_rates_by_sample = pi_rates_by_sample.merge(env_pi_rates_by_sample, on='sample_id', how='left', sort=False, suffixes=('', '_env'))
 
     # TODO- understand double plotting
@@ -333,11 +251,11 @@ def add_pi_rates_to_unified_freqs_df():
     unified_freq_df = pd.read_csv('/Users/omer/PycharmProjects/SternLab/RG_HIVC_analysis/runs/{}/unified_freqs_filtered_verbose.csv'.format(run_folder))
 
     # filters?
-    unified_freq_df = apply_pi_related_filters(unified_freq_df, freq_threshold=0, min_read_count=0)
+    unified_freq_df = apply_pi_related_filters(unified_freq_df, frequency_threshold=0, coverage_threshold=0)
     samples = ['83476_S27','504193_S37','100888_S14','TASPX100711_S29','504212_S56','X160138_S81','504224_S68'] # 26892 samples
     unified_freq_df = unified_freq_df[unified_freq_df['sample_id'].isin(samples)]
 
-    pi_rates_by_pos = pis_calc(data=unified_freq_df, pivot_cols=['ind_id', 'sample_id'])
+    pi_rates_by_pos = pi_diversity_calc(data=unified_freq_df, pivot_cols=['ind_id', 'sample_id'])
     print(pi_rates_by_pos)
 
     print('plotting freq_plot')

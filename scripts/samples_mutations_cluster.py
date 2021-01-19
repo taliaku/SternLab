@@ -29,8 +29,7 @@ def samples_mutations_cluster(df, output_excel, threshold_freq=0.1, threshold_re
     df = df[df.coverage > threshold_read_count]
     mutations_to_keep = df[(df.ref_base != df.base) & (df.ref_base != '-') & (df.frequency > threshold_freq)].full_mutation.drop_duplicates().tolist()
     mutations_to_keep = df[df.full_mutation.isin(mutations_to_keep)]
-    to_pivot = mutations_to_keep.pivot_table(values='frequency', index=['ref_position', 'full_mutation'], columns=sample_column)
-    to_pivot.to_excel(output_excel.replace('.xlsx', 'by_position.xlsx'))
+    to_pivot = mutations_to_keep.pivot_table(values='frequency', index='full_mutation', columns=sample_column)
     to_pivot_na = to_pivot[to_pivot.isnull().any(axis=1)]
     to_pivot = to_pivot.dropna()
     clustergrid = sns.clustermap(to_pivot, figsize=(15,15), xticklabels=True, yticklabels=True, method='weighted')
@@ -45,8 +44,8 @@ def main():
     parser = OptionParser("usage: %prog [options]")
     parser.add_option("-i", "--input", dest="input", help="input dataframe csv path")
     parser.add_option("-o", "--output", dest="output", help="output excel path")
-    parser.add_option("-f", "--threshold_freq", dest="threshold_freq", help="a mutation needs to cross this threshold in at least one sample to be included. default 0.1", default=0.1, type=float)
-    parser.add_option("-r", "--threshold_read_count", dest="threshold_read_count", help="rows that do not cross this are removed from analysis. default 10", default=10, type=int)
+    parser.add_option("-f", "--threshold_freq", dest="threshold_freq", help="a mutation needs to cross this threshold in at least one sample to be included. default 0.1", default=0.1)
+    parser.add_option("-r", "--threshold_read_count", dest="threshold_read_count", help="rows that do not cross this are removed from analysis. default 10", default=10)
     parser.add_option("-s", "--sample_column", dest="sample_column", help="column name that separates into samples (file, sample etc.). default 'File'", default='File')
 
     (options, args) = parser.parse_args()

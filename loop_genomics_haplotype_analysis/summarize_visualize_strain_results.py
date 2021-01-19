@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 
 shafer_root_dir = '/Volumes/STERNADILABHOME$/volume1/shared/analysis/HIV_shafer'
 accungs_root_dir = '/Volumes/STERNADILABHOME$/volume2/ita/haplotypes'
+shafer_dir_nobackup = '/Volumes/STERNADILABTEMP$/volume1/HIVB_shafer_accungs_seq'
+
 shafer_root_dir_power9 = '/sternadi/home/volume1/shared/analysis/HIV_shafer'
 accungs_root_dir_power9 = '/sternadi/home/volume2/ita/haplotypes'
 
@@ -133,83 +135,16 @@ def plot_compare_associvar_accungs_strains():
     plt.savefig(fname= '{}/results_merged/haplotypes_comparison_with_mutation_count_v1.pdf'.format(shafer_root_dir))
 
 
-def plot_compare_loop_accungs_mutations(plot_gag = True,
+def plot_compare_loop_accungs_mutations(run_name,
+                                        plot_gag = True,
                                         loop_only = False,
                                         new_pipe_runs = False,
                                         generate_freq_data = True,
-                                        generate_strain_data = True):
-    if generate_freq_data:
-        #  0.fetch freq files
-        files_all = []
-        loop_freq_files = glob.glob('{}/loop_genomics_pipeline/envs_output/*/joined.freqs'.format(shafer_root_dir))
-        files_all.extend(loop_freq_files)
-        accungs_freq_files_env = glob.glob('{}/envs_output/*/joined.freqs'.format(accungs_root_dir))
-        files_all.extend(accungs_freq_files_env)
-        accungs_freq_files_gag = glob.glob('{}/gags_output/*/joined.freqs'.format(accungs_root_dir))
-        files_all.extend(accungs_freq_files_gag)
+                                        generate_strain_data = True,
+                                        add_strain_data = True,
+                                        plot = True):
 
-        # TODO- add 2 more freq datasets
-        if new_pipe_runs:
-            loop_env_new_pipeline = glob.glob('{}/new_pipeline_loop/env*/freqs.tsv'.format(shafer_root_dir))
-            files_all.extend(loop_env_new_pipeline)
-            accungs_env_new_pipeline = glob.glob('{}/new_pipeline_accungs/env*/freqs.tsv'.format(shafer_root_dir))
-            files_all.extend(accungs_env_new_pipeline)
-
-        print(len(files_all))
-
-        # 1. freq-> dataset (old format)
-        dfs_all = []
-        for file in files_all:
-            print(file)
-            df = pd.read_csv(file, sep='\t')
-
-            if file in loop_freq_files:
-                df['source'] = 'loop'
-            elif file in accungs_freq_files_env + accungs_freq_files_gag:
-                df['source'] = 'accungs'
-            elif (new_pipe_runs and file in loop_env_new_pipeline + accungs_env_new_pipeline):
-                print(df.columns)
-                df.rename(columns={'ref_pos':'Pos', 'read_base':'Base', 'ref_base':'Ref',
-                                   'frequency':'Freq', 'base_rank':'Rank', 'coverage':'Read_count',
-                                   'probability':'Prob'},
-                          inplace=True)
-                print(df.columns)
-                if file in loop_env_new_pipeline:
-                    df['source'] = 'loop_new'
-                else:
-                    df['source'] = 'accungs_new'
-
-            # remove insertions + fix ref
-            df = df[df['Pos'] == np.round(df['Pos'])]  # remove insertion
-            df = change_ref_to_consensus(df)
-
-            df['sample'] = file.split('/')[-2]
-
-            dfs_all.append(df)
-
-        freqs_all = pd.concat(dfs_all)
-        print(freqs_all.head())
-
-        # 2. add mutation column according to reference
-        freqs_all['mutation'] = freqs_all['Ref'] + '->' + freqs_all['Base']
-
-        # 3. add strain data
-        print('add strain data')
-        # get data
-        strain_df = get_strain_data(generate_data= generate_strain_data)
-        strain_df = strain_df.drop(columns=['mutation'])
-        # merge by sample + pos
-        # TODO- merge on Rank1 only?
-        tmp = pd.merge(freqs_all, strain_df,
-                       how='left',
-                       on=['source', 'sample', 'Pos'])
-        tmp['strain'] = tmp['strain'].fillna('WT_or_other')
-        freqs_all = tmp
-
-        # export
-        freqs_all.to_csv('{}/results_merged/freqs_strain_data_all_samples_v5.csv'.format(shafer_root_dir), index=False)
-    else:
-        freqs_all = pd.read_csv('{}/results_merged/freqs_strain_data_all_samples_v5.csv'.format(shafer_root_dir))
+    freqs_all = get_freq_data(run_name, new_pipe_runs, generate_freq_data, generate_strain_data, add_strain_data)
 
     # 4. add syn\non-syn data
     # TODO-imp
@@ -221,46 +156,46 @@ def plot_compare_loop_accungs_mutations(plot_gag = True,
     # -> infer syn\non-syn
 
     # 5. plot
-    freqs_all['sample_serial_id'] = freqs_all['sample'].apply(lambda x: x[3:]).astype(int)
-    freqs_all['sample_source'] = freqs_all['sample'] + '_' + freqs_all['source']
-    freqs_all.sort_values(by=['sample_serial_id','sample_source'], inplace=True)
-    print(freqs_all.head())
-
-    # filters for plot
-    # base count- 100
-    # transitions only
-    freqs_all['Base_count'] = freqs_all['Read_count'] * freqs_all['Freq']
-    freqs_all_filtered = freqs_all[(freqs_all['Rank'] != 0)
-                                    & (freqs_all['Prob'] > 0.8)
-                                    & (freqs_all['mutation'].isin(['G->A', 'A->G', 'G->G', 'A->A', 'C->T', 'T->C', 'C->C', 'T->T']))
-                                    & (freqs_all['Base_count'] > 100)]
-    print(len(freqs_all_filtered))
-
-    # leave selected samples
-    # if not plot_gag:
-    #     print('filter gag')
-    #     print(len(freqs_all_filtered))
-    #     freqs_all_filtered = freqs_all_filtered[freqs_all_filtered['sample'].apply(lambda x: x[:3]) == 'gag']
-    #     print(len(freqs_all_filtered))
-    #
-
-    # freqs_all_filtered = freqs_all_filtered[~freqs_all_filtered['sample_serial_id'].isin([1,2,4,7])]
-    freqs_all_filtered = freqs_all_filtered[(freqs_all_filtered['source'] == 'loop') | (freqs_all_filtered['sample_serial_id'].isin([1,2]))]
-    # freqs_all_filtered = freqs_all_filtered[freqs_all_filtered['sample_source'] == 'env15_loop']
-    print(freqs_all_filtered['sample_source'].unique().tolist())
-
-    # strain coloring
-    strain_names = freqs_all_filtered['strain'].unique().tolist()
-    print(strain_names)
-    palette = dict(zip(strain_names, sns.color_palette(n_colors=len(strain_names))))
-    palette.update({"WT_or_other": "gray", 5: "black"})
-    # palette.update({"WT_or_other": "gray"})
-    # palette.update({"WT_or_other": "gray",
-    #                 5: "black",
-    #                 12: "black"})
-
-    plot = True
     if plot:
+        freqs_all['sample_serial_id'] = freqs_all['sample'].apply(lambda x: x[3:]).astype(int)
+        freqs_all['sample_source'] = freqs_all['sample'] + '_' + freqs_all['source']
+        freqs_all.sort_values(by=['sample_serial_id','sample_source'], inplace=True)
+        print(freqs_all.head())
+
+        # filters for plot
+        # base count- 100
+        # transitions only
+        freqs_all['Base_count'] = freqs_all['Read_count'] * freqs_all['Freq']
+        freqs_all_filtered = freqs_all[(freqs_all['Rank'] != 0)
+                                        & (freqs_all['Prob'] > 0.8)
+                                        & ( (freqs_all['mutation'].isin(['G->A', 'A->G', 'G->G', 'A->A', 'C->T', 'T->C', 'C->C', 'T->T']))
+                                          | (freqs_all['indel'].isin(['insertion','deletion'])) )
+                                        & (freqs_all['Base_count'] > 100)]
+        print(len(freqs_all_filtered))
+
+        # leave selected samples
+        # if not plot_gag:
+        #     print('filter gag')
+        #     print(len(freqs_all_filtered))
+        #     freqs_all_filtered = freqs_all_filtered[freqs_all_filtered['sample'].apply(lambda x: x[:3]) == 'gag']
+        #     print(len(freqs_all_filtered))
+        #
+
+        # freqs_all_filtered = freqs_all_filtered[~freqs_all_filtered['sample_serial_id'].isin([1,2,4,7])]
+        freqs_all_filtered = freqs_all_filtered[(freqs_all_filtered['source'] == 'loop') | (freqs_all_filtered['sample_serial_id'].isin([1,2]))]
+        # freqs_all_filtered = freqs_all_filtered[freqs_all_filtered['sample_source'] == 'env15_loop']
+        print(freqs_all_filtered['sample_source'].unique().tolist())
+
+        # strain coloring
+        strain_names = freqs_all_filtered['strain'].unique().tolist()
+        print(strain_names)
+        palette = dict(zip(strain_names, sns.color_palette(n_colors=len(strain_names))))
+        palette.update({"WT_or_other": "gray", 5: "black"})
+        # palette.update({"WT_or_other": "gray"})
+        # palette.update({"WT_or_other": "gray",
+        #                 5: "black",
+        #                 12: "black"})
+
         g = sns.relplot(x='Pos',
                         y='Freq',
                         col='sample_source',
@@ -277,8 +212,10 @@ def plot_compare_loop_accungs_mutations(plot_gag = True,
                         # hue_order=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,'WT_or_other',
                         #            14],
                         palette= palette,
-                        style='mutation',
-                        style_order= ['A->G', 'G->A', 'T->C', 'C->T'],
+                        # style='mutation',
+                        # style_order= ['A->G', 'G->A', 'T->C', 'C->T'],
+                        style='indel',
+                        style_order= ['insertion', 'deletion', 'mutation'],
                         col_wrap=4,
                         data=freqs_all_filtered)
 
@@ -287,7 +224,115 @@ def plot_compare_loop_accungs_mutations(plot_gag = True,
 
         # extract
         # plt.show()
-        plt.savefig(fname='{}/results_merged/mutations_strains_all_by_diversity.pdf'.format(shafer_root_dir))
+        plt.savefig(fname='{}/results_merged/mutations_strains_{}.pdf'.format(shafer_root_dir, run_name))
+
+
+def get_freq_data(run_name,
+                    new_pipe_runs = False,
+                    generate_freq_data = True,
+                    generate_strain_data = True,
+                    add_strain_data = True
+                  ):
+
+    if generate_freq_data:
+        #  0.fetch freq files
+        files_all = []
+        loop_freq_files = glob.glob('{}/loop_genomics_pipeline/envs_output/*/joined.freqs'.format(shafer_root_dir))
+        files_all.extend(loop_freq_files)
+        accungs_freq_files_env = glob.glob('{}/envs_output/*/joined.freqs'.format(accungs_root_dir))
+        files_all.extend(accungs_freq_files_env)
+        accungs_freq_files_gag = glob.glob('{}/gags_output/*/joined.freqs'.format(accungs_root_dir))
+        files_all.extend(accungs_freq_files_gag)
+
+        if new_pipe_runs:
+            # TODO- can run new accungs for env1/2 & gag samples too
+            accungs_new = glob.glob('{}/new_pipeline_accungs_v2_15_iter/env*/freqs.tsv'.format(shafer_dir_nobackup))
+            files_all.extend(accungs_new)
+            loop_new_q10 = glob.glob('{}/new_pipeline_loop_v2_q10/env*/freqs.tsv'.format(shafer_root_dir))
+            files_all.extend(loop_new_q10)
+
+            loop_new_long_reads = glob.glob(
+                '{}/new_pipeline_loop_v3_long_reads/env*/freqs.tsv'.format(shafer_dir_nobackup))
+            # files_all.extend(loop_new_long_reads)
+
+        print(len(files_all))
+
+        # 1. freq-> dataset (old format)
+        dfs_all = []
+        for file in files_all:
+            print(file)
+            df = pd.read_csv(file, sep='\t')
+
+            if file in loop_freq_files:
+                df['source'] = 'loop'
+                df = fix_ref_temp(df)
+            elif file in accungs_freq_files_env + accungs_freq_files_gag:
+                df['source'] = 'accungs'
+                df = fix_ref_temp(df)
+            elif (new_pipe_runs and file in loop_new_q10 + loop_new_long_reads + accungs_new):
+                df.rename(columns={'ref_pos': 'Pos', 'read_base': 'Base', 'ref_base': 'Ref',
+                                   'frequency': 'Freq', 'base_rank': 'Rank', 'coverage': 'Read_count',
+                                   'probability': 'Prob'},
+                          inplace=True)
+                if file in loop_new_q10:
+                    df['source'] = 'loop_new_q10'
+                elif file in loop_new_long_reads:
+                    df['source'] = 'loop_new_long_reads'
+                elif file in accungs_new:
+                    df['source'] = 'accungs_new'
+                else:
+                    raise Exception("file belongs nowhere: {}".format(file))
+
+            df['sample'] = file.split('/')[-2]
+
+            dfs_all.append(df)
+
+        freqs_all = pd.concat(dfs_all)
+
+        # validations
+        print(freqs_all.head())
+        print(freqs_all.groupby('source').count()['Pos'])
+        print(freqs_all.groupby('sample').count()['Pos'])
+
+        # 2. add mutation column according to reference
+        freqs_all['mutation'] = freqs_all['Ref'] + '->' + freqs_all['Base']
+        freqs_all['indel'] = freqs_all['Ref'] + '->' + freqs_all['Base']
+        freqs_all['indel'] = np.select(
+            [freqs_all['Ref'] == '-', freqs_all['Base'] == '-'],
+            ['insertion', 'deletion'],
+            default='mutation'
+        )
+
+        # 3. add strain data
+        if add_strain_data:
+            print('add strain data')
+            # get data
+            strain_df = get_strain_data(generate_data=generate_strain_data)
+            strain_df = strain_df.drop(columns=['mutation'])
+            # merge by sample + pos
+            # TODO- merge on Rank1 only?
+            tmp = pd.merge(freqs_all, strain_df,
+                           how='left',
+                           on=['source', 'sample', 'Pos'])
+            tmp['strain'] = tmp['strain'].fillna('WT_or_other')
+            freqs_all = tmp
+
+        # export
+        freqs_all.to_csv('{}/results_merged/freqs_strain_data_all_samples_{}.csv'.format(shafer_root_dir, run_name),
+                         index=False)
+    else:
+        freqs_all = pd.read_csv(
+            '{}/results_merged/freqs_strain_data_all_samples_{}.csv'.format(shafer_root_dir, run_name))
+    return freqs_all
+
+
+def fix_ref_temp(df):
+    # remove insertions + fix ref
+    # TODO- keep insertions (fix change_ref_to_consensus to handle data with insertions)
+    #  or keep dont run this on new pipeline? just check status?
+    df = df[df['Pos'] == np.round(df['Pos'])]  # remove insertion
+    df = change_ref_to_consensus(df)
+    return df
 
 
 def get_strain_data(generate_data = True):
@@ -386,4 +431,9 @@ if __name__ == '__main__':
 
     # blending_strains_analysis()
 
-    plot_compare_loop_accungs_mutations(generate_strain_data= False, generate_freq_data= False)
+    # plot_compare_loop_accungs_mutations(generate_strain_data= False, generate_freq_data= False)
+
+    # plot_compare_loop_accungs_mutations(run_name='v7_no_indels_for_seq_comparison', new_pipe_runs= True, add_strain_data= False, plot=False)
+
+    plot_compare_loop_accungs_mutations(run_name='v8_new_for_indels', new_pipe_runs=True,
+                                        generate_strain_data= False, plot=False)

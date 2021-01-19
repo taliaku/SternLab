@@ -57,26 +57,35 @@ def merge_freqs_files(freqs_files, output):
     return output, all
 
 def change_ref_to_consensus(freqs_df, allow_major_change = False):
-    consensus = freqs_df.copy()
-    print(consensus.head())
-    consensus = consensus.sort_values(by=['Pos','Freq'], ascending=[True,False])
-    print(consensus.head())
-    consensus = consensus.drop_duplicates("Pos") # rank 0 only
-    print(consensus.head())
-    consensus = consensus[['Pos', 'Base']]
+    # TODO- add support for freqs with indels OR remove indels
+    # TODO- add support for new freqs format? or not relevant?
     ref_before_change = freqs_df.copy()
     ref_before_change = ref_before_change.drop_duplicates("Pos") # rank 0 only
     ref_before_change = ref_before_change[['Pos', 'Ref']]
-    print(''.join(ref_before_change.Ref.tolist()))
-    print(''.join(consensus.Base.tolist()))
-    diff = (consensus.Base != ref_before_change.Ref)
+    ref_before_change_seq = ''.join(ref_before_change.Ref.tolist())
 
-    if not diff[diff == True].empty:
-        changed_ref_ratio = len(diff[diff == True]) / len(diff)
+    consensus = freqs_df.copy()
+    consensus = consensus.sort_values(by=['Pos','Freq'], ascending=[True,False])
+    consensus = consensus.drop_duplicates("Pos") # rank 0 only
+    consensus = consensus[['Pos', 'Base']]
+    consensus_seq = ''.join(consensus.Base.tolist())
+
+    if len(ref_before_change_seq) != len(consensus_seq):
+        print(len(ref_before_change.Ref.tolist()))
+        print(len(consensus.Base.tolist()))
+        print(ref_before_change_seq)
+        print(consensus_seq)
+        raise BaseException('invalid fix- ref length changed')
+
+    diff_count = sum(1 for a, b in zip(ref_before_change_seq, consensus_seq) if a != b)
+
+    if diff_count != 0:
+        changed_ref_ratio = diff_count / len(ref_before_change_seq)
         print('changed_ref_ratio: {}%'.format(changed_ref_ratio*100))
+
         if (changed_ref_ratio > 0.1) and not allow_major_change:
-            print(''.join(ref_before_change.Ref.tolist()))
-            print(''.join(consensus.Base.tolist()))
+            print(ref_before_change_seq)
+            print(consensus_seq)
             raise BaseException('too many changes')
 
         transformed_freq = pd.merge(freqs_df, consensus, on='Pos', how='left', suffixes=('', '_r'))
