@@ -1231,20 +1231,7 @@ def pangolin_runner(input_fasta, outdir, outfile=None, alias="pangolin", queue="
     input_fasta = check_filename(input_fasta)
     outdir = check_dirname(outdir)
 
-    cmds = """# >>> conda initialize >>>
-    # !! Contents within this block are managed by 'conda init' !!
-    __conda_setup="$('/powerapps/share/miniconda3-4.7.12/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-    if [ $? -eq 0 ]; then
-        eval "$__conda_setup"
-        else
-            if [ -f "/powerapps/share/miniconda3-4.7.12/etc/profile.d/conda.sh" ]; then
-                    . "/powerapps/share/miniconda3-4.7.12/etc/profile.d/conda.sh"
-            else
-                export PATH="/powerapps/share/miniconda3-4.7.12/bin:$PATH"
-            fi
-        fi
-    unset __conda_setup
-    # <<< conda initialize <<<
+    cmds = """source ~/.bashrc
     cd /sternadi/home/volume1/shared/tools/pangolin
     conda env create -f environment.yml
     conda env list
