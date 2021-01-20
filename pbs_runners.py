@@ -1231,11 +1231,8 @@ def pangolin_runner(input_fasta, outdir, outfile=None, alias="pangolin", queue="
     input_fasta = check_filename(input_fasta)
     outdir = check_dirname(outdir)
 
-    cmds = """source ~/.bashrc
-    cd /sternadi/home/volume1/shared/tools/pangolin
-    conda env create -f environment.yml
-    conda env list
-    conda activate pangolin
+    cmds = """module load miniconda/miniconda3-4.7.12
+    source '/powerapps/share/miniconda3-4.7.12/bin/activate' pangolin
     """
     cmdfile = pbs_jobs.assign_cmdfile_path(cmdfile, alias)
     if outfile == None:
