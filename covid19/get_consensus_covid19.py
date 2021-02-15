@@ -71,7 +71,7 @@ def main():
         con += (end_pos - loc - 1) * "N"
         if options.mask:
             con = post_processing(con)
-        con_all += f">Israel/{sample}/2020\n{con}\n"
+        con_all += f">Israel/{sample}/2021\n{con}\n"
 
     with open(f"{directory}/{output_basename}_consensus_all.fasta", "w") as handle:
             handle.write(con_all)

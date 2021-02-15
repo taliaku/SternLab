@@ -29,7 +29,7 @@ def samples_mutations_cluster(df, output_excel, threshold_freq=0.1, threshold_re
     df = df[df.coverage > threshold_read_count]
     mutations_to_keep = df[(df.ref_base != df.base) & (df.ref_base != '-') & (df.frequency > threshold_freq)].full_mutation.drop_duplicates().tolist()
     mutations_to_keep = df[df.full_mutation.isin(mutations_to_keep)]
-    to_pivot = mutations_to_keep.pivot_table(values='frequency', index='full_mutation', columns=sample_column)
+    to_pivot = mutations_to_keep.pivot_table(values='frequency', index=['full_mutation', 'ref_position'], columns=sample_column)
     to_pivot_na = to_pivot[to_pivot.isnull().any(axis=1)]
     to_pivot = to_pivot.dropna()
     clustergrid = sns.clustermap(to_pivot, figsize=(15,15), xticklabels=True, yticklabels=True, method='weighted')

@@ -67,7 +67,7 @@ def covid_artic_pipeline(input_dir, output_dir, alias="ARTIC_pipeline", queue="a
 
 def add_to_previous_results(run_after_job=None, all_results_dir=UNITED_OUTPUT_DIR):
     # unite concensuses
-    job_id_p1 = script_runner(f'cat {REFERENCE_FILE} {all_results_dir}/../c*/python_pipeline/freqs/*consensus_all.fasta > {all_results_dir}israel_sequences.fasta', run_after_job=run_after_job)
+    job_id_p1 = script_runner(f'cat {REFERENCE_FILE} {all_results_dir}/../[a-zA-Z]*/python_pipeline/freqs/*consensus_all.fasta > {all_results_dir}israel_sequences.fasta', run_after_job=run_after_job)
     # align and make tree
     job_id_p2 = mafft_runner(f"{all_results_dir}israel_sequences.fasta", run_after_job=job_id_p1)
     job_id_p3 = script_runner(f"python /sternadi/home/volume2/noam/SternLab/scripts/fasta_to_phylip.py -i {all_results_dir}israel_sequences.aln -o {all_results_dir}israel_sequences.aln.phy", run_after_job=job_id_p2)
@@ -75,7 +75,7 @@ def add_to_previous_results(run_after_job=None, all_results_dir=UNITED_OUTPUT_DI
     # mutations csv
     job_id_p5 = script_runner(f"python /sternadi/home/volume2/noam/SternLab/scripts/compare_aligned_msa.py -i {all_results_dir}israel_sequences.aln -r 'MN908947.3' -o {all_results_dir}israel_sequences.mutations.csv -e y", alias='mutations_from_msa', run_after_job=job_id_p2)
     # concat freqs
-    job_id_p6 = script_runner(f'python /sternadi/home/volume2/noam/SternLab/scripts/concat_dfs.py {all_results_dir}/../c*/python_pipeline/freqs/all_freqs.csv -o {all_results_dir}israel_freqs.csv', run_after_job=job_id_p5)
+    job_id_p6 = script_runner(f'python /sternadi/home/volume2/noam/SternLab/scripts/concat_dfs.py {all_results_dir}/../[a-zA-Z]*/python_pipeline/freqs/all_freqs.csv -o {all_results_dir}israel_freqs.csv', run_after_job=job_id_p5)
     # run alerts
     job_id_p7 = script_runner(f'python /sternadi/home/volume2/noam/SternLab/covid19/covid_artic_pipeline_alerts.py', run_after_job=job_id_p6)
     # mask bad seqs and create tree
