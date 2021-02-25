@@ -1227,18 +1227,19 @@ def ivar_runner(input_r1, output_dir,
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
 
-def pangolin_runner(input_fasta, outdir, outfile=None, alias="pangolin", queue="adistzachi", cmdfile="pangolin", gmem=1):
+def pangolin_runner(input_fasta, outdir, outfile=None, alias="pangolin", queue="adistzachi", cmdfile="pangolin", gmem=1, run_after_job=None):
     input_fasta = check_filename(input_fasta)
     outdir = check_dirname(outdir)
 
-    cmds = """module load miniconda/miniconda3-4.7.12
-    source '/powerapps/share/miniconda3-4.7.12/bin/activate' pangolin
+    cmds = """module unload python/python-anaconda3.2019.7
+    module load miniconda/miniconda3-4.7.12-environmentally
+    conda activate pangolin
     """
     cmdfile = pbs_jobs.assign_cmdfile_path(cmdfile, alias)
     if outfile == None:
         cmds += f"\npangolin {input_fasta} -o {outdir}"
     else:
         cmds += f"\npangolin {input_fasta} -o {outdir} --outfile {outfile}"
-    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=False)
+    pbs_jobs.create_pbs_cmd(cmdfile, alias=alias, queue=queue, gmem=gmem, cmds=cmds, load_python=False, run_after_job=run_after_job)
     job_id = pbs_jobs.submit(cmdfile)
     return job_id
