@@ -30,7 +30,7 @@ def main():
 
     for f in tqdm.tqdm(freqs_files):
         # if "all.freqs.csv" in f or 'all.csv' in f or '2089839' not in f:
-        if "all.freqs.csv" in f or 'all.csv' in f:
+        if "all.freqs.csv" in f or 'all.csv' in f or 'all_freqs.csv' in f:
             continue
         sample = f.split("/")[-1].split("_")[0]
         df = pd.read_csv(f)
@@ -75,7 +75,7 @@ def main():
         con += (end_pos - loc - 1) * "N"
         if options.mask:
             con = post_processing(con)
-        con_all += f">Israel/{sample}/2020\n{con}\n"
+        con_all += f">Israel/{sample}/2021\n{con}\n"
 
     with open(f"{directory}/{output_basename}_consensus_all.fasta", "w") as handle:
         handle.write(con_all)

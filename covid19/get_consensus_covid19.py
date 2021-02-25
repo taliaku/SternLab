@@ -29,7 +29,7 @@ def main():
 
     for f in tqdm.tqdm(freqs_files):
         #if "all.freqs.csv" in f or 'all.csv' in f or '2089839' not in f:
-        if "all.freqs.csv" in f or 'all.csv' in f:
+        if "all.freqs.csv" in f or 'all.csv' in f or 'all_freqs.csv' in f:
             continue
         sample = f.split("/")[-1].split("_")[0]
         df = pd.read_csv(f)
