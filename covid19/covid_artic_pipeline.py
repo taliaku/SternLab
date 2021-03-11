@@ -12,8 +12,6 @@ from file_utilities import check_filename, check_dirname, make_dir
 from pbs_runners import mafft_runner, phyml_runner, script_runner, pangolin_runner
 import argparse
 
-OUTPUT_DIR = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline/'
-UNITED_OUTPUT_DIR = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline/all_results/'
 REFERENCE_FILE = '/sternadi/home/volume2/noam/covid/references/MN908947.fasta'
 
 
@@ -75,7 +73,7 @@ def covid_artic_pipeline(input_dir, output_dir, evalue, alias="ARTIC_pipeline", 
     job_id_p7 = script_runner(f"python /sternadi/home/volume2/noam/SternLab/scripts/unite_all_freq_files.py -d '{output_dir}/python_pipeline/freqs/' -o '{output_dir}/python_pipeline/freqs/all_freqs.csv'", alias='unite_freqs', run_after_job=job_id_p3)
     return (job_id_p1, job_id_p2, job_id_p3, job_id_p3_5, job_id_p4, job_id_p4_5, job_id_p5, job_id_p5_5, job_id_p6, job_id_p6_5, job_id_p7)
 
-def add_to_previous_results(run_after_job=None, all_results_dir=UNITED_OUTPUT_DIR):
+def add_to_previous_results(all_results_dir, run_after_job=None):
     # unite concensuses
     job_id_p1 = script_runner(f'cat {REFERENCE_FILE} {all_results_dir}/../[a-zA-Z]*/python_pipeline/freqs/*strict_consensus_all.fasta > {all_results_dir}/strict/israel_sequences.fasta', run_after_job=run_after_job)
     job_id_p1_5 = script_runner(f'cat {REFERENCE_FILE} {all_results_dir}/../[a-zA-Z]*/python_pipeline/freqs/*majority_consensus_all.fasta > {all_results_dir}/majority/israel_sequences.fasta', run_after_job=run_after_job)
@@ -109,31 +107,38 @@ def add_to_previous_results(run_after_job=None, all_results_dir=UNITED_OUTPUT_DI
     job_id_p11 = pangolin_runner(f'{all_results_dir}/strict/israel_sequences.fasta', f'{all_results_dir}/strict/', f'israel_sequences.pangolin.csv', run_after_job=job_id_p2)
     job_id_p11_5 = pangolin_runner(f'{all_results_dir}/majority/israel_sequences.fasta', f'{all_results_dir}/majority/', f'israel_sequences.pangolin.csv', run_after_job=job_id_p2_5)
     # get sequencing stats
-    job_id_p12 = script_runner(f"python /sternadi/home/volume2/noam/SternLab/covid19/get_sequencing_success_stats.py", alias='seq_stats', run_after_job=job_id_p10)
+    job_id_p12 = script_runner(f"python /sternadi/home/volume2/noam/SternLab/covid19/get_sequencing_success_stats.py {all_results_dir.replace('all_results/', '')}", alias='seq_stats', run_after_job=job_id_p10)
     return (job_id_p1, job_id_p1_5, job_id_p2, job_id_p2_5, job_id_p3, job_id_p3_5, job_id_p4, job_id_p4_5, job_id_p5, job_id_p5_5, job_id_p6, job_id_p7, job_id_p8, job_id_p8_5, job_id_p9, job_id_p9_5, job_id_p10, job_id_p10_5, job_id_p11, job_id_p11_5, job_id_p12)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input_dir", type=str, help="input directory as downloaded from Technion, contains gzipped fastqs",
                         required=False, default=None)
-    parser.add_argument("-e", "--evalue", type=str, help="evalue for AccuNGS pipeline",
+    parser.add_argument("-e", "--evalue", type=str, help="evalue for AccuNGS pipeline, default 1e-30",
                         required=False, default='1e-30')
     args = parser.parse_args()
     if not vars(args):
         parser.print_help()
         parser.exit(1)
 
-    if not any(vars(args).values()): # no new library, just merge all libraries to UNITED_OUTPUT_DIR
-        add_to_previous_results()
+    if args.evalue == '1e-30':
+        OUTPUT_DIR = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline/'
+        UNITED_OUTPUT_DIR = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline/all_results/'
+    elif args.evalue == '1e-9':
+        OUTPUT_DIR = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline_eval1e-9/'
+        UNITED_OUTPUT_DIR = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline_eval1e-9/all_results/'
+
+    if args.input_dir == None: # no new library, just merge all libraries to UNITED_OUTPUT_DIR
+        add_to_previous_results(UNITED_OUTPUT_DIR)
     else:
         input_dir = check_dirname(args.input_dir)
         if input_dir.endswith('/'):
            input_dir = input_dir[:-1]
         output_dir = OUTPUT_DIR + os.path.basename(input_dir)
         make_dir(check_dirname(output_dir, Truedir=False))
-        print(f'reading from: {output_dir}')
-        print(f'writing to : {input_dir}')
+        print(f'reading from: {input_dir}')
+        print(f'writing to : {output_dir}, {UNITED_OUTPUT_DIR}')
         # run analysis on new data
         job_ids = covid_artic_pipeline(input_dir, output_dir, args.evalue)
         # add to all israel analysis files
-        #add_to_previous_results(job_ids[-1])
+        add_to_previous_results(UNITED_OUTPUT_DIR, job_ids[-1])
