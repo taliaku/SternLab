@@ -77,10 +77,17 @@ def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_pyt
     o.close()
 
 
-def submit(cmdfile):
+def submit(cmdfile, queue=True):
     cmd = "/opt/pbs/bin/qsub " + cmdfile
     result = os.popen(cmd).read()
-    return result.split(".")[0]
+    job_id = result.split(".")[0]
+    if queue and not job_id:
+        home_dir = os.path.expanduser('~')
+        HaQ = os.path.join(home_dir, '.HaQ')
+        with open(HaQ, 'a') as handle:
+            handle.write(cmdfile+'\n')
+        return f"{cmdfile} is waiting to run in your personal queue!"
+    return job_id
 
 
 def check_pbs(job_id):
@@ -109,7 +116,7 @@ def assign_cmdfile_path(cmdname, alias):
                      "okushnir": "/sternadi/home/volume3/okushnir/running", 
                      "omertirosh": "/sternadi/home/volume3/omer/logs", 
                      'noamharel':'/sternadi/home/volume2/noam/logs',
-                     'ita': '/sternadi/home/volume3/ita/pbs_logs'}
+                     'ita': '/sternadi/home/volume2/ita/pbs_logs'}
     if username in lab_users_dic.keys():
         tmp_dir = lab_users_dic[username]
         if not os.path.exists(tmp_dir):
