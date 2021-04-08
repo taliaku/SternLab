@@ -90,10 +90,17 @@ def create_array_pbs_cmd(cmdfile, jnum, alias, gmem=7, cmds="", dir="", load_pyt
     o.close()
 
 
-def submit(cmdfile):
+def submit(cmdfile, queue=True):
     cmd = "/opt/pbs/bin/qsub " + cmdfile
     result = os.popen(cmd).read()
-    return result.split(".")[0]
+    job_id = result.split(".")[0]
+    if queue and not job_id:
+        home_dir = os.path.expanduser('~')
+        HaQ = os.path.join(home_dir, '.HaQ')
+        with open(HaQ, 'a') as handle:
+            handle.write(cmdfile+'\n')
+        return f"{cmdfile} is waiting to run in your personal queue!"
+    return job_id
 
 
 def check_pbs(job_id):
