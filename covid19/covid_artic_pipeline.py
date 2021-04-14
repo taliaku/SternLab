@@ -1,6 +1,6 @@
 
 '''
-#### TO DO: color tree according to libraries, add pangolin lineages to final analysis
+#### TO DO: color tree according to libraries
 '''
 
 import os,sys,inspect
@@ -17,13 +17,13 @@ REFERENCE_FILE = '/sternadi/home/volume2/noam/covid/references/MN908947.fasta'
 
 def covid_artic_pipeline(input_dir, output_dir, evalue, alias="ARTIC_pipeline", queue="adistzachi"):
     input_dir = check_dirname(input_dir + '/Raw_data/')
-    output_dir = check_dirname(output_dir, Truedir = False)
+    output_dir = check_dirname(output_dir, Truedir=False)
     # create output dirs
     make_dir(output_dir)
     make_dir(f"{output_dir}/ptrimmer_cleanup/")
     make_dir(f"{output_dir}/python_pipeline/")
 
-    cmdfile = pbs_jobs.assign_cmdfile_path('ARTIC_pipeline_p1', alias);
+    cmdfile = pbs_jobs.assign_cmdfile_path('ARTIC_pipeline_p1', alias)
     gmem = 10;
 
     # ptrimmer
@@ -127,7 +127,9 @@ if __name__ == '__main__':
     elif args.evalue == '1e-9':
         OUTPUT_DIR = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline_eval1e-9/'
         UNITED_OUTPUT_DIR = '/sternadi/nobackup/volume1/covid/israel_artic_pipeline_eval1e-9/all_results/'
-
+    else:
+        print('unknown evalue')
+        parser.exit(1)
     if args.input_dir == None: # no new library, just merge all libraries to UNITED_OUTPUT_DIR
         add_to_previous_results(UNITED_OUTPUT_DIR)
     else:

@@ -16,6 +16,7 @@ for sample in glob.glob(f'{RESULTS_DIR}/*/python_pipeline/*/Summary.txt'):
         fi = fi.read()
     name = sample.replace('/Summary.txt', '').split('/')[-1]
     library = sample.replace(f'{RESULTS_DIR}', '').split('/')[0]
+    print(sample)
     try:
         read_count = p1.findall(fi)[0]
         mapped_read_count = p2.findall(fi)[0]
@@ -72,5 +73,6 @@ n_counts = pd.merge(n_counts_strict, n_counts_majority, on='name')
 results = pd.merge(results, n_counts, on='name', how='left')
 results = results[~results.library.str.contains('Tech6')]
 results = results[['name', 'library', 'read_count', 'mapped_read_precent', 'covered_positions_percent', 'strict_non_n_precent', 'majority_non_n_precent', 'suspicious_30_70_positions_percent', 'median_coverage', 'spike_median_coverage', 'spike_covered_positions_count', 'amp74_median_coverage', 'amp74_covered_positions_count', 'amp76_median_coverage', 'amp76_covered_positions_count']]
+results = results.drop_duplicates()
 results.to_csv(f'{RESULTS_DIR}/sequencing_success_stats.csv', index=False)
 

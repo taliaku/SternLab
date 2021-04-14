@@ -566,10 +566,13 @@ def unite_all_freq_files(freqs_dir, out_path=None):
     """
     freqs_df = []
     # read all freq files and add the sample name to the data frame
-    files = [os.path.join(freqs_dir, f) for f in os.listdir(freqs_dir) if not f.startswith('all') and f.endswith('.freqs.csv')]
+    files = [os.path.join(freqs_dir, f) for f in os.listdir(freqs_dir) if not f.startswith('all') and (f.endswith('.freqs.csv') or f.endswith('.tsv'))]
     for f in files:
         print(f)
-        curr_df = pd.read_csv(f)
+        if f.endswith('.tsv'):
+            curr_df = pd.read_csv(f, '\t')
+        else:
+            curr_df = pd.read_csv(f)
         sample = os.path.basename(f).split('_')[0]
         curr_df['File'] = sample
         freqs_df.append(curr_df)
@@ -582,4 +585,7 @@ def unite_all_freq_files(freqs_dir, out_path=None):
 def compatibilty_old_to_new(df):
     if 'Freq' in df.columns: # if old version:
         df = df.rename(columns={'Pos':'ref_position', 'Base':'base', 'Ref':'ref_base', 'Freq':'frequency', 'Read_count':'coverage', 'Rank':'rank', 'Prob':'probability'})
+    elif 'ref_pos' in df.columns: # if new itamar's version
+        df = df.rename(columns={'ref_pos':'ref_position', 'read_base':'base', 'base_count':'base_counter', 'rank':'base_rank'})
     return df
+
