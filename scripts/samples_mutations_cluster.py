@@ -9,6 +9,7 @@ parentdir = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(insp
 sys.path.insert(0,parentdir)
 from optparse import OptionParser
 from file_utilities import check_filename
+from freqs_utilities import compatibilty_old_to_new
 
 def samples_mutations_cluster(df, output_excel, threshold_freq=0.1, threshold_read_count=10, sample_column='File'):
     '''
@@ -25,11 +26,12 @@ def samples_mutations_cluster(df, output_excel, threshold_freq=0.1, threshold_re
 .
     (Recommendation: use conditional formatting in excel afterwards to color according to frequency.)
     '''
-    df['full_mutation'] = df.ref_base + df.ref_position.astype(int).astype(str) + df.base
+    df = compatibilty_old_to_new(df)
+    df['full_mutation'] = df.ref_base + df.ref_pos.astype(int).astype(str) + df.read_base
     df = df[df.coverage > threshold_read_count]
-    mutations_to_keep = df[(df.ref_base != df.base) & (df.ref_base != '-') & (df.frequency > threshold_freq)].full_mutation.drop_duplicates().tolist()
+    mutations_to_keep = df[(df.ref_base != df.read_base) & (df.ref_base != '-') & (df.frequency > threshold_freq)].full_mutation.drop_duplicates().tolist()
     mutations_to_keep = df[df.full_mutation.isin(mutations_to_keep)]
-    to_pivot = mutations_to_keep.pivot_table(values='frequency', index=['full_mutation', 'ref_position'], columns=sample_column)
+    to_pivot = mutations_to_keep.pivot_table(values='frequency', index=['full_mutation', 'ref_pos'], columns=sample_column)
     to_pivot_na = to_pivot[to_pivot.isnull().any(axis=1)]
     to_pivot = to_pivot.dropna()
     clustergrid = sns.clustermap(to_pivot, figsize=(15,15), xticklabels=True, yticklabels=True, method='weighted')

@@ -583,9 +583,9 @@ def unite_all_freq_files(freqs_dir, out_path=None):
 
 
 def compatibilty_old_to_new(df):
-    if 'Freq' in df.columns: # if old version:
-        df = df.rename(columns={'Pos':'ref_position', 'Base':'base', 'Ref':'ref_base', 'Freq':'frequency', 'Read_count':'coverage', 'Rank':'rank', 'Prob':'probability'})
-    elif 'ref_pos' in df.columns: # if new itamar's version
-        df = df.rename(columns={'ref_pos':'ref_position', 'read_base':'base', 'base_count':'base_counter', 'rank':'base_rank'})
+    if 'Freq' in df.columns: # if old perl version:
+        df = df.rename(columns={'Pos':'ref_pos', 'Base':'read_base', 'Ref':'ref_base', 'Freq':'frequency', 'Read_count':'coverage', 'Rank':'base_rank', 'Prob':'probability'})
+    elif 'ref_position' in df.columns: # if yaara's python version
+        df = df.rename(columns={'ref_position':'ref_pos', 'base':'read_base', 'base_counter':'base_count', 'rank':'base_rank'})
     return df
 
